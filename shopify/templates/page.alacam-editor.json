@@ -1,0 +1,4 @@
+{
+  "sections": { "main": { "type": "alacam-tasarim-editoru", "settings": {} } },
+  "order": ["main"]
+}

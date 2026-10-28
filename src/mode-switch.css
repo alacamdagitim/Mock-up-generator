@@ -1,0 +1,120 @@
+.online-mode-switch {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  flex: 0 0 114px;
+  align-items: center;
+  width: 114px;
+  height: 28px;
+  padding: 2px;
+  gap: 0;
+  border: 1px solid #000;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.online-mode-switch .online-mode-indicator {
+  position: absolute;
+  z-index: 0;
+  top: 2px;
+  left: 2px;
+  width: 54px;
+  height: 22px;
+  border-radius: 6px;
+  background: #000;
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.online-mode-switch[data-mode="2d"] .online-mode-indicator {
+  transform: translateX(100%);
+}
+
+.online-mode-switch button {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  flex: 0 0 54px;
+  width: 54px;
+  min-width: 54px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #000;
+  font-size: 12px;
+  line-height: 22px;
+  transition: color 0.3s ease;
+}
+
+.online-mode-switch button:hover,
+.online-mode-switch button[aria-pressed="true"] {
+  background: transparent;
+}
+
+.online-mode-switch button[aria-pressed="true"] {
+  color: #fff;
+}
+
+.online-mode-switch button:focus-visible {
+  outline: 2px solid #686868;
+  outline-offset: 4px;
+}
+
+@media (min-width: 1280px) {
+  .online-mode-switch {
+    flex-basis: 130px;
+    width: 130px;
+    height: 36px;
+  }
+
+  .online-mode-switch .online-mode-indicator {
+    width: 62px;
+    height: 30px;
+  }
+
+  .online-mode-switch button {
+    flex-basis: 62px;
+    width: 62px;
+    min-width: 62px;
+    height: 30px;
+    font-size: 14px;
+    line-height: 30px;
+  }
+}
+
+@media (min-width: 1680px) {
+  .online-mode-switch {
+    flex-basis: 150px;
+    width: 150px;
+    height: 40px;
+  }
+
+  .online-mode-switch .online-mode-indicator {
+    width: 72px;
+    height: 34px;
+  }
+
+  .online-mode-switch button {
+    flex-basis: 72px;
+    width: 72px;
+    min-width: 72px;
+    height: 34px;
+    line-height: 34px;
+  }
+}
+
+@media (max-width: 700px) {
+  .online-mode-switch {
+    position: absolute;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .online-mode-switch .online-mode-indicator,
+  .online-mode-switch button {
+    transition: none;
+  }
+}

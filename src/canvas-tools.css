@@ -1,0 +1,225 @@
+.design-workbench:not(.is-open) {
+  display: none;
+}
+
+.design-canvas-dock {
+  width: 419px;
+  height: 48px;
+  padding: 0 4px;
+  gap: 0;
+  justify-content: center;
+  overflow: visible;
+  z-index: 75;
+}
+
+.design-canvas-dock > button,
+.design-canvas-dock .canvas-tool-control > button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  min-width: 0;
+  padding: 0;
+  margin: 0 3px;
+  border-radius: 8px;
+}
+
+.design-canvas-dock .canvas-tool-control > .zoom-reset {
+  width: 48px;
+  min-width: 48px;
+  margin: 0;
+}
+
+.design-canvas-dock > button[aria-label="Tuvali uzaklaştır"],
+.design-canvas-dock > button[aria-label="Tuvali yakınlaştır"] {
+  margin: 0;
+}
+
+.design-canvas-dock > i {
+  flex: 0 0 1px;
+  width: 1px;
+  height: 18px;
+  margin: 0 8px;
+  background: #e5e5e5;
+}
+
+.design-canvas-dock output {
+  font-size: 14px;
+  line-height: 20px;
+  pointer-events: none;
+}
+
+.canvas-tool-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.canvas-tools-popover {
+  position: absolute;
+  bottom: 100%;
+  z-index: 80;
+  padding: 8px;
+  color: #191919;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px #00000012;
+  box-sizing: border-box;
+}
+
+.canvas-zoom-menu {
+  left: 50%;
+  width: 136px;
+  height: 196px;
+  transform: translateX(-50%);
+  border: 0;
+}
+
+.design-canvas-dock .canvas-zoom-menu button {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  height: 45px;
+  min-height: 45px;
+  padding: 12px 8px;
+  margin: 0;
+  color: #191919;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 400;
+  text-align: left;
+}
+
+.design-canvas-dock .canvas-zoom-menu button:hover,
+.design-canvas-dock .canvas-zoom-menu button:focus-visible {
+  background: #f4f4f4;
+}
+
+.canvas-view-menu {
+  left: 0;
+  right: auto;
+  bottom: calc(100% + 24px);
+  padding: 0 4px;
+  width: 238px;
+  max-width: calc(100vw - 24px);
+  border: 0;
+}
+
+.canvas-tools-popover::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  transform: rotate(45deg);
+}
+
+.canvas-view-menu::after {
+  left: 15px;
+}
+
+.canvas-view-menu label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 45px;
+  padding: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 21px;
+  white-space: nowrap;
+}
+
+.canvas-view-menu label:hover {
+  background: #f5f5f5;
+}
+
+.canvas-view-menu input[type="checkbox"] {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  accent-color: #151515;
+}
+
+.paper-width[hidden],
+.paper-height[hidden] {
+  display: none;
+}
+
+.artboard.material-hidden {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #e4e4e4 25%, transparent 25%),
+    linear-gradient(-45deg, #e4e4e4 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e4e4e4 75%),
+    linear-gradient(-45deg, transparent 75%, #e4e4e4 75%);
+  background-size: 24px 24px;
+  background-position:
+    0 0,
+    0 12px,
+    12px -12px,
+    -12px 0;
+}
+
+.artboard .canvas-container {
+  z-index: 1;
+}
+
+.artboard .guide-overlay {
+  z-index: 3;
+}
+
+.artboard .snap-x,
+.artboard .snap-y {
+  z-index: 4;
+}
+
+.artboard .canvas-loading {
+  z-index: 5;
+}
+
+@media (max-width: 700px) {
+  .canvas-view-menu {
+    left: auto;
+    right: 0;
+  }
+  .canvas-view-menu::after {
+    left: auto;
+    right: 15px;
+  }
+  .design-canvas-dock {
+    width: 350px;
+    max-width: calc(100vw - 24px);
+    height: 40px;
+    padding: 0 5px;
+    justify-content: space-between;
+  }
+
+  .design-canvas-dock > button,
+  .design-canvas-dock .canvas-tool-control > button {
+    width: 28px;
+    height: 32px;
+    margin: 0;
+  }
+
+  .design-canvas-dock .canvas-tool-control > .zoom-reset {
+    width: 44px;
+    min-width: 44px;
+  }
+
+  .design-canvas-dock > i {
+    margin: 0 4px;
+  }
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+shopify/assets/
+.env
+.env.*
+!.env.example
+.vercel/
+data/
+test-results/
+playwright-report/
+releases/
+.DS_Store
+*.log
+*.tsbuildinfo
+tests/.preview-*-probe.mjs

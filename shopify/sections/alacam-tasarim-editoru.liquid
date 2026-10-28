@@ -1,0 +1,33 @@
+{% comment %}
+  Alaçam Tasarım Editörü · React + Fabric.js + Three.js
+  npm run build sonrası shopify/assets içeriğini tema assets/ dizinine kopyalayın.
+  Gizli anahtar içermez. API URL'si herkese açık bir adres olmalıdır.
+{% endcomment %}
+{% assign editor_product = section.settings.product | default: product %}
+{% capture editor_config %}
+{
+  "apiBase": {{ section.settings.api_base | default: '/api' | json }},
+  "productId": {{ editor_product.id | append: '' | json }},
+  "productTitle": {{ editor_product.title | default: 'Beyaz Doypack' | json }},
+  "productDielineUrl": {{ editor_product.metafields.custom.alacam_dieline.value.url | default: '' | json }},
+  "productImage": {% if editor_product.featured_image %}{{ editor_product.featured_image | image_url: width: 400 | json }}{% else %}null{% endif %},
+  "libraryKey": {{ 'alacam:library:v1:' | append: section.id | json }},
+  "storageKey": {{ 'alacam:v1:' | append: section.id | append: ':' | append: editor_product.id | json }},
+  "cartRoot": {{ routes.root_url | json }},
+  "variants": [{% for variant in editor_product.variants %}{"id": {{ variant.id | json }}, "title": {{ variant.title | json }}, "available": {{ variant.available | json }}}{% unless forloop.last %},{% endunless %}{% endfor %}]
+}
+{% endcapture %}
+<div data-alacam-editor data-config="{{ editor_config | strip_newlines | escape }}" style="display:block; min-height:600px;"></div>
+<script src="{{ 'alacam-editor.js' | asset_url }}" type="module"></script>
+{% schema %}
+{
+  "name": "Alaçam Tasarım Editörü",
+  "tag": "section",
+  "class": "alacam-design-section",
+  "settings": [
+    { "type": "product", "id": "product", "label": "Doypack ürünü", "info": "Editörde satılacak baskısız doypack ürününü seçin." },
+    { "type": "text", "id": "api_base", "label": "Tasarım API adresi", "info": "Örn. https://design-api.magazaniz.com/api. Depolama bağlı değilse sepete ekleme kapalıdır." }
+  ],
+  "presets": [{ "name": "Alaçam Tasarım Editörü" }]
+}
+{% endschema %}

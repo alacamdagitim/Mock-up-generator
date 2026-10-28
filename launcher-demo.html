@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>Alaçam Dağıtım · Online design açılış örneği</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; color: #191919; background: #fff; font: 400 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+      .demo-header { min-height: 88px; margin: 0 auto; padding: 24px 48px; border-bottom: 1px solid #e9e9e7; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+      .demo-brand { font-size: 24px; font-weight: 750; letter-spacing: -1px; line-height: 1.2; }
+      .demo-brand small { margin-left: 9px; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+      .demo-header-note { color: #666b67; font-size: 13px; }
+      main { width: min(1144px, 100%); padding: 40px 36px 28px; margin: 0 auto; }
+      .demo-breadcrumb { margin: 0 0 26px; color: #6c706c; font-size: 12px; }
+      .demo-breadcrumb span { padding: 0 10px; color: #b6bab6; }
+      .demo-product { display: grid; grid-template-columns: 1.08fr 1fr; align-items: center; gap: 72px; }
+      .demo-product-image { min-height: 550px; display: grid; place-items: center; position: relative; overflow: hidden; background: #f5f5f2; border-radius: 16px; }
+      .demo-product-image svg { width: min(370px, 90%); height: auto; display: block; }
+      .demo-image-label { position: absolute; bottom: 22px; left: 25px; color: #787d75; font-size: 11px; letter-spacing: .02em; }
+      .demo-kicker { display: inline-flex; align-items: center; gap: 7px; margin: 0 0 14px; color: #4c5d4d; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; }
+      .demo-kicker::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #71876f; }
+      h1 { margin: 0 0 8px; font-size: clamp(30px, 3.2vw, 42px); font-weight: 600; letter-spacing: -1.5px; line-height: 1.2; }
+      .demo-subtitle { margin: 0 0 25px; color: #70756f; font-size: 14px; }
+      .demo-intro { max-width: 390px; margin: 0 0 27px; color: #4f554f; font-size: 14px; line-height: 1.8; }
+      .demo-form { display: grid; gap: 12px; }
+      .demo-form label { font-size: 12px; font-weight: 600; }
+      .demo-form select { width: 100%; min-height: 48px; padding: 11px 14px; border: 1px solid #d8dbd6; border-radius: 7px; background: #fff; color: #222; font: inherit; font-size: 14px; cursor: pointer; }
+      .demo-launch { width: 100%; min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 12px; margin-top: 8px; padding: 13px 20px; border: 1px solid #191919; border-radius: 7px; background: #191919; color: #fff; font: 500 14px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; cursor: pointer; transition: background .15s ease; }
+      .demo-launch:hover { background: #343434; }
+      .demo-launch svg { width: 17px; height: 17px; }
+      .demo-form :focus-visible { outline: 2px solid #8f45ff; outline-offset: 3px; }
+      .demo-hint { margin: 2px 0 0; color: #777c75; font-size: 11px; text-align: center; }
+      .demo-details { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 28px 0 0; padding-top: 21px; border-top: 1px solid #e8eae6; }
+      .demo-details dt { margin-bottom: 3px; color: #81857f; font-size: 11px; }
+      .demo-details dd { margin: 0; color: #424842; font-size: 12px; }
+      .demo-footer { margin: 34px 0 0; padding: 20px 0 0; border-top: 1px solid #e9eae7; color: #7b8079; font-size: 11px; text-align: center; }
+      @media (max-width: 760px) {
+        .demo-header { min-height: 70px; padding: 20px 22px; }
+        .demo-brand { font-size: 21px; }
+        .demo-brand small { font-size: 10px; margin-left: 7px; }
+        .demo-header-note { font-size: 11px; }
+        main { padding: 24px 22px; }
+        .demo-breadcrumb { margin-bottom: 18px; }
+        .demo-product { grid-template-columns: 1fr; gap: 30px; }
+        .demo-product-image { min-height: 340px; }
+        .demo-product-image svg { width: 260px; }
+        .demo-image-label { left: 18px; bottom: 15px; font-size: 10px; }
+        h1 { font-size: 32px; letter-spacing: -1px; }
+        .demo-subtitle { margin-bottom: 18px; }
+        .demo-intro { max-width: none; margin-bottom: 23px; }
+        .demo-footer { margin-top: 26px; }
+      }
+      @media (max-width: 400px) { .demo-header-note { max-width: 82px; text-align: right; line-height: 1.4; } }
+      @media (prefers-reduced-motion: reduce) { .demo-launch { transition: none; } }
+    </style>
+  </head>
+  <body>
+    <header class="demo-header">
+      <div class="demo-brand">Alaçam<small>Dağıtım</small></div>
+      <span class="demo-header-note">Ambalaj tasarım atölyesi</span>
+    </header>
+    <main>
+      <p class="demo-breadcrumb">Tasarım örneği<span>/</span>Doypack</p>
+      <section class="demo-product" aria-labelledby="demo-product-title">
+        <div class="demo-product-image">
+          <svg viewBox="0 0 420 540" role="img" aria-label="Özgün beyaz doypack ambalaj çizimi">
+            <defs>
+              <linearGradient id="demo-front" x1="0" y1="0" x2="1" y2=".25"><stop stop-color="#ebede8"/><stop offset=".2" stop-color="#fafbf8"/><stop offset=".7" stop-color="#fff"/><stop offset="1" stop-color="#e9ece5"/></linearGradient>
+              <linearGradient id="demo-side" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d1d6cc"/><stop offset=".45" stop-color="#e5e9df"/><stop offset="1" stop-color="#c5cdbf"/></linearGradient>
+              <linearGradient id="demo-seal" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f7f8f3"/><stop offset="1" stop-color="#dfe4d8"/></linearGradient>
+              <filter id="demo-shadow"><feGaussianBlur stdDeviation="12"/></filter>
+            </defs>
+            <ellipse cx="218" cy="466" rx="120" ry="17" fill="#293627" opacity=".15" filter="url(#demo-shadow)"/>
+            <path d="M294 112 326 136 337 439Q330 454 306 459L283 444Z" fill="url(#demo-side)"/>
+            <path d="M112 105Q199 101 294 112L300 165Q307 278 313 433L304 459Q219 470 112 453L101 425Q104 277 109 165Z" fill="url(#demo-front)" stroke="#d8ddd2" stroke-width="1.4"/>
+            <path d="M112 105Q202 103 294 112L297 133Q208 123 111 128Z" fill="url(#demo-seal)"/>
+            <path d="M110 141Q200 136 298 146" fill="none" stroke="#d6ddcf" stroke-width="2"/>
+            <path d="M111 147Q206 141 298 152" fill="none" stroke="#fff" stroke-width="2" opacity=".85"/>
+            <path d="M111 167Q117 273 111 422M296 166Q300 322 304 430" fill="none" stroke="#c8d1bf" opacity=".28" stroke-width="2"/>
+            <path d="M113 435Q215 452 311 436L304 459Q218 470 112 453Z" fill="#dce2d4" opacity=".5"/>
+            <path d="M126 423Q176 434 224 432M260 186Q278 228 282 274" fill="none" stroke="#fff" stroke-width="3" opacity=".6"/>
+          </svg>
+          <span class="demo-image-label">Özgün ambalaj çizimi</span>
+        </div>
+        <div>
+          <p class="demo-kicker">Kendi tasarımını oluştur</p>
+          <h1 id="demo-product-title">Beyaz doypack</h1>
+          <p class="demo-subtitle">Örnek ürün · 140 × 210 mm</p>
+          <p class="demo-intro">Logonu ekle, ambalajını düzenle ve tasarımını üç boyutlu incele. Online design ile tasarım alanını tam ekran aç.</p>
+          <form id="alacam-demo-product-form" class="demo-form" action="/cart/add" method="post">
+            <label for="alacam-demo-variant">Ürün seçeneği</label>
+            <select id="alacam-demo-variant" name="id">
+              <option value="10001">Beyaz / Standart</option>
+              <option value="10002">Beyaz / Mat</option>
+            </select>
+            <button type="button" class="demo-launch" data-alacam-open="alacam-demo-launch-config" data-alacam-product-form="#alacam-demo-product-form" aria-haspopup="dialog">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m12.8 3.2 4 4M3.2 16.8l4.2-1 9.9-9.9a1.3 1.3 0 0 0 0-1.8l-1.4-1.4a1.3 1.3 0 0 0-1.8 0L4.2 12.6l-1 4.2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Online design
+            </button>
+            <p class="demo-hint">Düzenle · 3B önizle · Kaydet</p>
+          </form>
+          <dl class="demo-details">
+            <div><dt>Model</dt><dd>Özgün yaklaşık doypack</dd></div>
+            <div><dt>Bağlantı</dt><dd>Demo varyantlar · 10001 / 10002</dd></div>
+          </dl>
+        </div>
+      </section>
+      <footer class="demo-footer">Tam ekran açılış örneği. Gerçek mağaza/sipariş bağlantısı içermez.</footer>
+    </main>
+    <script id="alacam-demo-launch-config" type="application/json">
+      {
+        "productId": "demo-doypack",
+        "productTitle": "Beyaz doypack · Demo",
+        "storageKey": "alacam:demo:shopify-button:v1",
+        "initialVariantId": 10001,
+        "variants": [
+          { "id": 10001, "title": "Beyaz / Standart", "available": true },
+          { "id": 10002, "title": "Beyaz / Mat", "available": true }
+        ],
+        "cartRoot": "/",
+        "apiBase": "/demo-no-storage/api"
+      }
+    </script>
+    <script type="module" src="./src/launcher.ts"></script>
+  </body>
+</html>

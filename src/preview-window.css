@@ -1,0 +1,98 @@
+.preview-window-indicator {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 16px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: #101010;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.preview-window-indicator svg,
+.preview-window-resize > svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+.preview-window-resize {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  bottom: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  cursor: nesw-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.preview-window-resize:focus-visible {
+  border-radius: 0 4px 0 0;
+  outline: 2px solid #181818;
+  outline-offset: -2px;
+}
+
+.preview-window-resize-tip,
+.preview-window-indicator-tip {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  bottom: 36px;
+  padding: 5px 9px;
+  border-radius: 5px;
+  background: #1c1c1c;
+  color: white;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.preview-window-indicator-tip {
+  top: 36px;
+  right: 0;
+  bottom: auto;
+  left: auto;
+}
+
+.preview-window-indicator:hover .preview-window-indicator-tip,
+.preview-window-resize:hover .preview-window-resize-tip,
+.preview-window-resize:focus-visible .preview-window-resize-tip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.preview-window-resize[data-dragging="true"] .preview-window-resize-tip {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (pointer: coarse) and (min-width: 701px) {
+  .preview-window-resize {
+    width: 40px;
+    height: 40px;
+  }
+
+  .preview-window-resize > svg {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .preview-window-indicator,
+  .preview-window-resize {
+    display: none;
+  }
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140mm" height="210mm" viewBox="0 0 600 900">
+<title>Alaçam doypack ön yüz — ÖRNEK, ÜRETİM ONAYSIZ</title>
+<metadata>{"schemaVersion":1,"modelId":"doypack-v1","assetRevision":"doypack-v1-r1","face":"front","productionReady":false,"kind":"reference-artboard","dimensionsMm":{"width":140,"height":210},"printRectMm":{"x":8.166666666666666,"y":24.5,"width":123.66666666666667,"height":170.33333333333334},"safeInsetMm":{"x":5.6,"y":5.6}}</metadata>
+<g id="artwork"><rect width="600" height="900" fill="white"/></g>
+<g id="reference-guides" data-production="false" fill="none" stroke-width="1.5">
+<rect x="0.75" y="0.75" width="598.5" height="898.5" stroke="#202020"/>
+<rect x="35" y="105" width="530" height="730" stroke="#8050d5" stroke-dasharray="8 4"/>
+<rect x="59" y="129" width="482" height="682" stroke="#288766" stroke-dasharray="4 4"/>
+<text x="300" y="875" text-anchor="middle" fill="#333" stroke="none" font-family="Arial, sans-serif" font-size="13">ÖRNEK ŞABLON · ÜRETİM ONAYSIZ</text>
+</g></svg>

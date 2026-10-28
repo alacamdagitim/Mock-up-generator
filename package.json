@@ -1,0 +1,52 @@
+{
+  "name": "alacam-ambalaj-editoru",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5184 --strictPort",
+    "build": "tsc -b && vite build && npm run licenses && node scripts/package-shopify.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "server": "node --env-file=.env server/index.mjs",
+    "server:dev": "node server/index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "assets:generate": "node scripts/generate-product-assets.mjs",
+    "assets:layouts": "node scripts/generate-layout-covers.mjs",
+    "release": "npm run build && python3 scripts/package-release.py",
+    "test:workspace": "node tests/design-workspace.browser.mjs",
+    "licenses": "node scripts/licenses.mjs",
+    "test:interactions": "node tests/editor-interactions.browser.mjs",
+    "test:shell": "node tests/editor-shell.browser.mjs",
+    "test:render": "node tests/studio-render.browser.mjs",
+    "test:denoise": "node tests/guided-denoise.browser.mjs",
+    "test:launcher": "node tests/shopify-launcher.browser.mjs",
+    "test:launcher:build": "node tests/shopify-build.browser.mjs",
+    "test:preview": "node tests/preview-polish.browser.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "cors": "^2.8.5",
+    "dompurify": "^3.2.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "fabric": "^6.7.1",
+    "helmet": "^8.1.0",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.180.0",
+    "three-gpu-pathtracer": "0.0.24",
+    "three-mesh-bvh": "0.9.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/three": "^0.180.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "prettier": "^3.9.10",
+    "typescript": "~5.7.3",
+    "vite": "^6.1.0"
+  }
+}
