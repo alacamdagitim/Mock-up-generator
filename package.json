@@ -26,7 +26,9 @@
     "test:quality": "node tests/render-quality.browser.mjs",
     "test:high-resolution": "node tests/high-resolution.browser.mjs",
     "test:exports": "node tests/export-workflow.browser.mjs",
-    "test:render-snapshot": "node tests/render-snapshot.browser.mjs"
+    "test:render-snapshot": "node tests/render-snapshot.browser.mjs",
+    "test:model-binding": "node tests/model-binding.browser.mjs",
+    "test:live-preview": "node tests/live-preview.browser.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",

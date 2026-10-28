@@ -222,6 +222,103 @@ try {
     "Disposal is idempotent and releases owned image buffers",
   );
 
+  const manualBinding = await page.evaluate(async () => {
+    const T = await import("/node_modules/.vite/deps/three.js");
+    const { createImportedAsset } = await import("/src/productModel.ts");
+    const { captureRenderSnapshot } = await import("/src/render/snapshot.ts");
+    const ink = (width, height, color) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      context.fillStyle = color;
+      context.fillRect(0, 0, width, height);
+      return canvas;
+    };
+    const originalFront = new T.CanvasTexture(ink(16, 8, "#a44b99"));
+    const originalBack = new T.CanvasTexture(ink(16, 8, "#884466"));
+    const frontMaterial = new T.MeshPhysicalMaterial({ map: originalFront });
+    frontMaterial.name = "artwork_front";
+    const backMaterial = new T.MeshPhysicalMaterial({ map: originalBack });
+    backMaterial.name = "artwork_back";
+    const front = new T.Mesh(new T.PlaneGeometry(1, 2), frontMaterial);
+    front.name = "print_front";
+    const back = new T.Mesh(new T.PlaneGeometry(1, 2), backMaterial);
+    back.name = "print_back";
+    const product = new T.Group();
+    product.add(front, back);
+    // Choose the authored back surface as a single FRONT artwork target. The
+    // unused authored front surface must retain its original texture in render.
+    const asset = createImportedAsset(
+      product,
+      {
+        capabilities: { getMaxAnisotropy: () => 1 },
+      },
+      { targetId: "1:0", flipY: true },
+    );
+    const camera = new T.PerspectiveCamera(34, 1, 0.05, 100);
+    camera.position.set(0, 0, 5);
+    const printFront = ink(4096, 1024, "#00dd44");
+    const printBack = ink(2048, 512, "#2255cc");
+    const snapshot = captureRenderSnapshot(
+      product,
+      camera,
+      new T.Vector3(),
+      {
+        material: "matte",
+        background: "#ffffff",
+        backgroundStyle: "solid",
+        exposure: 1,
+        shadows: true,
+      },
+      { front: printFront, back: printBack },
+    );
+    const pixel = (material) => {
+      const canvas = material.map.image;
+      return {
+        width: canvas.width,
+        height: canvas.height,
+        flipY: material.map.flipY,
+        color: [...canvas.getContext("2d").getImageData(0, 0, 1, 1).data],
+      };
+    };
+    const result = {
+      liveSelectedFace: back.material.userData.printableFace,
+      liveUnselectedOriginal:
+        front.material === frontMaterial &&
+        front.material.map === originalFront,
+      selected: pixel(snapshot.product.getObjectByName("print_back").material),
+      unselected: pixel(
+        snapshot.product.getObjectByName("print_front").material,
+      ),
+    };
+    snapshot.dispose();
+    asset.dispose();
+    printFront.width =
+      printFront.height =
+      printBack.width =
+      printBack.height =
+        1;
+    return result;
+  });
+  expect(manualBinding.liveSelectedFace).toBe("front");
+  expect(manualBinding.liveUnselectedOriginal).toBe(true);
+  expect(manualBinding.selected).toEqual({
+    width: 4096,
+    height: 1024,
+    flipY: true,
+    color: [0, 221, 68, 255],
+  });
+  expect(manualBinding.unselected).toEqual({
+    width: 16,
+    height: 8,
+    flipY: true,
+    color: [164, 75, 153, 255],
+  });
+  summary.passed.push(
+    "Manual front binding on a print_back mesh stays front in offline render; unselected explicitly named surfaces preserve original textures",
+  );
+
   const cancellation = await page.evaluate(async () => {
     const T = await import("/node_modules/.vite/deps/three.js");
     const { captureRenderSnapshot } = await import("/src/render/snapshot.ts");

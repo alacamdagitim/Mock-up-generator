@@ -7,7 +7,7 @@ import {
 } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { createLiveStudioEnvironment, liveStudioLighting } from "./liveStudio";
 import { createPouchAsset } from "./pouchAsset";
 import { arrangeProduct, fittedDistance } from "./productLayout";
 import { previewBuffer } from "../shared/render-quality.mjs";
@@ -43,6 +43,7 @@ type SceneState = {
   contacts: THREE.Group;
   contactShadow: ReturnType<typeof createContactShadow>;
   lights: THREE.DirectionalLight[];
+  hemisphere: THREE.HemisphereLight;
   mobile: boolean;
   backgroundMap?: THREE.Texture;
   exportBackground?: THREE.Color | THREE.Texture | null;
@@ -172,7 +173,8 @@ export const Preview = forwardRef<
     renderer.shadowMap.type = THREE.VSMShadowMap;
     renderer.shadowMap.autoUpdate = false;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    // Khronos PBR Neutral preserves packaging ink hues under neutral studio light.
+    renderer.toneMapping = THREE.NeutralToneMapping;
     el.appendChild(renderer.domElement);
     const scene = new THREE.Scene(),
       camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
@@ -188,18 +190,15 @@ export const Preview = forwardRef<
     controls.maxDistance = 36;
     controls.maxPolarAngle = Math.PI * 0.8;
     controls.minPolarAngle = Math.PI * 0.1;
-    // Bundled open-source procedural room. No remote HDRI or licensed photographic asset.
-    const environment = new RoomEnvironment(),
-      pmrem = new THREE.PMREMGenerator(renderer);
-    const environmentTarget = pmrem.fromScene(environment, 0.04, 0.1, 100);
+    // Neutral, locally generated photographic light cards. PMREM supplies
+    // roughness-correct reflections without a heavy continuous render pass.
+    const environmentTarget = createLiveStudioEnvironment(renderer, mobile);
     scene.environment = environmentTarget.texture;
-    scene.environmentIntensity = 0.65;
-    environment.dispose();
-    pmrem.dispose();
-    const hemisphere = new THREE.HemisphereLight(0xffffff, 0x858c98, 0.3);
+    scene.environmentIntensity = 0.72;
+    const hemisphere = new THREE.HemisphereLight(0xffffff, 0x868686, 0.1);
     scene.add(hemisphere);
-    const key = new THREE.DirectionalLight(0xfff9f2, 2.25);
-    key.position.set(-3.5, 7, 5);
+    const key = new THREE.DirectionalLight(0xffffff, 1.8);
+    key.position.set(-5, 5.5, 6);
     key.castShadow = true;
     key.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048);
     Object.assign(key.shadow.camera, {
@@ -215,10 +214,10 @@ export const Preview = forwardRef<
     key.shadow.bias = -0.00015;
     key.shadow.normalBias = 0.015;
     scene.add(key);
-    const fill = new THREE.DirectionalLight(0xe5edff, 0.7);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.4);
     fill.position.set(5, 3, 2);
     scene.add(fill);
-    const rim = new THREE.DirectionalLight(0xffffff, 1.4);
+    const rim = new THREE.DirectionalLight(0xffffff, 1.1);
     rim.position.set(2, 5, -5);
     scene.add(rim);
     scene.add(key.target, fill.target, rim.target);
@@ -253,7 +252,7 @@ export const Preview = forwardRef<
       );
       const scale = Math.max(1, radius / 2.2);
       const positions = [
-        [settingsRef.current.lighting === "dramatic" ? -5 : -3.5, 7, 5],
+        [settingsRef.current.lighting === "dramatic" ? -6 : -5, 5.5, 6],
         [5, 3, 2],
         [2, 5, -5],
       ];
@@ -387,6 +386,7 @@ export const Preview = forwardRef<
       contacts,
       contactShadow,
       lights: [key, fill, rim],
+      hemisphere,
       mobile,
       render,
       fit,
@@ -566,16 +566,18 @@ export const Preview = forwardRef<
       s.exportBackground = t;
     }
     s.scene.background = null;
-    s.renderer.toneMappingExposure = settings.exposure;
+    const lighting = liveStudioLighting(settings.lighting);
+    s.renderer.toneMappingExposure = settings.exposure * lighting.exposure;
     if (!s.external) applyPouchFinish(s.materials, s.seal, settings);
-    const presets = {
-      softbox: [2.25, 0.7, 1.4, 0.6],
-      daylight: [2.8, 1.05, 1, 0.55],
-      dramatic: [3, 0.2, 2, 0.32],
-    } as const;
-    const lighting = presets[settings.lighting || "softbox"];
-    s.lights.forEach((l, i) => (l.intensity = lighting[i]));
-    s.scene.environmentIntensity = lighting[3];
+    [lighting.key, lighting.fill, lighting.rim].forEach((intensity, index) => {
+      s.lights[index].intensity = intensity;
+    });
+    const daylight = settings.lighting === "daylight";
+    s.lights[0].color.set(daylight ? "#fff9ee" : "#ffffff");
+    s.lights[1].color.set(daylight ? "#e6eeff" : "#ffffff");
+    s.hemisphere.groundColor.set(daylight ? "#8c98a8" : "#868686");
+    s.scene.environmentIntensity = lighting.environment;
+    s.hemisphere.intensity = lighting.ambient;
     s.contacts.visible = settings.shadows;
     s.renderer.shadowMap.enabled = settings.shadows;
     s.updateShadow();

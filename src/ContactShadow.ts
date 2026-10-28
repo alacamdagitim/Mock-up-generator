@@ -1,11 +1,11 @@
 import * as THREE from "three";
-/** Original, demand-baked ground shadow. Depth capture + separable blur; no external textures. */
+/** Original, demand-baked ground shadow. Height capture + two blur scales; no external textures. */
 export function createContactShadow(
   renderer: THREE.WebGLRenderer,
   resolution: number,
 ) {
   const textureSize = THREE.MathUtils.clamp(Math.round(resolution), 128, 1024);
-  const targets = [0, 1, 2].map(
+  const targets = [0, 1, 2, 3, 4].map(
     (index) =>
       new THREE.WebGLRenderTarget(textureSize, textureSize, {
         depthBuffer: index === 0,
@@ -49,11 +49,11 @@ export function createContactShadow(
     screenCamera = new THREE.Camera();
   blurScene.add(quad);
   const material = new THREE.MeshBasicMaterial({
-    color: 0x30353c,
+    color: 0x292d33,
     alphaMap: targets[2].texture,
     transparent: true,
     depthWrite: false,
-    opacity: 0.4,
+    opacity: 0.36,
     toneMapped: false,
   });
   const geometry = new THREE.PlaneGeometry(1, 1),
@@ -62,7 +62,19 @@ export function createContactShadow(
   // texture coordinate when projecting it onto the upward-facing ground.
   for (let index = 0; index < uv.count; index++)
     uv.setX(index, 1 - uv.getX(index));
+  const ambientMaterial = new THREE.MeshBasicMaterial({
+    color: 0x3a3f47,
+    alphaMap: targets[4].texture,
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.16,
+    toneMapped: false,
+  });
   const mesh = new THREE.Mesh(geometry, material);
+  const ambient = new THREE.Mesh(geometry, ambientMaterial);
+  ambient.position.z = -0.001;
+  ambient.renderOrder = -1;
+  mesh.add(ambient);
   mesh.rotation.x = -Math.PI / 2;
   mesh.name = "contact_shadow";
   mesh.visible = false;
@@ -94,7 +106,7 @@ export function createContactShadow(
       camera.updateProjectionMatrix();
       depthRange.value = camera.far - camera.near;
       cameraToGround.value = gap - camera.near;
-      falloff.value = Math.max(0.08, size.y * 0.115);
+      falloff.value = Math.max(0.08, size.y * 0.09);
       mesh.position.set(center.x, ground, center.z);
       mesh.scale.set(width, height, 1);
       mesh.visible = true;
@@ -137,6 +149,17 @@ export function createContactShadow(
         blur.uniforms.direction.value.set(0, blurWorld / height);
         renderer.setRenderTarget(targets[2]);
         renderer.render(blurScene, screenCamera);
+        // A wider, lighter lobe complements the close contact edge. Both are
+        // baked only on geometry/gesture changes, never in an idle frame loop.
+        const ambientWorld = THREE.MathUtils.clamp(size.y * 0.04, 0.05, 0.15);
+        blur.uniforms.image.value = targets[2].texture;
+        blur.uniforms.direction.value.set(ambientWorld / width, 0);
+        renderer.setRenderTarget(targets[3]);
+        renderer.render(blurScene, screenCamera);
+        blur.uniforms.image.value = targets[3].texture;
+        blur.uniforms.direction.value.set(0, ambientWorld / height);
+        renderer.setRenderTarget(targets[4]);
+        renderer.render(blurScene, screenCamera);
       } finally {
         capture.remove(root);
         if (parent) {
@@ -170,6 +193,7 @@ export function createContactShadow(
       blur.dispose();
       mesh.geometry.dispose();
       material.dispose();
+      ambientMaterial.dispose();
     },
   };
 }

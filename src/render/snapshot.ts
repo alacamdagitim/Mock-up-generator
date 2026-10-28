@@ -181,12 +181,27 @@ export function captureRenderSnapshot(
           : object.name === "print_back"
             ? "back"
             : undefined);
-      for (const material of Array.isArray(object.material)
+      const declaredBindings = object.userData.alacamPrintBindings;
+      const importedBindings =
+        declaredBindings &&
+        typeof declaredBindings === "object" &&
+        !Array.isArray(declaredBindings)
+          ? declaredBindings
+          : undefined;
+      const objectMaterials = Array.isArray(object.material)
         ? object.material
-        : [object.material]) {
-        // Keep the same mesh/extras/material-name contract as the GLB binder.
-        const face =
-          mappedFace || /^artwork_(front|back)$/.exec(material.name)?.[1];
+        : [object.material];
+      for (const [slot, material] of objectMaterials.entries()) {
+        // Imported assets explicitly declare their bound slots. In particular,
+        // an empty declaration preserves every original unselected material;
+        // a manual front assignment may deliberately target a print_back mesh.
+        // Legacy names/extras remain supported for the original pouch and
+        // standalone snapshots that have not passed through the GLB binder.
+        const face = importedBindings
+          ? importedBindings[slot]
+          : mappedFace ||
+            material.userData.printableFace ||
+            /^artwork_(front|back)$/.exec(material.name)?.[1];
         if (
           (face === "front" || face === "back") &&
           material instanceof THREE.MeshStandardMaterial

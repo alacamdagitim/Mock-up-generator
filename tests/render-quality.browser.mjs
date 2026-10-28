@@ -176,11 +176,16 @@ try {
     await page
       .getByRole("button", { name: "Tek ürün yerleşimini uygula", exact: true })
       .click();
-    await page.getByRole("button", { name: "Render al", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Görsel indir", exact: true })
+      .click();
     const dialog = page.getByRole("dialog", {
       name: "Stüdyo render",
       exact: true,
     });
+    await dialog
+      .getByRole("button", { name: "Stüdyo render", exact: true })
+      .click();
     await dialog.getByRole("button", { name: "2048 px", exact: true }).click();
     const start = Date.now();
     await dialog

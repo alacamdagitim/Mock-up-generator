@@ -134,6 +134,25 @@ export const designSchema = z
       .object({ front: color.optional(), back: color.optional() })
       .strict()
       .optional(),
+    modelBinding: z
+      .object({
+        modelUrl: z
+          .string()
+          .url()
+          .max(2048)
+          .refine((value) => {
+            const url = new URL(value);
+            return url.protocol === "https:" && !url.username && !url.password;
+          }),
+        targetId: z
+          .string()
+          .max(512)
+          .regex(/^(?:root|\d+(?:\/\d+)*):\d+$/)
+          .refine((value) => value === value.trim()),
+        flipY: z.boolean(),
+      })
+      .strict()
+      .optional(),
     presentation: presentationSchema.optional(),
   })
   .strict()

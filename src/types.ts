@@ -4,6 +4,7 @@ export type Design = z.infer<typeof designSchema>;
 export type Element = z.infer<typeof elementSchema>;
 export type ArtboardSpec = NonNullable<Design["artboard"]>;
 export type Face = "front" | "back";
+export type ModelBinding = NonNullable<Design["modelBinding"]>;
 export type SavedDesign = { id: string; designUrl: string; previewUrl: string };
 export type EditorConfig = {
   apiBase?: string;

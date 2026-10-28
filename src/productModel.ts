@@ -3,10 +3,24 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { inspectGlb, MAX_MODEL_BYTES } from "../shared/model-file.mjs";
 import type { createPouchAsset } from "./pouchAsset";
+import { analyzePrintTargets } from "./printTargets";
+import type { ModelBinding } from "./types";
+
+export type PrintSurfaceOption = {
+  id: string;
+  label: string;
+  usable: boolean;
+  recommended: boolean;
+  reasons: string[];
+};
 
 export type PreviewAsset = ReturnType<typeof createPouchAsset> & {
   external?: boolean;
   mappedFaces?: string[];
+  surfaceOptions?: PrintSurfaceOption[];
+  selectedSurface?: string;
+  mappingWarning?: string;
+  materialProfile?: string;
 };
 export function disposeModel(root: THREE.Object3D) {
   const geometries = new Set<THREE.BufferGeometry>();
@@ -68,6 +82,8 @@ export async function loadProductModel(url: string, signal: AbortSignal) {
   const model = gltf.scene;
   try {
     if (signal.aborted) throw new DOMException("İptal edildi", "AbortError");
+    const isAluminumCan =
+      model.getObjectByName("拉环") && model.getObjectByName("瓶盖");
     let meshes = 0,
       triangles = 0;
     model.traverse((node) => {
@@ -80,15 +96,23 @@ export async function loadProductModel(url: string, signal: AbortSignal) {
         const original = Array.isArray(node.material)
           ? node.material
           : [node.material];
+        const isLabel = /贴图|label|artwork|sleeve|wrap/i.test(node.name);
+        const isMetal = Boolean(
+          isAluminumCan &&
+          !isLabel &&
+          !/填充物|filling|liquid/i.test(node.name),
+        );
         const material = new THREE.MeshPhysicalMaterial({
-          color: "#ffffff",
-          metalness: 0,
-          roughness: 0.54,
-          clearcoat: 0,
+          color: isMetal ? "#bdc2ca" : "#ffffff",
+          metalness: isMetal ? 1 : 0,
+          roughness: isMetal ? 0.3 : 0.54,
+          clearcoat: isAluminumCan && isLabel ? 0.12 : 0,
+          clearcoatRoughness: 0.38,
           // Follow glTF's default winding when the file omits materials.
           side: THREE.FrontSide,
         });
         node.material = material;
+        node.userData.alacamGeneratedMaterial = true;
         original.forEach((item) => item.dispose());
       }
       meshes++;
@@ -127,6 +151,10 @@ export async function loadProductModel(url: string, signal: AbortSignal) {
     root.scale.setScalar(3.7 / maximum);
     const prototype = new THREE.Group();
     prototype.add(root);
+    if (!definition.materials?.length)
+      prototype.userData.alacamMaterialProfile = isAluminumCan
+        ? "metal-can"
+        : "neutral";
     return prototype;
   } catch (error) {
     disposeModel(model);
@@ -134,10 +162,11 @@ export async function loadProductModel(url: string, signal: AbortSignal) {
   }
 }
 
-/** Bind only explicitly named UV faces. Unnamed models retain their original materials. */
+/** Bind explicit/full-UV labels, or a surface selected for this particular model. */
 export function createImportedAsset(
   prototype: THREE.Group,
   renderer: THREE.WebGLRenderer,
+  binding?: Pick<ModelBinding, "targetId" | "flipY">,
 ): PreviewAsset {
   const maps = ["front", "back"].map(() => {
     const canvas = document.createElement("canvas");
@@ -157,30 +186,51 @@ export function createImportedAsset(
     if (sleeve instanceof THREE.Mesh) sleeve.userData.printableFace = "front";
   }
   const replaced = new Set<THREE.Material>();
+  const analysis = analyzePrintTargets(prototype);
+  // Record the actual per-slot binding, including an empty map for unprinted
+  // imported meshes. Offline snapshots must not infer a different assignment
+  // from authored names after the user chooses one particular surface.
   prototype.traverse((node) => {
-    if (!(node instanceof THREE.Mesh) || !node.geometry.getAttribute("uv"))
-      return;
-    const bind = (material: THREE.Material) => {
-      const face =
-        node.userData.printableFace ||
-        /^print_(front|back)$/.exec(node.name)?.[1] ||
-        /^artwork_(front|back)$/.exec(material.name)?.[1];
-      if (face !== "front" && face !== "back") return material;
-      if (!(material instanceof THREE.MeshStandardMaterial)) return material;
-      const copy = material.clone();
-      copy.map = maps[face === "front" ? 0 : 1];
-      copy.color.set("#ffffff");
-      copy.needsUpdate = true;
-      if (typeof node.userData.textureFlipY === "boolean")
-        maps[face === "front" ? 0 : 1].flipY = node.userData.textureFlipY;
-      mappedFaces.add(face);
-      replaced.add(material);
-      return copy;
-    };
-    node.material = Array.isArray(node.material)
-      ? node.material.map(bind)
-      : bind(node.material);
+    if (node instanceof THREE.Mesh) node.userData.alacamPrintBindings = {};
   });
+  const selected =
+    binding &&
+    analysis.targets.find(
+      (target) =>
+        target.id === binding.targetId &&
+        target.materialSupported &&
+        target.uv.usable,
+    );
+  const assignments = selected
+    ? [{ targetId: selected.id, face: "front" as const }]
+    : analysis.automatic;
+  for (const assignment of assignments) {
+    const target = analysis.targets.find(
+      (item) => item.id === assignment.targetId,
+    )!;
+    const material = target.material;
+    if (!(material instanceof THREE.MeshStandardMaterial)) continue;
+    const copy = material.clone();
+    const texture = maps[assignment.face === "front" ? 0 : 1];
+    copy.map = texture;
+    copy.color.set("#ffffff");
+    copy.userData = { ...material.userData, printableFace: assignment.face };
+    copy.needsUpdate = true;
+    texture.flipY = selected
+      ? binding!.flipY
+      : typeof target.mesh.userData.textureFlipY === "boolean"
+        ? target.mesh.userData.textureFlipY
+        : false;
+    if (Array.isArray(target.mesh.material)) {
+      const list = [...target.mesh.material];
+      list[target.materialIndex] = copy;
+      target.mesh.material = list;
+    } else target.mesh.material = copy;
+    target.mesh.userData.alacamPrintBindings[target.materialIndex] =
+      assignment.face;
+    mappedFaces.add(assignment.face);
+    replaced.add(material);
+  }
   // Retain replaced source materials/textures until final disposal: materials can be shared with unprinted parts.
   const seal = new THREE.MeshPhysicalMaterial();
   const grain = new THREE.CanvasTexture(document.createElement("canvas"));
@@ -192,6 +242,20 @@ export function createImportedAsset(
     grain,
     external: true,
     mappedFaces: [...mappedFaces],
+    surfaceOptions: analysis.targets.map((target) => ({
+      id: target.id,
+      label: target.label,
+      usable: target.materialSupported && target.uv.usable,
+      recommended:
+        target.confidence === "strong" || target.confidence === "explicit",
+      reasons: target.reasons,
+    })),
+    selectedSurface: selected?.id || assignments[0]?.targetId,
+    mappingWarning:
+      binding && !selected
+        ? "Kayıtlı baskı yüzeyi bu modelde bulunamadı. Otomatik eşleme kullanılıyor."
+        : undefined,
+    materialProfile: prototype.userData.alacamMaterialProfile,
     dispose() {
       disposeModel(prototype);
       replaced.forEach((material) => {

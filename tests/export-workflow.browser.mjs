@@ -1,6 +1,7 @@
 // Public UI regression: local fixtures only; no cloud save, merchant assets or path tracing.
 import { chromium, expect } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { blankDesign, parseDesign } from "../shared/schema.mjs";
 
 const base = process.env.ALACAM_TEST_URL || "http://127.0.0.1:5184";
@@ -123,13 +124,16 @@ try {
   );
   const page = await context.newPage();
   const unsafeRequests = [],
-    serverWrites = [];
+    serverWrites = [],
+    engineRequests = [];
   page.on("pageerror", (error) => summary.errors.push(error.message));
   page.on("console", (message) => {
     if (/GL_INVALID|THREE.WebGLProgram: Shader Error/.test(message.text()))
       summary.gpuErrors.push(message.text());
   });
   page.on("request", (request) => {
+    if (/studioRender|three-gpu-pathtracer/.test(request.url()))
+      engineRequests.push(request.url());
     if (request.url().includes("untrusted.invalid"))
       unsafeRequests.push(request.url());
     if (request.method() === "POST" && /\/api\//.test(request.url()))
@@ -168,7 +172,7 @@ try {
     .getByRole("toolbar", { name: "Tuval araçları" })
     .getByRole("button", { name: "Geri al", exact: true });
   const renderButton = page.getByRole("button", {
-    name: "Render al",
+    name: "Görsel indir",
     exact: true,
   });
   const dialog = page.getByRole("dialog", {
@@ -225,7 +229,10 @@ try {
     .toBe("#22aa66");
   expect((await draft()).background).toBe("#ffffff");
   expect((await draft()).surfaceColors.back).toBeUndefined();
-  await page.screenshot({ path: `${output}/surface-desktop.png` });
+  await page.screenshot({
+    animations: "disabled",
+    path: `${output}/surface-desktop.png`,
+  });
   await hex.press("Escape");
   await expect(page.locator(".surface-color-popover")).toHaveCount(0);
   await expect(trigger).toBeFocused();
@@ -303,6 +310,67 @@ try {
     "render dialog must capture a sharp source rather than stretch its small preview",
   ).toBeGreaterThanOrEqual(1024);
   summary.sourcePreview = source;
+  await expect(
+    dialog.getByRole("button", { name: "Canlı görünüm", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    dialog.getByRole("button", { name: "2048 px", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    dialog.getByRole("combobox", { name: "Render görsel oranı" }),
+  ).toHaveCount(0);
+  const capturedPngHash = await sourceImage.evaluate(async (image) => {
+    const bytes = await (await fetch(image.src)).arrayBuffer();
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+    return [...digest]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+  });
+  const livePng = await saveDownload(
+    dialog.getByRole("button", { name: "Görseli indir", exact: true }),
+    "live.png",
+  );
+  expect(pngDimensions(livePng)).toEqual(source);
+  expect(
+    createHash("sha256").update(livePng).digest("hex"),
+    "fast PNG must preserve the actual captured bytes without resizing",
+  ).toBe(capturedPngHash);
+  await dialog
+    .getByRole("group", { name: "Canlı görsel biçimi" })
+    .getByRole("button", { name: "JPG", exact: true })
+    .click();
+  const liveJpg = await saveDownload(
+    dialog.getByRole("button", { name: "Görseli indir", exact: true }),
+    "live.jpg",
+  );
+  expect(liveJpg.subarray(0, 2).toString("hex")).toBe("ffd8");
+  const jpegSize = await page.evaluate(async (data) => {
+    const image = new Image();
+    image.src = `data:image/jpeg;base64,${data}`;
+    await image.decode();
+    return { width: image.naturalWidth, height: image.naturalHeight };
+  }, liveJpg.toString("base64"));
+  expect(jpegSize).toEqual(source);
+  await dialog
+    .getByRole("group", { name: "Canlı görsel biçimi" })
+    .getByRole("button", { name: "PNG", exact: true })
+    .click();
+  expect(
+    engineRequests,
+    "fast downloads must not import the offline render engine",
+  ).toEqual([]);
+  await page.screenshot({
+    animations: "disabled",
+    path: `${output}/live-desktop.png`,
+  });
+  summary.downloads.live = {
+    ...source,
+    pngBytes: livePng.length,
+    jpgBytes: liveJpg.length,
+  };
+  summary.passed.push(
+    "Default live download preserves captured PNG bytes and native PNG/JPG dimensions without importing the path-tracing engine",
+  );
   await tab("Görsel").focus();
   await tab("Görsel").press("ArrowRight");
   await expect(tab("Bıçak izi")).toBeFocused();
@@ -315,9 +383,12 @@ try {
   await expect(
     dialog.getByRole("button", { name: "CMYK", exact: true }),
   ).toBeDisabled();
-  await page.screenshot({ path: `${output}/dieline-desktop.png` });
+  await page.screenshot({
+    animations: "disabled",
+    path: `${output}/dieline-desktop.png`,
+  });
   summary.passed.push(
-    "Render al opens three keyboard-accessible tabs with a sharp current 3D preview and physical dieline dimensions",
+    "Görsel indir opens three keyboard-accessible tabs with a sharp current 3D preview and physical dieline dimensions",
   );
 
   const svgBytes = await saveDownload(
@@ -443,7 +514,10 @@ try {
   expect(await shareImage.getAttribute("src")).toBe(
     await sourceImage.getAttribute("src"),
   );
-  await page.screenshot({ path: `${output}/share-desktop.png` });
+  await page.screenshot({
+    animations: "disabled",
+    path: `${output}/share-desktop.png`,
+  });
   await dialog
     .getByRole("group", { name: "Paylaşım önizleme görünümü" })
     .getByRole("button", { name: "2B", exact: true })
@@ -470,8 +544,32 @@ try {
       exact: true,
     }),
   );
-  await page.screenshot({ path: `${output}/share-mobile.png` });
+  await page.screenshot({
+    animations: "disabled",
+    path: `${output}/share-mobile.png`,
+  });
   await tab("Görsel").click();
+  await fitsViewport(
+    dialog.getByRole("button", { name: "Görseli indir", exact: true }),
+  );
+  const liveControls = await dialog
+    .locator(".studio-render-live-content")
+    .boundingBox();
+  const liveFormats = await dialog
+    .getByRole("group", { name: "Canlı görsel biçimi" })
+    .boundingBox();
+  expect(liveFormats.y).toBeGreaterThanOrEqual(liveControls.y);
+  expect(liveFormats.y + liveFormats.height).toBeLessThanOrEqual(
+    liveControls.y + liveControls.height + 1,
+  );
+  await page.screenshot({
+    animations: "disabled",
+    path: `${output}/live-mobile.png`,
+  });
+  expect(engineRequests).toEqual([]);
+  await dialog
+    .getByRole("button", { name: "Stüdyo render", exact: true })
+    .click();
   await expect(
     dialog.getByRole("button", { name: "1024 px", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -482,7 +580,10 @@ try {
   await expect(
     dialog.getByRole("button", { name: "4K", exact: true }),
   ).toBeDisabled();
-  await page.screenshot({ path: `${output}/dieline-mobile.png` });
+  await page.screenshot({
+    animations: "disabled",
+    path: `${output}/dieline-mobile.png`,
+  });
   await dialog
     .getByRole("button", { name: "Render penceresini kapat", exact: true })
     .click();
@@ -509,7 +610,10 @@ try {
   expect(await page.locator(".design-paper").getAttribute("style")).toBe(
     transform,
   );
-  await page.screenshot({ path: `${output}/surface-mobile.png` });
+  await page.screenshot({
+    animations: "disabled",
+    path: `${output}/surface-mobile.png`,
+  });
   await page
     .getByRole("button", { name: "Renk seçiciyi kapat", exact: true })
     .click();

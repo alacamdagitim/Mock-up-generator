@@ -1,6 +1,16 @@
-# Stüdyo render
+# Canlı görünüm ve stüdyo render
 
-Üst çubuktaki **Render al**, mevcut ürünün, tasarımın ve yerleşimin önizlemesiyle geniş bir pencere açar. Görsel solda; format, çözünürlük, ışık ve gölge ayarları sağdadır. **Render oluştur** ile ayrı bir sabit görüntü işi başlar; gerçek ışık örneği sayısı ve geçen süre gösterilir. Tamamlanan görüntü seçilen PNG veya JPG biçiminde indirilir. İptal veya hata tamamlanmış çıktı sayılmaz.
+Üst çubuktaki **Görsel indir**, mevcut ürünün, tasarımın ve yerleşimin önizlemesiyle geniş bir pencere açar. Varsayılan **Canlı görünüm**, ekrandaki PBR sahnesini doğrudan PNG/JPG indirir; path tracing motoru yüklenmez. Gerçek çıktı ölçüsü gösterilir. Kaynak görüntü, mevcut kameradan masaüstünde en çok 2560, mobilde 1536 px uzun kenarda yeniden çizilir. PNG bu kaynakla aynı dosyadır; JPG aynı piksel ölçüsünde beyaz alfa zeminiyle kodlanır. Ekran görüntüsü sonradan büyütülmez.
+
+**Stüdyo render** seçilirse çözünürlük, ışık, gölge ve oran ayarları görünür. **Render oluştur** ayrı bir sabit görüntü işi başlatır; gerçek ışık örneği sayısı ve geçen süre gösterilir. İptal veya hata tamamlanmış çıktı sayılmaz. Günlük tasarım ve canlı görünümü indirme, bu hesaplamayı beklemeyi gerektirmez.
+
+## Canlı sahnenin ışığı ve malzemesi
+
+Canlı sahne, proje içinde oluşturulan dört yumuşak ışık panelinden PMREM çevre yansıması, ana/dolgu/kenar ışıkları ve iki ölçekte temas gölgesi kullanır. Ortam ışığı beyaz ürünü silen düz parlaklık yerine yüzey hacmini koruyacak şekilde dengelenir. PBR Neutral ton eşleme, baskı renklerini ve parlak vurguları dengeler. Çevre haritası mobilde 128, masaüstünde 256 örnek yüz ölçüsünde üretilir; uzak HDRI indirilmez. Sahne yalnız değişiklik veya etkileşim olduğunda çizilir.
+
+GLB'nin kendi PBR malzemeleri korunur. Malzeme tanımı olmayan, kapak/açma halkasıyla tanınan kutu modelinde metal parçalara yaklaşık alüminyum, etiket yüzeyine beyaz baskı malzemesi atanır ve bu profil arayüzde belirtilir. Bu atama üreticinin fiziksel kaplama verisi değildir. Geometri, UV ve normal haritası bulunmayan ayrıntılar ışık ayarıyla üretilemez.
+
+Teknik dayanaklar: [Three.js PMREM](https://threejs.org/docs/pages/PMREMGenerator.html), [renk yönetimi](https://threejs.org/manual/pages/color-management.html) ve [Khronos PBR Neutral ton eşleme](https://www.khronos.org/news/press/khronos-pbr-neutral-tone-mapper-released-for-true-to-life-color-rendering-of-3d-products).
 
 ## Görüntü üretimi
 
@@ -36,7 +46,7 @@ Yerleşimler ürünün gerçek 3B sınırlarından hesaplanır. Eğik modellerin
 
 Yerleşim paneli açıldığında on bir kart seçili modelin ve tasarımın gerçek 3B görüntüsünden oluşturulur. Ayrı WebGL bağlamları açılmaz: mevcut renderer, geçici 384×256 MSAA render hedefini kullanır. Kartlar kareler arasına dağıtılır ve panel kapanınca işlem iptal edilir. Kartlar ekran görüntüsü kadar kaynak kaliteye sahiptir; müşterinin GLB'sindeki geometri ayrıntısını artırmaz.
 
-Standart kalite opak ürünlerde dört, geçirgen ürünlerde altı; Yüksek kalite on ışık sekmesi kullanır. Offline render dört parçayı bir örnek olarak işler; ekrana her parçada tekrar kopyalamaz. GPU fence, komut kuyruğunun sınırsız büyümesini önler. GPU bekleme, shader hatası, iptal ve kayıp bağlam açıkça ele alınır. Kullanılan WebGL motorunda ayrı vernik lobu bazı ince kabukları siyah üretebildiğinden, yalnız offline kopyada kaplama ve ana yüzey pürüzlülüğü tek GGX lobuna yaklaşık olarak birleştirilir. Bu yüzden çift katmanlı verniğin optiği birebir korunmaz; canlı görünüm ve asıl GLB değiştirilmez. Malzemesiz GLB için mat beyaz ve glTF varsayılan ön yüz yönü kullanılır.
+Standart kalite opak ürünlerde dört, geçirgen ürünlerde altı; Yüksek kalite on ışık sekmesi kullanır. Offline render dört parçayı bir örnek olarak işler; ekrana her parçada tekrar kopyalamaz. GPU fence, komut kuyruğunun sınırsız büyümesini önler. GPU bekleme, shader hatası, iptal ve kayıp bağlam açıkça ele alınır. Kullanılan WebGL motorunda ayrı vernik lobu bazı ince kabukları siyah üretebildiğinden, yalnız offline kopyada kaplama ve ana yüzey pürüzlülüğü tek GGX lobuna yaklaşık olarak birleştirilir. Bu yüzden çift katmanlı verniğin optiği birebir korunmaz; canlı görünüm ve asıl GLB değiştirilmez. glTF varsayılan ön yüz yönü korunur; malzemesiz modele yukarıdaki açık önizleme profili uygulanır.
 
 Bu seçimler [Three.js responsive rendering rehberi](https://threejs.org/manual/pages/responsive.html), [renk yönetimi rehberi](https://threejs.org/manual/pages/color-management.html) ve kullanılan [three-gpu-pathtracer 0.0.24 dokümantasyonu](https://github.com/gkjohnson/three-gpu-pathtracer/tree/v0.0.24) temel alınarak uygulanmıştır. WebGPU sürümüne körlemesine geçilmemiştir; mevcut WebGL2, UV ve indirilebilir çıktı akışı korunur.
 
@@ -50,7 +60,7 @@ Bu seçimler [Three.js responsive rendering rehberi](https://threejs.org/manual/
 
 Tasarım alanındaki **Yüzey rengi**, seçili ön/arka yüzü değiştirir. Önerilen renkler, HSV alanı, ton sürgüsü, HEX ve desteklenen tarayıcılarda ekran renk seçicisi bulunur. Sürekli sürükleme tek geri alma adımıdır. Renkler sürüm 1 JSON içinde isteğe bağlı `surfaceColors.front/back` olarak saklanır; eski tasarımların `background` değeri uyumluluk için korunur. İçe aktarılan rastgele SVG'nin çok sayıdaki kesim paneli otomatik anlamlandırılmaz; kontrol tanımlı baskı yüzünün tamamına uygulanır.
 
-**Görsel** sekmesi render üretir. **Bıçak izi** sekmesi mevcut SVG şablonunu ve seçili yüz tasarımını gösterir; tasarımlı şablon/yalnız şablon seçilebilir. SVG, ayrı bıçak izi vektör katmanı ve gömülü PNG tasarım içerir. PNG ve PDF, en çok 4K RGB görsel taşır (mobil 2K). PDF düzenlenebilir vektör veya ICC kontrollü CMYK değildir. Fiziksel ölçüler tanımlıysa SVG ve PDF sayfa ölçüsü bunları korur; bu ölçülerin üretici onayı ayrıca gerekir. Orijinal üretici dosyası ayrı bağlantıdan açılır. AI ve CMYK çıktısı henüz yoktur.
+**Görsel** sekmesi canlı görüntü indirme veya isteğe bağlı stüdyo render sunar. **Bıçak izi** sekmesi mevcut SVG şablonunu ve seçili yüz tasarımını gösterir; tasarımlı şablon/yalnız şablon seçilebilir. SVG, ayrı bıçak izi vektör katmanı ve gömülü PNG tasarım içerir. PNG ve PDF, en çok 4K RGB görsel taşır (mobil 2K). PDF düzenlenebilir vektör veya ICC kontrollü CMYK değildir. Fiziksel ölçüler tanımlıysa SVG ve PDF sayfa ölçüsü bunları korur; bu ölçülerin üretici onayı ayrıca gerekir. Orijinal üretici dosyası ayrı bağlantıdan açılır. AI ve CMYK çıktısı henüz yoktur.
 
 **Paylaş** sekmesi 3B görüntü/2B tasarım önizlemesi, JSON indirme ve yapılandırılmış sunucudan dönen gerçek görsel/JSON dosya bağlantılarını sunar. Döndürülebilen herkese açık 3B sayfa, kullanıcı daveti veya erişim yetkileri sunmaz. Sunucu depolaması bağlı değilse bağlantı üretme kapalıdır; cihaz kaydı uzaktan paylaşılmış gibi gösterilmez.
 
@@ -59,6 +69,8 @@ Tasarım alanındaki **Yüzey rengi**, seçili ön/arka yüzü değiştirir. Ön
 - `npm test`: çıktı ölçüleri, parçaların tam kaplama/çakışmama koşulları, mobil sınır ve yüzey rengi/şema uyumluluğu.
 - `npm run test:render`: gerçek 1K render, indirme, iptal/yeniden deneme, GPU ve Blob temizliği, masaüstü/mobil modal ve gerçek yükleme hatası.
 - `npm run test:exports`: yüzey rengi, geri alma/yenileme, gerçek SVG/PNG/PDF indirme, paylaşım durumu ve mobil pencere.
+- `npm run test:live-preview`: gerçek canlı renk/ışık pikselleri, boşta çizim yapılmaması, PNG sonrası kamera/tasarım korunması. İzinli gerçek dosyalar için `ALACAM_MODEL_FIXTURE` ve `ALACAM_DIELINE_FIXTURE` isteğe bağlıdır.
+- `npm run test:model-binding`: otomatik/manuel GLB baskı hedefi, yüksek çözünürlüklü snapshot, JSON/yenileme/geçmiş ve mobil odak akışları.
 - `npm run test:render-snapshot`: ön/arka malzeme adlarının gerçek 4K/2K piksel eşlemesi, kaynakların değişmezliği ve GPU bağlamını kapatma eklentisi yokken takılan shader'ın iptali.
 - `npm run test:high-resolution`: özgün küçük iki renkli kalibrasyon sahnesiyle gerçek 8192×8192 JPG üretir; renk pikselleri, 64 örnek, en fazla 1048 px GPU parçası ve kaynak temizliği denetlenir. Bu bir ürün fotogerçekçilik testi değildir. `ALACAM_HIGH_RESOLUTION=4096 ALACAM_HIGH_FORMAT=png` ile 4K PNG denenebilir.
 - `ALACAM_HIGH_RESOLUTION=4096 ALACAM_HIGH_FORMAT=png ALACAM_HIGH_SHADOW=1 npm run test:high-resolution`: fiziksel zeminli 4K PNG üretir ve düz arka planda 1024 px parça sınırlarının iki yanındaki ton farkını ölçer.

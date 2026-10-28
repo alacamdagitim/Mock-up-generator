@@ -158,6 +158,15 @@ export default function OnlineDesigner({
   );
   const manufacturerFile = manufacturerDielineUrl(d.product.dielineUrl);
   const manufacturerModel = manufacturerDielineUrl(d.product.modelUrl);
+  useEffect(() => {
+    if (
+      manufacturerModel &&
+      modelFaces.length === 1 &&
+      modelFaces[0] === "front" &&
+      d.face !== "front"
+    )
+      d.changeFace("front");
+  }, [manufacturerModel, modelFaces, d.face]);
   useEffect(() => () => URL.revokeObjectURL(guideUrl), [guideUrl]);
   useEffect(
     () => () =>
@@ -459,13 +468,13 @@ export default function OnlineDesigner({
         <div className="online-header-actions">
           <button
             className="header-render"
-            aria-label="Render al"
+            aria-label="Görsel indir"
             disabled={d.busy}
             onClick={() => {
               setExportOpen(false);
               changeMode("3d");
               try {
-                setRenderPreviewUrl(d.preview.current?.png(4) || "");
+                setRenderPreviewUrl(d.preview.current?.png(8) || "");
               } catch {
                 setRenderPreviewUrl("");
               }
@@ -473,7 +482,7 @@ export default function OnlineDesigner({
             }}
           >
             <Camera size={19} />
-            <span>Render al</span>
+            <span>Görsel indir</span>
           </button>
           <button
             className="icon-button mobile-config-toggle"
@@ -988,6 +997,16 @@ export default function OnlineDesigner({
           <ProductPreview
             modelUrl={manufacturerModel}
             onFaces={setModelFaces}
+            binding={d.design.modelBinding}
+            onBindingChange={(modelBinding) => {
+              const next = {
+                ...d.state.current,
+                updatedAt: new Date().toISOString(),
+              };
+              if (modelBinding) next.modelBinding = modelBinding;
+              else delete next.modelBinding;
+              d.change(next);
+            }}
             ref={d.preview}
             textures={d.textures}
             settings={

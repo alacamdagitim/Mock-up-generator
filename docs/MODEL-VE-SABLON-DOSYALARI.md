@@ -23,6 +23,14 @@ Canlı editör ve GLB ihracı aynı `shared/pouch-geometry.mjs` ve `shared/pouch
 
 ## Yüz eşleştirme
 
+### Dış ürün GLB'leri
+
+Editör açık `printableFace`, `print_front/back` ve `artwork_front/back` tanımlarını öncelikli kullanır. Tek, tam 0–1 UV'li etiket/sarım parçasını da tanır (`label`, `sleeve`, `贴图` gibi adlar). Kapak ve diğer baskısız parçalar korunur. Birden çok olası etiket veya yalnızca gövde bulunduğunda **Baskı yüzeyini seç** ile mevcut UV'li parça ve dikey yön seçilir. Bu seçim modele özel `modelBinding` alanıyla tasarım JSON'una, yerel taslağa ve geçmişe girer. Yeni UV oluşturulmaz; atlaslı veya hatalı UV için model hazırlığı gerekir. Dosya URL'sinin sürümü değişirse eski seçim uygulanmaz.
+
+Kaynak GLB'nin malzemeleri korunur. Malzemesi olmayan modele önizleme malzemesi atanır; tanınan metal kutuda yaklaşık alüminyum profili kullanıldığı arayüzde belirtilir. Bu dosyalar üretici kaplaması, baskı rengi veya fiziksel toleransları kendiliğinden tanımlamaz. Ayrıntılı sözleşme: [Shopify ürün dosyaları](SHOPIFY-BUTON.md#ürün-dosyası-meta-alanları).
+
+### Projenin özgün doypack UV sözleşmesi
+
 - Ön yüz: `print_front` mesh'i, `artwork_front` malzemesi.
 - Arka yüz: `print_back` mesh'i, `artwork_back` malzemesi.
 - Baskısız parçalar: `unprinted_seals` malzemesi. Bu parçalara artwork uygulamayın.

@@ -110,9 +110,7 @@ try {
   await expect(
     dialog.locator('.preview-render[data-model-source="sample"]'),
   ).toHaveCount(0);
-  await expect(dialog.locator(".product-model-note")).toContainText(
-    "Baskı yüzleri:",
-  );
+  await expect(dialog.locator(".product-model-note")).toContainText("bağlı");
   expect(unsafeRequests).toEqual([]);
   summary.passed.push(
     "Product GLB replaces the sample; SVG creates a 198 × 60 mm landscape artboard and safe guide overlay",
@@ -163,12 +161,15 @@ try {
   );
   if (process.env.ALACAM_TEST_RENDER === "1") {
     await dialog
-      .getByRole("button", { name: "Render al", exact: true })
+      .getByRole("button", { name: "Görsel indir", exact: true })
       .click();
     const studio = page.getByRole("dialog", {
       name: "Stüdyo render",
       exact: true,
     });
+    await studio
+      .getByRole("button", { name: "Stüdyo render", exact: true })
+      .click();
     await studio
       .getByRole("button", { name: "Render oluştur", exact: true })
       .click();

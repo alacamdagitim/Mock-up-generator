@@ -217,7 +217,7 @@ try {
     editor(page).getByRole("combobox", { name: "Ürün varyantı", exact: true }),
   ).toHaveValue("10001");
   await editor(page)
-    .getByRole("button", { name: "Render al", exact: true })
+    .getByRole("button", { name: "Görsel indir", exact: true })
     .click();
   const render = page.getByRole("dialog", {
     name: "Stüdyo render",

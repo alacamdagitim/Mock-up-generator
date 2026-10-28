@@ -11,6 +11,7 @@ import canvasToolsCss from "./canvas-tools.css?inline";
 import renderDialogCss from "./render-dialog.css?inline";
 import exportPanelsCss from "./export-panels.css?inline";
 import surfaceColorCss from "./surface-color.css?inline";
+import modelMappingCss from "./model-mapping.css?inline";
 import latinFont from "@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2?url";
 import extendedFont from "@fontsource-variable/dm-sans/files/dm-sans-latin-ext-wght-normal.woff2?url";
 // Font faces live in the document font set; editor rules remain inside Shadow DOM.
@@ -67,6 +68,7 @@ export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
     renderDialogCss,
     exportPanelsCss,
     surfaceColorCss,
+    modelMappingCss,
     options.fullscreen
       ? ".alacam-app,.online-app{height:100%;min-height:0;}"
       : "",

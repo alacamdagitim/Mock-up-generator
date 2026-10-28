@@ -170,8 +170,11 @@ const draft = (page) =>
 const dialogFor = (page) =>
   page.getByRole("dialog", { name: "Stüdyo render", exact: true });
 const open = async (page) => {
-  await page.getByRole("button", { name: "Render al", exact: true }).click();
+  await page.getByRole("button", { name: "Görsel indir", exact: true }).click();
   await expect(dialogFor(page)).toBeVisible();
+  await dialogFor(page)
+    .getByRole("button", { name: "Stüdyo render", exact: true })
+    .click();
   return dialogFor(page);
 };
 async function resourcesReleased(page) {
@@ -246,7 +249,10 @@ try {
     await dialog
       .getByRole("combobox", { name: "Render görsel oranı" })
       .selectOption("square");
-    await page.screenshot({ path: `${output}/settings-desktop.png` });
+    await page.screenshot({
+      animations: "disabled",
+      path: `${output}/settings-desktop.png`,
+    });
     summary.passed.push(
       "Desktop 2K default, real scene preview, three export tabs; explicit1K/2K, advanced studio, background and aspect select",
     );
@@ -345,7 +351,10 @@ try {
     await expect(dialog.getByRole("status")).toContainText("64 ışık örneği");
     await resourcesReleased(page);
     expect(await draft(page)).toEqual(before);
-    await page.screenshot({ path: `${output}/completed-desktop.png` });
+    await page.screenshot({
+      animations: "disabled",
+      path: `${output}/completed-desktop.png`,
+    });
     const downloading = page.waitForEvent("download");
     const downloadLink = dialog.getByRole("link", {
       name: "PNG indir",
@@ -493,6 +502,7 @@ try {
     ).toBeLessThan(1);
   expect(await shortBody.evaluate((element) => element.scrollTop)).toBe(0);
   await shortDesktop.page.screenshot({
+    animations: "disabled",
     path: `${output}/settings-short-desktop.png`,
   });
   await shortDialog
@@ -519,7 +529,10 @@ try {
   const bounds = await mobileDialog.boundingBox();
   expect(bounds.x).toBeGreaterThanOrEqual(0);
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(391);
-  await mobile.page.screenshot({ path: `${output}/settings-mobile.png` });
+  await mobile.page.screenshot({
+    animations: "disabled",
+    path: `${output}/settings-mobile.png`,
+  });
   await mobileDialog
     .getByRole("button", { name: "Render penceresini kapat" })
     .click();
@@ -549,7 +562,10 @@ try {
     failedDialog.getByRole("link", { name: "PNG indir", exact: true }),
   ).toHaveCount(0);
   expect(await draft(failed.page)).toEqual(failedBefore);
-  await failed.page.screenshot({ path: `${output}/import-error.png` });
+  await failed.page.screenshot({
+    animations: "disabled",
+    path: `${output}/import-error.png`,
+  });
   await failed.context.close();
   summary.passed.push(
     "Lazy engine network failure reports error without a completed/download state",
@@ -561,7 +577,7 @@ try {
 } catch (error) {
   console.error("Studio render browser checks failed:", error);
   await latestPage
-    ?.screenshot({ path: `${output}/failure.png` })
+    ?.screenshot({ animations: "disabled", path: `${output}/failure.png` })
     .catch(() => {});
   await writeFile(
     summaryPath,
