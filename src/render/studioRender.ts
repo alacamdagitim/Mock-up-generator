@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { renderDenoisedResult } from "./denoise";
+import { configureRenderSampling } from "./sampling";
 import { renderTextureSize } from "../../shared/render-quality.mjs";
+import { outputDimensions, renderTiles } from "../../shared/render-output.mjs";
 import type {
   RenderContext,
   RenderOptions,
@@ -35,7 +37,11 @@ function frame(signal?: AbortSignal) {
   });
 }
 
-function encode(canvas: HTMLCanvasElement, signal?: AbortSignal) {
+function encode(
+  canvas: HTMLCanvasElement,
+  format: "png" | "jpeg",
+  signal?: AbortSignal,
+) {
   return new Promise<Blob>((resolve, reject) => {
     if (signal?.aborted) {
       reject(abortError());
@@ -46,12 +52,16 @@ function encode(canvas: HTMLCanvasElement, signal?: AbortSignal) {
       reject(abortError());
     };
     signal?.addEventListener("abort", cancel, { once: true });
-    canvas.toBlob((blob) => {
-      signal?.removeEventListener("abort", cancel);
-      if (signal?.aborted) reject(abortError());
-      else if (blob) resolve(blob);
-      else reject(new Error("PNG dosyası oluşturulamadı."));
-    }, "image/png");
+    canvas.toBlob(
+      (blob) => {
+        signal?.removeEventListener("abort", cancel);
+        if (signal?.aborted) reject(abortError());
+        else if (blob) resolve(blob);
+        else reject(new Error("Görsel dosyası oluşturulamadı."));
+      },
+      format === "jpeg" ? "image/jpeg" : "image/png",
+      0.94,
+    );
   });
 }
 
@@ -108,11 +118,39 @@ export async function renderStudio(
   const { canvas, signal, onProgress } = context;
   const started = performance.now();
   const mobile = matchMedia("(max-width:700px)").matches;
-  const longEdge = Math.min(options.resolution, mobile ? 1024 : 2048);
-  const width =
-    options.aspect === "portrait" ? Math.round(longEdge * 0.75) : longEdge;
-  const height =
-    options.aspect === "landscape" ? Math.round(longEdge * 0.75) : longEdge;
+  const { width, height } = outputDimensions(
+    options.resolution,
+    options.aspect,
+    mobile,
+  );
+  const longEdge = Math.max(width, height);
+  const tiles = renderTiles(
+    width,
+    height,
+    longEdge <= 2048 ? longEdge : 1024,
+    longEdge <= 2048 ? 0 : 12,
+  );
+  const format = options.format || "png";
+  const working = document.createElement("canvas");
+  working.className = "studio-render-canvas studio-render-worker";
+  const assembled = canvas.getContext("2d", { alpha: format !== "jpeg" });
+  if (!assembled) {
+    snapshot.dispose();
+    throw new Error("Çıktı tuvali hazırlanamadı.");
+  }
+  canvas.width = width;
+  canvas.height = height;
+  // CPU output may be 8K; float GPU buffers remain tile-sized.
+  try {
+    assembled.getImageData(width - 1, height - 1, 1, 1);
+  } catch {
+    snapshot.dispose();
+    canvas.width = canvas.height = 1;
+    throw new Error(
+      "Bu cihaz seçilen çıktı boyutunu oluşturamıyor. Daha küçük boyut seçin.",
+    );
+  }
+  let completedTiles = 0;
   const total = options.quality === "fine" ? 256 : 64;
   let renderer: THREE.WebGLRenderer | null = null;
   let rawContext: WebGL2RenderingContext | null = null;
@@ -124,6 +162,7 @@ export async function renderStudio(
     THREE.MeshPhysicalMaterial
   > | null = null;
   const pendingCompiles = new Set<Promise<THREE.Object3D>>();
+  let finalizing = false;
   let lost = false;
   let shaderError: Error | null = null;
   const assertActive = () => {
@@ -140,9 +179,12 @@ export async function renderStudio(
   ) => {
     onProgress?.({
       stage,
-      samples,
+      samples: (completedTiles * total + samples) / tiles.length,
       total,
-      percent: Math.min(100, (samples / total) * 100),
+      percent: Math.min(
+        100,
+        ((completedTiles + samples / total) / tiles.length) * 100,
+      ),
       elapsedMs: performance.now() - started,
     });
   };
@@ -150,7 +192,7 @@ export async function renderStudio(
     event.preventDefault();
     lost = true;
   };
-  canvas.addEventListener("webglcontextlost", contextLost);
+  working.addEventListener("webglcontextlost", contextLost);
   const abortGpu = () =>
     rawContext?.getExtension("WEBGL_lose_context")?.loseContext();
   signal?.addEventListener("abort", abortGpu, { once: true });
@@ -162,7 +204,7 @@ export async function renderStudio(
     const { WebGLPathTracer, DenoiseMaterial } =
       await import("three-gpu-pathtracer");
     assertActive();
-    const gl = canvas.getContext("webgl2", {
+    const gl = working.getContext("webgl2", {
       alpha: true,
       antialias: false,
       preserveDrawingBuffer: true,
@@ -179,7 +221,7 @@ export async function renderStudio(
         "Bu cihaz fiziksel render için gereken float render hedeflerini desteklemiyor.",
       );
     if (
-      Math.max(width, height) >
+      Math.max(tiles[0].renderWidth, tiles[0].renderHeight) >
       Math.min(
         gl.getParameter(gl.MAX_TEXTURE_SIZE),
         gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),
@@ -187,7 +229,7 @@ export async function renderStudio(
     )
       throw new Error("Seçilen çözünürlük bu cihazın doku sınırını aşıyor.");
     renderer = new THREE.WebGLRenderer({
-      canvas,
+      canvas: working,
       context: gl,
       alpha: true,
       antialias: false,
@@ -195,7 +237,7 @@ export async function renderStudio(
       premultipliedAlpha: false,
     });
     renderer.setPixelRatio(1);
-    renderer.setSize(width, height, false);
+    renderer.setSize(tiles[0].renderWidth, tiles[0].renderHeight, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure =
@@ -214,8 +256,8 @@ export async function renderStudio(
       const materials = renderer!.compile(...args);
       const promise = new Promise<THREE.Object3D>((resolve) => {
         const checkReady = () => {
-          if (lost || gl.isContextLost()) {
-            lost = true;
+          if (finalizing || signal?.aborted || lost || gl.isContextLost()) {
+            if (gl.isContextLost()) lost = true;
             // GPU work cannot complete after device loss. Stop polling now;
             // assertActive reports the real context-loss error for the job.
             resolve(args[0]);
@@ -277,7 +319,7 @@ export async function renderStudio(
         : createStudioBackground(warm);
     scene.background = background;
     scene.backgroundIntensity = 4;
-    if (options.background !== "transparent") {
+    if (options.background !== "transparent" && options.floorShadow !== false) {
       const backdrop = createStudioBackdrop(bounds, snapshot.camera, warm);
       floor = backdrop.mesh;
       scene.add(floor, backdrop.light);
@@ -287,6 +329,7 @@ export async function renderStudio(
     await frame(signal);
     assertActive();
     tracer = new WebGLPathTracer(renderer);
+    const pixelOffset = configureRenderSampling(tracer);
     tracer.tiles.set(2, 2);
     let transmissive = false;
     snapshot.product.traverse((node) => {
@@ -304,7 +347,36 @@ export async function renderStudio(
     tracer.transmissiveBounces = 4;
     tracer.multipleImportanceSampling = true;
     tracer.filterGlossyFactor = options.quality === "fine" ? 0.2 : 0.35;
-    tracer.textureSize.setScalar(renderTextureSize(longEdge, mobile));
+    const textureSources = new Set<THREE.Texture>();
+    snapshot.product.traverse((node) => {
+      if (!(node instanceof THREE.Mesh)) return;
+      for (const material of Array.isArray(node.material)
+        ? node.material
+        : [node.material])
+        for (const value of Object.values(material))
+          if (value instanceof THREE.Texture) textureSources.add(value);
+    });
+    const largestTexture = Math.max(
+      64,
+      ...[...textureSources].map((texture) =>
+        Math.max(texture.image?.width || 1, texture.image?.height || 1),
+      ),
+    );
+    const atlasBudget = mobile ? 32 * 1024 ** 2 : 128 * 1024 ** 2;
+    const budgetEdge =
+      2 **
+      Math.floor(
+        Math.log2(
+          Math.sqrt(atlasBudget / (Math.max(1, textureSources.size) * 4)),
+        ),
+      );
+    tracer.textureSize.setScalar(
+      Math.min(
+        renderTextureSize(longEdge, mobile),
+        2 ** Math.ceil(Math.log2(largestTexture)),
+        budgetEdge,
+      ),
+    );
     tracer.renderDelay = 0;
     tracer.minSamples = 1;
     tracer.fadeDuration = 0;
@@ -316,72 +388,113 @@ export async function renderStudio(
     assertActive();
     await frame(signal);
     assertActive();
-    let previous = -1,
-      lastAdvance = performance.now();
-    while (tracer.samples < total) {
+    for (const tile of tiles) {
       assertActive();
-      // One complete sample per UI turn, rather than one of its four tiles.
-      // Composite only the last tile. A GPU fence bounds queued work, keeping
-      // cancellation responsive even when CPU submission is much faster than GL.
-      for (let tile = 0; tile < 4 && tracer.samples < total; tile++) {
-        tracer.renderToCanvas = tile === 3;
-        const before = tracer.samples;
-        tracer.renderSample();
-        assertActive();
-        if (tracer.samples === before) break; // asynchronous shader compilation
-      }
-      const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-      if (fence) {
-        try {
-          gl.flush();
-          const submitted = performance.now();
-          let status = gl.clientWaitSync(fence, 0, 0);
-          while (status === gl.TIMEOUT_EXPIRED) {
-            assertActive();
-            if (performance.now() - submitted > 60000)
-              throw new Error(
-                "GPU yanıt vermedi. Daha düşük çözünürlükle yeniden deneyin.",
-              );
-            await frame(signal);
-            status = gl.clientWaitSync(fence, 0, 0);
-          }
-          if (status === gl.WAIT_FAILED)
-            throw new Error(
-              "GPU işlemi tamamlanamadı. Renderı yeniden başlatın.",
-            );
-        } finally {
-          gl.deleteSync(fence);
-        }
-      }
-      assertActive();
-      const samples = tracer.samples;
-      if (samples > previous) {
-        previous = samples;
-        lastAdvance = performance.now();
-      }
-      if (performance.now() - lastAdvance > 120000)
-        throw new Error(
-          "Grafik sürücüsü renderı ilerletemedi. Daha düşük çözünürlükle yeniden deneyin.",
+      renderer.setSize(tile.renderWidth, tile.renderHeight, false);
+      // WebGL fragment coordinates start at bottom-left, output tiles at top-left.
+      pixelOffset(tile.renderX, height - tile.renderY - tile.renderHeight);
+      if (tiles.length > 1)
+        snapshot.camera.setViewOffset(
+          width,
+          height,
+          tile.renderX,
+          tile.renderY,
+          tile.renderWidth,
+          tile.renderHeight,
         );
-      report(samples > 0 ? "rendering" : "preparing", samples);
+      tracer.setCamera(snapshot.camera);
+      // setCamera queues its reset; apply it before inspecting the sample count
+      // or a completed previous tile would make the next tile skip its work.
+      tracer.renderToCanvas = false;
+      tracer.renderSample();
+      let previous = -1,
+        lastAdvance = performance.now();
+      while (tracer.samples < total) {
+        assertActive();
+        // One complete sample per UI turn, rather than one of its four tiles.
+        // Composite only the last tile. A GPU fence bounds queued work, keeping
+        // cancellation responsive even when CPU submission is much faster than GL.
+        for (let tile = 0; tile < 4 && tracer.samples < total; tile++) {
+          tracer.renderToCanvas = tile === 3;
+          const before = tracer.samples;
+          tracer.renderSample();
+          assertActive();
+          if (tracer.samples === before) break; // asynchronous shader compilation
+        }
+        const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+        if (fence) {
+          try {
+            gl.flush();
+            const submitted = performance.now();
+            let status = gl.clientWaitSync(fence, 0, 0);
+            while (status === gl.TIMEOUT_EXPIRED) {
+              assertActive();
+              if (performance.now() - submitted > 60000)
+                throw new Error(
+                  "GPU yanıt vermedi. Daha düşük çözünürlükle yeniden deneyin.",
+                );
+              await frame(signal);
+              status = gl.clientWaitSync(fence, 0, 0);
+            }
+            if (status === gl.WAIT_FAILED)
+              throw new Error(
+                "GPU işlemi tamamlanamadı. Renderı yeniden başlatın.",
+              );
+          } finally {
+            gl.deleteSync(fence);
+          }
+        }
+        assertActive();
+        const samples = tracer.samples;
+        if (samples > previous) {
+          previous = samples;
+          lastAdvance = performance.now();
+        }
+        if (performance.now() - lastAdvance > 120000)
+          throw new Error(
+            "Grafik sürücüsü renderı ilerletemedi. Daha düşük çözünürlükle yeniden deneyin.",
+          );
+        report(samples > 0 ? "rendering" : "preparing", samples);
+        await frame(signal);
+      }
+      assertActive();
+      await frame(signal);
+      assertActive();
+      renderDenoisedResult(
+        renderer,
+        scene,
+        snapshot.camera,
+        tracer.target.texture,
+        tile.renderWidth,
+        tile.renderHeight,
+        options.quality === "fine",
+        DenoiseMaterial,
+      );
+      assertActive();
+      // Copy only the tile interior: overlap is for filtering, never upscaling.
+      if (format === "jpeg") {
+        assembled.fillStyle =
+          options.background === "warm" ? "#f4ece1" : "#ffffff";
+        assembled.fillRect(tile.x, tile.y, tile.width, tile.height);
+      } else assembled.clearRect(tile.x, tile.y, tile.width, tile.height);
+      assembled.drawImage(
+        working,
+        tile.x - tile.renderX,
+        tile.y - tile.renderY,
+        tile.width,
+        tile.height,
+        tile.x,
+        tile.y,
+        tile.width,
+        tile.height,
+      );
+      completedTiles++;
+      report("rendering", 0);
       await frame(signal);
     }
-    assertActive();
-    report("encoding", total);
-    await frame(signal);
-    assertActive();
-    renderDenoisedResult(
-      renderer,
-      scene,
-      snapshot.camera,
-      tracer.target.texture,
-      width,
-      height,
-      options.quality === "fine",
-      DenoiseMaterial,
-    );
-    assertActive();
-    const blob = await encode(canvas, signal);
+    snapshot.camera.clearViewOffset();
+    report("encoding", 0);
+    const blob = await encode(canvas, format, signal);
     assertActive();
     return {
       blob,
@@ -392,9 +505,10 @@ export async function renderStudio(
       engine: "path-tracing",
     };
   } finally {
-    // Do not race compileAsync's delayed isReady polling with material/program
-    // deletion. In particular, cancellation during the first sample must wait
-    // for GPU compilation before its context is released.
+    // Stop every readiness poll before deleting its programs. Some drivers never
+    // finish compilation and cannot lose their context; cleanup must still end
+    // after cancellation, a shader error, or the render-loop stall timeout.
+    finalizing = true;
     while (pendingCompiles.size) await Promise.allSettled([...pendingCompiles]);
     // 0.0.24's public disposer does not close the low-res helper. It is disabled
     // for rendering here, but its allocated targets still require disposal.
@@ -433,8 +547,12 @@ export async function renderStudio(
           }
         } else rawContext?.getExtension("WEBGL_lose_context")?.loseContext();
       } finally {
-        canvas.removeEventListener("webglcontextlost", contextLost);
+        working.removeEventListener("webglcontextlost", contextLost);
         signal?.removeEventListener("abort", abortGpu);
+        working.width = working.height = 1;
+        // The returned Blob owns the completed image. Drop the large CPU
+        // assembly buffer as well, especially for cancelled/finished 8K jobs.
+        canvas.width = canvas.height = 1;
       }
     }
   }

@@ -125,7 +125,7 @@ async function objectFrom(e: Element): Promise<Obj> {
       fontStyle: e.fontStyle || "normal",
       underline: e.underline || false,
       fontFamily: e.fontFamily,
-      textAlign: e.textAlign,
+      textAlign: e.textAlign || "left",
       splitByGrapheme: false,
       editable: !e.locked,
     });

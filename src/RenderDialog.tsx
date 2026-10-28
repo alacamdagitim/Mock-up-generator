@@ -1,11 +1,15 @@
 import { useEffect, useId, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import type { RenderOptions, RenderSnapshot } from "./render/types";
 
 type RenderDialogProps = {
   open: boolean;
   onClose: () => void;
   source: (options: RenderOptions) => RenderSnapshot | Promise<RenderSnapshot>;
+  /** Captured from the current product, camera, layout and artwork. */
+  previewUrl?: string | null;
+  /** Each panel supplies its own preview section and settings aside. */
+  panels?: { dieline?: ReactNode; share?: ReactNode };
 };
 
 type RenderProgress = {
@@ -23,31 +27,61 @@ type CompletedRender = {
   samples: number;
   seconds: number;
   background: RenderOptions["background"];
+  aspect: RenderOptions["aspect"];
+  format: "png" | "jpeg";
   optionsKey: string;
 };
 
-const defaultOptions: RenderOptions = {
-  resolution: 1024,
-  quality: "standard",
-  studio: "softbox",
-  background: "white",
-  aspect: "square",
-};
+type ExportTab = "mockup" | "dieline" | "share";
 
-const stageLabels: Record<RenderProgress["stage"], string> = {
-  preparing: "Stüdyo hazırlanıyor",
-  rendering: "Işık hesaplanıyor",
-  encoding: "PNG hazırlanıyor",
-};
+function initialOptions(): RenderOptions {
+  return {
+    resolution: matchMedia("(max-width: 700px)").matches ? 1024 : 2048,
+    quality: "standard",
+    studio: "softbox",
+    background: "white",
+    aspect: "square",
+    format: "png",
+    floorShadow: true,
+  };
+}
+
+function supportedResolution() {
+  // High-resolution output is assembled from small GPU tiles. Test the 2D
+  // output's long edge, rather than incorrectly gating it on GPU texture size.
+  const memory = (navigator as Navigator & { deviceMemory?: number })
+    .deviceMemory;
+  const maximum = memory !== undefined && memory < 4 ? 4096 : 8192;
+  const element = document.createElement("canvas");
+  element.width = maximum;
+  element.height = 1;
+  const context = element.getContext("2d");
+  if (!context) return 2048;
+  try {
+    context.fillStyle = "#ffffff";
+    context.fillRect(maximum - 1, 0, 1, 1);
+    return context.getImageData(maximum - 1, 0, 1, 1).data[3] === 255
+      ? maximum
+      : 2048;
+  } catch {
+    return 2048;
+  } finally {
+    element.width = element.height = 1;
+  }
+}
 
 function RenderDialogContent({
   onClose,
   source,
+  previewUrl,
+  panels,
 }: Omit<RenderDialogProps, "open">) {
-  const [options, setOptions] = useState<RenderOptions>(defaultOptions);
+  const [options, setOptions] = useState<RenderOptions>(initialOptions);
   const [mobile, setMobile] = useState(
     () => matchMedia("(max-width: 700px)").matches,
   );
+  const [maximumResolution, setMaximumResolution] = useState(2048);
+  const [tab, setTab] = useState<ExportTab>("mockup");
   const [running, setRunning] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
@@ -64,6 +98,7 @@ function RenderDialogContent({
   const titleId = useId();
   const noteId = useId();
   const statusId = useId();
+  const tabsId = useId();
 
   useEffect(() => {
     mounted.current = true;
@@ -74,6 +109,7 @@ function RenderDialogContent({
     dialog.current
       ?.querySelector<HTMLButtonElement>(".studio-render-close")
       ?.focus();
+    setMaximumResolution(supportedResolution());
     const query = matchMedia("(max-width: 700px)");
     const resize = () => {
       setMobile(query.matches);
@@ -91,16 +127,18 @@ function RenderDialogContent({
     };
   }, []);
 
-  const effectiveOptions = {
+  const effectiveOptions: RenderOptions = {
     ...options,
     resolution: mobile ? 1024 : options.resolution,
-  } as RenderOptions;
-  const optionsChanged =
-    completed && completed.optionsKey !== JSON.stringify(effectiveOptions);
+    floorShadow:
+      options.background === "transparent" ? false : options.floorShadow,
+  };
+  const optionsChanged = Boolean(
+    completed && completed.optionsKey !== JSON.stringify(effectiveOptions),
+  );
 
   async function startRender() {
     if (running || !canvas.current) return;
-    // Keep keyboard focus inside the modal when Start is replaced by Cancel.
     dialog.current
       ?.querySelector<HTMLButtonElement>(".studio-render-close")
       ?.focus({ preventScroll: true });
@@ -161,6 +199,8 @@ function RenderDialogContent({
         samples: result.samples,
         seconds: result.seconds,
         background: effectiveOptions.background,
+        aspect: effectiveOptions.aspect,
+        format: result.blob.type === "image/jpeg" ? "jpeg" : "png",
         optionsKey: JSON.stringify(effectiveOptions),
       });
     } catch (cause) {
@@ -204,8 +244,12 @@ function RenderDialogContent({
     if (event.key !== "Tab") return;
     const items = Array.from(
       dialog.current?.querySelectorAll<HTMLElement>(
-        'button:not(:disabled), a[href], select:not(:disabled), input:not(:disabled), [tabindex="0"]',
+        'button:not(:disabled), a[href], select:not(:disabled), input:not(:disabled), summary, [tabindex="0"]',
       ) ?? [],
+    ).filter(
+      (item) =>
+        item.getClientRects().length > 0 &&
+        (item.tabIndex >= 0 || item.matches("summary")),
     );
     const first = items[0];
     const last = items[items.length - 1];
@@ -228,6 +272,8 @@ function RenderDialogContent({
   }
 
   const percent = Math.max(0, Math.min(100, progress?.percent || 0));
+  const formatLabel =
+    (completed?.format || options.format) === "jpeg" ? "JPG" : "PNG";
   const status = completed
     ? "Render hazır"
     : error
@@ -235,10 +281,23 @@ function RenderDialogContent({
       : cancelled
         ? "Render iptal edildi"
         : progress
-          ? stageLabels[progress.stage]
+          ? progress.stage === "preparing"
+            ? "Stüdyo hazırlanıyor"
+            : progress.stage === "encoding"
+              ? `${options.format === "jpeg" ? "JPG" : "PNG"} hazırlanıyor`
+              : "Işık hesaplanıyor"
           : running
             ? "Render başlatılıyor"
-            : "Render oluşturulmaya hazır";
+            : "Mevcut ürün ve yerleşiminiz";
+  const availableTabs: { value: ExportTab; label: string }[] = [
+    { value: "mockup", label: "Görsel" },
+    ...(panels?.dieline
+      ? [{ value: "dieline" as const, label: "Bıçak izi" }]
+      : []),
+    ...(panels?.share ? [{ value: "share" as const, label: "Paylaş" }] : []),
+  ];
+  const showingCanvas = running && Boolean(progress && progress.samples > 0);
+
   return (
     <div
       className="studio-render-backdrop"
@@ -256,15 +315,55 @@ function RenderDialogContent({
         onKeyDown={handleKeys}
       >
         <header className="studio-render-header">
-          <div>
-            <span className="studio-render-eyebrow">
-              ALAÇAM TASARIM STÜDYOSU
-            </span>
-            <h2 id={titleId}>Stüdyo render</h2>
-            <p>
-              Tasarımınızı yüksek çözünürlüklü bir ürün görseline dönüştürün.
-            </p>
-          </div>
+          <h2 className="studio-render-visually-hidden" id={titleId}>
+            Stüdyo render
+          </h2>
+          <nav
+            className="studio-render-tabs"
+            role="tablist"
+            aria-label="Dışa aktarma seçenekleri"
+          >
+            {availableTabs.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                role="tab"
+                id={`${tabsId}-${item.value}`}
+                aria-controls={`${tabsId}-${item.value}-panel`}
+                aria-selected={tab === item.value}
+                tabIndex={tab === item.value ? 0 : -1}
+                disabled={running}
+                onClick={() => setTab(item.value)}
+                onKeyDown={(event) => {
+                  if (
+                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                      event.key,
+                    )
+                  )
+                    return;
+                  event.preventDefault();
+                  const index = availableTabs.findIndex(
+                    (entry) => entry.value === tab,
+                  );
+                  const next =
+                    event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? availableTabs.length - 1
+                        : (index +
+                            (event.key === "ArrowRight" ? 1 : -1) +
+                            availableTabs.length) %
+                          availableTabs.length;
+                  setTab(availableTabs[next].value);
+                  event.currentTarget.parentElement
+                    ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+                    [next]?.focus();
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
           <button
             type="button"
             className="studio-render-close"
@@ -272,12 +371,12 @@ function RenderDialogContent({
             onClick={close}
           >
             <svg
-              width="24"
-              height="24"
+              width="26"
+              height="26"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.7"
+              strokeWidth="1.8"
               strokeLinecap="round"
               aria-hidden="true"
             >
@@ -286,7 +385,13 @@ function RenderDialogContent({
           </button>
         </header>
 
-        <div className="studio-render-body">
+        <div
+          className="studio-render-body"
+          id={`${tabsId}-mockup-panel`}
+          role="tabpanel"
+          aria-labelledby={`${tabsId}-mockup`}
+          hidden={tab !== "mockup"}
+        >
           <section
             className="studio-render-preview-column"
             aria-label="Stüdyo render önizlemesi"
@@ -295,232 +400,75 @@ function RenderDialogContent({
               className="studio-render-preview"
               data-background={completed?.background || options.background}
               data-state={
-                completed ? "complete" : progress ? "rendering" : "empty"
+                completed ? "complete" : showingCanvas ? "rendering" : "empty"
               }
+              data-aspect={options.aspect}
             >
-              <span className="studio-render-preview-label">
-                Stüdyo önizlemesi
-              </span>
-              <canvas
-                key={canvasVersion}
-                className="studio-render-canvas"
-                ref={canvas}
-                aria-label="Hesaplanan stüdyo render görseli"
-              />
-              {completed && (
-                <img
-                  className="studio-render-image"
-                  src={completed.url}
-                  alt={`Tamamlanan ürün renderi, ${completed.width} × ${completed.height} piksel`}
-                />
-              )}
-              {!completed && !progress && (
-                <div className="studio-render-empty">
-                  <svg
-                    width="90"
-                    height="100"
-                    viewBox="0 0 90 100"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M24 12h42l-3 15c4 12 8 34 9 53-14 9-40 9-54 0 1-19 5-41 9-53l-3-15Z"
-                      fill="white"
-                      stroke="#c9cbd0"
-                      strokeWidth="1.3"
-                    />
-                    <path
-                      d="M25 20h40M27 27h36M24 75c14 6 28 6 42 0"
-                      stroke="#d5d7dc"
-                      strokeWidth="1.2"
-                    />
-                    <rect
-                      x="33"
-                      y="40"
-                      width="24"
-                      height="23"
-                      rx="4"
-                      fill="#f0f1f3"
-                    />
-                    <path
-                      d="m40 54 4-4 7 7m-10-11h.01"
-                      stroke="#a8adb5"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <h3>
-                    {running
-                      ? "Stüdyo hazırlanıyor"
-                      : "Görseliniz burada oluşacak"}
-                  </h3>
-                  <p>
-                    Işığı ve çıktı boyutunu seçin, ardından render oluşturun.
-                  </p>
-                </div>
-              )}
-              {completed && (
-                <span className="studio-render-output-size">
-                  {completed.width} × {completed.height} px · PNG
-                </span>
-              )}
-            </div>
-            <div
-              className="studio-render-status"
-              aria-live="polite"
-              role="status"
-              id={statusId}
-            >
-              <div className="studio-render-status-heading">
-                <strong>{status}</strong>
-                {progress && running && <span>{Math.round(percent)}%</span>}
-                {completed && <span>{completed.seconds.toFixed(1)} sn</span>}
-              </div>
-              {running && (
-                <>
-                  <progress
-                    className="studio-render-progress"
-                    max={100}
-                    value={progress ? percent : undefined}
-                    aria-label="Render ilerlemesi"
+              <div
+                className="studio-render-frame"
+                data-aspect={completed?.aspect || options.aspect}
+              >
+                {!completed && previewUrl && (
+                  <img
+                    className="studio-render-source-image"
+                    src={previewUrl}
+                    alt="Seçili ürününüzün mevcut tasarımı ve yerleşimi"
                   />
-                  <div className="studio-render-progress-details">
-                    <span>
-                      {progress
-                        ? `${progress.samples} / ${progress.total} ışık örneği`
-                        : "Render motoru yükleniyor"}
-                    </span>
-                    <span>
-                      {progress
-                        ? `${(progress.elapsedMs / 1000).toFixed(1)} sn`
-                        : ""}
-                    </span>
+                )}
+                <canvas
+                  key={canvasVersion}
+                  className="studio-render-canvas"
+                  ref={canvas}
+                  aria-label="Hesaplanan stüdyo render görseli"
+                />
+                {completed && (
+                  <img
+                    className="studio-render-image"
+                    src={completed.url}
+                    alt={`Tamamlanan ürün renderi, ${completed.width} × ${completed.height} piksel`}
+                  />
+                )}
+                {!completed && !showingCanvas && !previewUrl && (
+                  <div className="studio-render-empty">
+                    <span
+                      className="studio-render-spinner"
+                      aria-hidden="true"
+                    />
+                    <p>Ürün önizlemesi hazırlanıyor…</p>
                   </div>
-                </>
-              )}
-              {completed && (
-                <p>
-                  {completed.samples} ışık örneği işlendi. PNG dosyanız
-                  indirilmeye hazır.
-                </p>
-              )}
-              {optionsChanged && (
-                <p className="studio-render-changed">
-                  Yeni ayarlar için yeniden render oluşturun.
-                </p>
-              )}
-            </div>
-          </section>
-
-          <aside
-            className="studio-render-settings"
-            aria-label="Render ayarları"
-          >
-            <fieldset className="studio-render-controls" disabled={running}>
-              <div className="studio-render-setting">
-                <h3>Çıktı boyutu</h3>
-                <div
-                  className="studio-render-segments"
-                  role="group"
-                  aria-label="Render çözünürlüğü"
-                >
-                  {([1024, 2048] as const).map((resolution) => (
-                    <button
-                      type="button"
-                      key={resolution}
-                      aria-pressed={effectiveOptions.resolution === resolution}
-                      disabled={mobile && resolution === 2048}
-                      onClick={() =>
-                        setOptions((current) => ({ ...current, resolution }))
-                      }
-                    >
-                      {resolution} px
-                    </button>
-                  ))}
-                </div>
-                {mobile && (
-                  <p className="studio-render-setting-note">
-                    Mobil cihazlarda çözünürlük 1024 px ile sınırlıdır.
-                  </p>
                 )}
               </div>
-              <div className="studio-render-setting">
-                <h3>Görüntü kalitesi</h3>
-                <div
-                  className="studio-render-quality"
-                  role="group"
-                  aria-label="Render kalitesi"
-                >
-                  {(
-                    [
-                      {
-                        value: "standard",
-                        title: "Standart",
-                        detail: "64 ışık örneği",
-                      },
-                      {
-                        value: "fine",
-                        title: "Yüksek",
-                        detail: "256 ışık örneği",
-                      },
-                    ] as const
-                  ).map((quality) => (
-                    <button
-                      type="button"
-                      key={quality.value}
-                      aria-pressed={options.quality === quality.value}
-                      onClick={() =>
-                        setOptions((current) => ({
-                          ...current,
-                          quality: quality.value,
-                        }))
-                      }
-                    >
-                      <strong>{quality.title}</strong>
-                      <span>{quality.detail}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="studio-render-setting-note">
-                  Yüksek kalite, ışık ve yansımalar için daha uzun hesaplanır.
-                </p>
-              </div>
-              <div className="studio-render-setting">
-                <h3>Stüdyo ışığı</h3>
-                <div
-                  className="studio-render-lights"
-                  role="group"
-                  aria-label="Stüdyo ışığı"
-                >
-                  {(
-                    [
-                      { value: "softbox", label: "Yumuşak stüdyo" },
-                      { value: "daylight", label: "Gün ışığı" },
-                      { value: "dramatic", label: "Kontrast" },
-                    ] as const
-                  ).map((studio) => (
-                    <button
-                      type="button"
-                      key={studio.value}
-                      aria-pressed={options.studio === studio.value}
-                      onClick={() =>
-                        setOptions((current) => ({
-                          ...current,
-                          studio: studio.value,
-                        }))
-                      }
-                    >
-                      <span
-                        className={`studio-render-light-swatch studio-render-light-${studio.value}`}
-                        aria-hidden="true"
-                      />
-                      <span>{studio.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="studio-render-setting">
-                <h3>Arka plan</h3>
+              {completed && (
+                <span className="studio-render-output-size">
+                  {completed.width} × {completed.height} px · {formatLabel}
+                </span>
+              )}
+              {!completed && (
+                <span className="studio-render-preview-label">
+                  Canlı sahne önizlemesi
+                </span>
+              )}
+              <fieldset
+                className="studio-render-preview-tools"
+                disabled={running}
+              >
+                <label className="studio-render-ratio">
+                  <span>Oran</span>
+                  <select
+                    aria-label="Render görsel oranı"
+                    value={options.aspect}
+                    onChange={(event) =>
+                      setOptions((current) => ({
+                        ...current,
+                        aspect: event.target.value as RenderOptions["aspect"],
+                      }))
+                    }
+                  >
+                    <option value="square">1:1</option>
+                    <option value="portrait">3:4</option>
+                    <option value="landscape">4:3</option>
+                  </select>
+                </label>
                 <div
                   className="studio-render-backgrounds"
                   role="group"
@@ -528,15 +476,26 @@ function RenderDialogContent({
                 >
                   {(
                     [
+                      { value: "transparent", label: "Şeffaf · gölgesiz" },
                       { value: "white", label: "Beyaz" },
                       { value: "warm", label: "Sıcak" },
-                      { value: "transparent", label: "Şeffaf · gölgesiz" },
                     ] as const
                   ).map((background) => (
                     <button
                       type="button"
                       key={background.value}
+                      aria-label={background.label}
+                      title={
+                        background.value === "transparent" &&
+                        options.format === "jpeg"
+                          ? "Şeffaf arka plan için PNG seçin"
+                          : background.label
+                      }
                       aria-pressed={options.background === background.value}
+                      disabled={
+                        background.value === "transparent" &&
+                        options.format === "jpeg"
+                      }
                       onClick={() =>
                         setOptions((current) => ({
                           ...current,
@@ -548,47 +507,261 @@ function RenderDialogContent({
                         data-background={background.value}
                         aria-hidden="true"
                       />
-                      <span>{background.label}</span>
                     </button>
                   ))}
                 </div>
-              </div>
-              <div className="studio-render-setting studio-render-aspect-setting">
-                <h3>Görsel oranı</h3>
-                <div
-                  className="studio-render-aspects"
-                  role="group"
-                  aria-label="Render görsel oranı"
+              </fieldset>
+            </div>
+          </section>
+
+          <aside
+            className="studio-render-settings"
+            aria-label="Render ayarları"
+          >
+            <div className="studio-render-intro">
+              <span className="studio-render-quality-mark" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
                 >
-                  {(
-                    [
-                      { value: "square", label: "Kare" },
-                      { value: "portrait", label: "Dikey" },
-                      { value: "landscape", label: "Yatay" },
-                    ] as const
-                  ).map((aspect) => (
+                  <path d="m12 2 3 6 7 1-5 5 1 8-6-4-6 4 1-8-5-5 7-1 3-6Z" />
+                </svg>
+              </span>
+              <h3>Stüdyo görseli oluştur</h3>
+              <p>
+                Gerçek ışık, yansıma ve yumuşak gölgelerle yüksek çözünürlüklü
+                ürün görseli oluşturun.
+              </p>
+              <span className="studio-render-engine-label">
+                Fiziksel ışık hesaplaması · Cihazınızda işlenir
+              </span>
+            </div>
+            <fieldset className="studio-render-controls" disabled={running}>
+              <label className="studio-render-shadow-toggle">
+                <input
+                  type="checkbox"
+                  checked={Boolean(effectiveOptions.floorShadow)}
+                  disabled={options.background === "transparent"}
+                  onChange={(event) =>
+                    setOptions((current) => ({
+                      ...current,
+                      floorShadow: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="studio-render-switch" aria-hidden="true" />
+                <span>Zemin gölgesini dahil et</span>
+              </label>
+              <div className="studio-render-setting">
+                <h3>Format ve çözünürlük</h3>
+                <div
+                  className="studio-render-formats"
+                  role="group"
+                  aria-label="Görsel formatı"
+                >
+                  {(["jpeg", "png"] as const).map((format) => (
                     <button
                       type="button"
-                      key={aspect.value}
-                      aria-pressed={options.aspect === aspect.value}
+                      key={format}
+                      aria-pressed={options.format === format}
                       onClick={() =>
                         setOptions((current) => ({
                           ...current,
-                          aspect: aspect.value,
+                          format,
+                          background:
+                            format === "jpeg" &&
+                            current.background === "transparent"
+                              ? "white"
+                              : current.background,
                         }))
                       }
                     >
-                      <i
-                        className={`studio-render-aspect-${aspect.value}`}
-                        aria-hidden="true"
-                      />
-                      <span>{aspect.label}</span>
+                      {format === "jpeg" ? "JPG" : "PNG"}
                     </button>
                   ))}
                 </div>
+                <div
+                  className="studio-render-segments"
+                  role="group"
+                  aria-label="Render çözünürlüğü"
+                >
+                  {([1024, 2048, 4096, 8192] as const).map((resolution) => (
+                    <button
+                      type="button"
+                      key={resolution}
+                      aria-label={`${resolution} px`}
+                      aria-pressed={effectiveOptions.resolution === resolution}
+                      disabled={
+                        (mobile && resolution > 1024) ||
+                        maximumResolution < resolution
+                      }
+                      title={
+                        mobile && resolution > 1024
+                          ? "Mobil cihazlarda en fazla 1K"
+                          : maximumResolution < resolution
+                            ? "Bu cihazın kullanılabilir belleği veya tuval sınırı bu çözünürlük için yeterli değil"
+                            : `${resolution} piksel uzun kenar`
+                      }
+                      onClick={() =>
+                        setOptions((current) => ({ ...current, resolution }))
+                      }
+                    >
+                      {resolution / 1024}K
+                    </button>
+                  ))}
+                </div>
+                <p className="studio-render-setting-note">
+                  {mobile
+                    ? "Mobil cihazlarda çözünürlük 1024 px ile sınırlıdır."
+                    : options.resolution === 8192
+                      ? "8K gerçek piksel çıktısıdır. Yüksek bellek kullanır; render süresi belirgin biçimde uzar."
+                      : options.resolution >= 4096
+                        ? "Çok yüksek çözünürlük. Daha fazla bellek ve işlem süresi gerektirir."
+                        : options.resolution === 2048
+                          ? "Yüksek çözünürlük. Ürün sayfaları ve sunumlar için ideal."
+                          : "Hızlı çıktı. Önizleme ve paylaşım için ideal."}
+                </p>
               </div>
+              <details className="studio-render-advanced">
+                <summary>
+                  Işık ve kalite ayarları
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    aria-hidden="true"
+                  >
+                    <path d="m4 6 4 4 4-4" />
+                  </svg>
+                </summary>
+                <div className="studio-render-setting">
+                  <h3>Görüntü kalitesi</h3>
+                  <div
+                    className="studio-render-quality"
+                    role="group"
+                    aria-label="Render kalitesi"
+                  >
+                    {(
+                      [
+                        {
+                          value: "standard",
+                          title: "Standart",
+                          detail: "64 ışık örneği",
+                        },
+                        {
+                          value: "fine",
+                          title: "Yüksek",
+                          detail: "256 ışık örneği",
+                        },
+                      ] as const
+                    ).map((quality) => (
+                      <button
+                        type="button"
+                        key={quality.value}
+                        aria-pressed={options.quality === quality.value}
+                        onClick={() =>
+                          setOptions((current) => ({
+                            ...current,
+                            quality: quality.value,
+                          }))
+                        }
+                      >
+                        <strong>{quality.title}</strong>
+                        <span>{quality.detail}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="studio-render-setting-note">
+                    Yüksek kalite, ışık ve yansımalar için daha uzun hesaplanır.
+                  </p>
+                </div>
+                <div className="studio-render-setting">
+                  <h3>Stüdyo ışığı</h3>
+                  <div
+                    className="studio-render-lights"
+                    role="group"
+                    aria-label="Stüdyo ışığı"
+                  >
+                    {(
+                      [
+                        { value: "softbox", label: "Yumuşak stüdyo" },
+                        { value: "daylight", label: "Gün ışığı" },
+                        { value: "dramatic", label: "Kontrast" },
+                      ] as const
+                    ).map((studio) => (
+                      <button
+                        type="button"
+                        key={studio.value}
+                        aria-pressed={options.studio === studio.value}
+                        onClick={() =>
+                          setOptions((current) => ({
+                            ...current,
+                            studio: studio.value,
+                          }))
+                        }
+                      >
+                        <span
+                          className={`studio-render-light-swatch studio-render-light-${studio.value}`}
+                          aria-hidden="true"
+                        />
+                        <span>{studio.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </details>
             </fieldset>
             <div className="studio-render-actions">
+              <div
+                className="studio-render-status"
+                aria-live="polite"
+                role="status"
+                id={statusId}
+              >
+                <div className="studio-render-status-heading">
+                  <strong>{status}</strong>
+                  {progress && running && <span>{Math.round(percent)}%</span>}
+                  {completed && <span>{completed.seconds.toFixed(1)} sn</span>}
+                </div>
+                {running && (
+                  <>
+                    <progress
+                      className="studio-render-progress"
+                      max={100}
+                      value={progress ? percent : undefined}
+                      aria-label="Render ilerlemesi"
+                    />
+                    <div className="studio-render-progress-details">
+                      <span>
+                        {progress
+                          ? `${Number(progress.samples.toFixed(1))} / ${progress.total} ışık örneği`
+                          : "Render motoru yükleniyor"}
+                      </span>
+                      <span>
+                        {progress
+                          ? `${(progress.elapsedMs / 1000).toFixed(1)} sn`
+                          : ""}
+                      </span>
+                    </div>
+                  </>
+                )}
+                {completed && (
+                  <p>
+                    {completed.samples} ışık örneği işlendi. {formatLabel}{" "}
+                    dosyanız indirilmeye hazır.
+                  </p>
+                )}
+                {optionsChanged && (
+                  <p className="studio-render-changed">
+                    Yeni ayarlar için yeniden render oluşturun.
+                  </p>
+                )}
+              </div>
               {error && (
                 <div className="studio-render-error" role="alert">
                   <strong>Render oluşturulamadı</strong>
@@ -619,9 +792,9 @@ function RenderDialogContent({
                 >
                   Render oluştur
                   <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 18 18"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.5"
@@ -629,7 +802,7 @@ function RenderDialogContent({
                     strokeLinejoin="round"
                     aria-hidden="true"
                   >
-                    <path d="M3 9h12m-5-5 5 5-5 5" />
+                    <path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4" />
                   </svg>
                 </button>
               )}
@@ -637,7 +810,7 @@ function RenderDialogContent({
                 <a
                   className="studio-render-download"
                   href={completed.url}
-                  download="alacam-studyo-render.png"
+                  download={`alacam-studyo-render.${completed.format === "jpeg" ? "jpg" : "png"}`}
                 >
                   <svg
                     width="18"
@@ -652,23 +825,42 @@ function RenderDialogContent({
                   >
                     <path d="M9 2v9m-3-3 3 3 3-3M3 12v3h12v-3" />
                   </svg>
-                  PNG indir
+                  {formatLabel} indir
                 </a>
               )}
             </div>
           </aside>
         </div>
+        {panels?.dieline && (
+          <div
+            className="studio-render-body studio-render-supplied-panel"
+            id={`${tabsId}-dieline-panel`}
+            role="tabpanel"
+            aria-labelledby={`${tabsId}-dieline`}
+            hidden={tab !== "dieline"}
+          >
+            {panels.dieline}
+          </div>
+        )}
+        {panels?.share && (
+          <div
+            className="studio-render-body studio-render-supplied-panel"
+            id={`${tabsId}-share-panel`}
+            role="tabpanel"
+            aria-labelledby={`${tabsId}-share`}
+            hidden={tab !== "share"}
+          >
+            {panels.share}
+          </div>
+        )}
         <footer className="studio-render-footer" id={noteId}>
-          Render tasarımınızı değiştirmez. Görsel önizlemedir; baskı veya üretim
-          dosyası değildir.
+          Görsel önizlemedir; baskı veya üretim dosyası değildir.
         </footer>
       </div>
     </div>
   );
 }
 
-export function RenderDialog({ open, onClose, source }: RenderDialogProps) {
-  return open ? (
-    <RenderDialogContent onClose={onClose} source={source} />
-  ) : null;
+export function RenderDialog({ open, ...props }: RenderDialogProps) {
+  return open ? <RenderDialogContent {...props} /> : null;
 }

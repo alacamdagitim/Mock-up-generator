@@ -130,6 +130,10 @@ export const designSchema = z
       })
       .strict(),
     background: color,
+    surfaceColors: z
+      .object({ front: color.optional(), back: color.optional() })
+      .strict()
+      .optional(),
     presentation: presentationSchema.optional(),
   })
   .strict()

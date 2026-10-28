@@ -18,6 +18,11 @@ import { Editor } from "./Editor";
 import type { EditorHandle } from "./Editor";
 import type { Design, Element, Face } from "./types";
 import { effectiveDpi, PRODUCT } from "../shared/schema.mjs";
+import {
+  faceBackground,
+  recommendedSurfaceColors,
+} from "../shared/surface-colors.mjs";
+import { SurfaceColorPicker } from "./SurfaceColorPicker";
 
 export function DesignCanvas({
   open,
@@ -37,6 +42,7 @@ export function DesignCanvas({
   onSelect,
   onTexture,
   onError,
+  onBackground,
 }: {
   open: boolean;
   templateUrl?: string;
@@ -55,10 +61,13 @@ export function DesignCanvas({
   onSelect: (element: Element | null) => void;
   onTexture: (face: Face, canvas: HTMLCanvasElement) => void;
   onError: (message: string) => void;
+  onBackground?: (color: string, record?: boolean) => void;
 }) {
   const workbench = useRef<HTMLElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState(0.5);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [surfaceOpen, setSurfaceOpen] = useState(false);
   const [zoom, setZoom] = useState<number | null>(null);
   const [rotation, setRotation] = useState(0);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -195,6 +204,7 @@ export function DesignCanvas({
     const node = viewport.current!;
     const resize = () => {
       if (!node.clientWidth || !node.clientHeight) return;
+      setViewportSize({ width: node.clientWidth, height: node.clientHeight });
       setFit(
         Math.max(
           0.08,
@@ -214,7 +224,13 @@ export function DesignCanvas({
   useEffect(() => {
     const node = viewport.current!;
     const wheel = (event: WheelEvent) => {
-      if (!open || isEditable(event.target)) return;
+      if (
+        !open ||
+        isEditable(event.target) ||
+        (event.target instanceof globalThis.Element &&
+          event.target.closest(".surface-color-control"))
+      )
+        return;
       event.preventDefault();
       event.stopPropagation();
       const unit =
@@ -313,6 +329,7 @@ export function DesignCanvas({
     setSpacePan(false);
     setPopover(null);
   }, [open]);
+  useEffect(() => setSurfaceOpen(false), [face, open]);
   const endPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
     const active = gesture.current;
     const belongedToArtwork = artworkPointer.current === event.pointerId;
@@ -370,6 +387,26 @@ export function DesignCanvas({
     return dpi !== null && dpi < 300;
   });
   const zoomPercent = Math.round((scale / fit) * 100);
+  const colorInset = Math.min(150, viewportSize.width / 2);
+  const colorLeft = Math.max(
+    colorInset,
+    Math.min(viewportSize.width - colorInset, viewportSize.width / 2 + pan.x),
+  );
+  // On phones a wide dieline sits near the viewport centre. Keep its color
+  // controls at the top so the whole picker fits without scrolling its title
+  // away when the HEX field receives focus.
+  const colorTop = matchMedia("(max-width: 700px)").matches
+    ? 10
+    : Math.max(
+        10,
+        Math.min(
+          viewportSize.height - 70,
+          viewportSize.height / 2 +
+            pan.y -
+            ((rotation % 180 ? width : height) * scale) / 2 -
+            54,
+        ),
+      );
   const navigateZoomMenu = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (!["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
@@ -422,6 +459,11 @@ export function DesignCanvas({
         style={{ touchAction: "none" }}
         onPointerDownCapture={(event) => {
           if (!open) return;
+          if (
+            event.target instanceof globalThis.Element &&
+            event.target.closest(".surface-color-control")
+          )
+            return;
           if (event.pointerType === "touch") {
             touches.current.set(event.pointerId, {
               x: event.clientX,
@@ -517,8 +559,26 @@ export function DesignCanvas({
             gesture.current = null;
         }}
       >
+        {onBackground && open && (
+          <SurfaceColorPicker
+            key={face}
+            value={faceBackground(design, face)}
+            colors={recommendedSurfaceColors(design, face) as string[]}
+            faceLabel={
+              singleFace
+                ? "Sarım yüzeyi"
+                : face === "front"
+                  ? "Ön yüz"
+                  : "Arka yüz"
+            }
+            onChange={onBackground}
+            onOpenChange={setSurfaceOpen}
+            style={{ left: colorLeft, top: colorTop }}
+            availableHeight={Math.max(100, viewportSize.height - colorTop - 58)}
+          />
+        )}
         <div
-          className="design-paper"
+          className={`design-paper${surfaceOpen ? " surface-selected" : ""}`}
           style={{
             width,
             height,
@@ -544,7 +604,7 @@ export function DesignCanvas({
             templateUrl={templateUrl}
             face={face}
             elements={design.faces[face]}
-            background={design.background}
+            background={faceBackground(design, face)}
             loadKey={loadKey}
             guides={guides}
             showMaterial={showMaterial}

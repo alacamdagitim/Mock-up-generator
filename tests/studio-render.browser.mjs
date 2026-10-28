@@ -199,8 +199,14 @@ try {
     const before = await draft(page);
     let dialog = await open(page);
     await expect(
-      dialog.getByRole("button", { name: "1024 px", exact: true }),
+      dialog.getByRole("button", { name: "2048 px", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
+    await expect(dialog.getByRole("tab")).toHaveCount(3);
+    await expect(dialog.locator(".studio-render-source-image")).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "PNG", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await dialog.getByRole("button", { name: "1024 px", exact: true }).click();
     await expect(
       dialog.getByRole("button", { name: "2048 px", exact: true }),
     ).toBeEnabled();
@@ -209,6 +215,11 @@ try {
       dialog.getByRole("button", { name: "2048 px", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
     await dialog.getByRole("button", { name: "1024 px", exact: true }).click();
+    await dialog.locator(".studio-render-advanced summary").click();
+    await expect(dialog.locator(".studio-render-advanced")).toHaveAttribute(
+      "open",
+      "",
+    );
     await dialog
       .getByRole("button", { name: "Gün ışığı", exact: true })
       .click();
@@ -218,12 +229,26 @@ try {
       .click();
     await dialog.getByRole("button", { name: "Sıcak", exact: true }).click();
     await dialog.getByRole("button", { name: "Beyaz", exact: true }).click();
-    await dialog.getByRole("button", { name: "Dikey", exact: true }).click();
-    await dialog.getByRole("button", { name: "Yatay", exact: true }).click();
-    await dialog.getByRole("button", { name: "Kare", exact: true }).click();
+    await dialog
+      .getByRole("combobox", { name: "Render görsel oranı" })
+      .selectOption("portrait");
+    await expect(dialog.locator(".studio-render-frame")).toHaveAttribute(
+      "data-aspect",
+      "portrait",
+    );
+    await dialog
+      .getByRole("combobox", { name: "Render görsel oranı" })
+      .selectOption("landscape");
+    await expect(dialog.locator(".studio-render-frame")).toHaveAttribute(
+      "data-aspect",
+      "landscape",
+    );
+    await dialog
+      .getByRole("combobox", { name: "Render görsel oranı" })
+      .selectOption("square");
     await page.screenshot({ path: `${output}/settings-desktop.png` });
     summary.passed.push(
-      "Desktop options:1024/2048, studio, background, aspect",
+      "Desktop 2K default, real scene preview, three export tabs; explicit1K/2K, advanced studio, background and aspect select",
     );
 
     // Cancel a real high-sample job, then retry at the default 64 samples.
@@ -403,6 +428,7 @@ try {
     await expect(
       dialog.getByRole("link", { name: "PNG indir", exact: true }),
     ).toHaveCount(0);
+    await dialog.getByRole("button", { name: "1024 px", exact: true }).click();
     await dialog
       .getByRole("button", { name: "Render oluştur", exact: true })
       .click();
@@ -424,14 +450,24 @@ try {
   const shortDesktop = await isolatedPage({ width: 1280, height: 720 });
   const shortBefore = await draft(shortDesktop.page);
   const shortDialog = await open(shortDesktop.page);
-  const shortBody = shortDialog.locator(".studio-render-body");
-  const shortPreview = shortDialog.locator(".studio-render-preview");
-  const shortSettings = shortDialog.locator(".studio-render-settings");
+  const shortBody = shortDialog.locator(".studio-render-body:not([hidden])");
+  const shortPreview = shortBody.locator(".studio-render-preview");
+  const shortSettings = shortBody.locator(".studio-render-settings");
+  await shortSettings.locator(".studio-render-advanced summary").click();
   const bodyBounds = await shortBody.boundingBox();
   const previewBefore = await shortPreview.boundingBox();
   const dialogBounds = await shortDialog.boundingBox();
   expect(dialogBounds.y).toBeGreaterThanOrEqual(0);
   expect(dialogBounds.y + dialogBounds.height).toBeLessThanOrEqual(721);
+  const footerBounds = await shortDialog
+    .locator(".studio-render-footer")
+    .boundingBox();
+  expect(footerBounds.y).toBeGreaterThanOrEqual(
+    bodyBounds.y + bodyBounds.height - 1,
+  );
+  expect(footerBounds.y + footerBounds.height).toBeLessThanOrEqual(
+    dialogBounds.y + dialogBounds.height + 1,
+  );
   expect(previewBefore.x).toBeGreaterThanOrEqual(bodyBounds.x);
   expect(previewBefore.y).toBeGreaterThanOrEqual(bodyBounds.y);
   expect(previewBefore.x + previewBefore.width).toBeLessThanOrEqual(
@@ -465,7 +501,7 @@ try {
   expect(await draft(shortDesktop.page)).toEqual(shortBefore);
   await shortDesktop.context.close();
   summary.passed.push(
-    "1280×720 preview fits the dialog; right settings scroll independently",
+    "1280×720 preview and footer fit the dialog; expanded right settings scroll independently",
   );
 
   const mobile = await isolatedPage({ width: 390, height: 844 });

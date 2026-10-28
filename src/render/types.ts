@@ -2,7 +2,9 @@ import type * as THREE from "three";
 import type { Presentation } from "../types";
 
 export type RenderOptions = {
-  resolution: 1024 | 2048;
+  resolution: 1024 | 2048 | 4096 | 8192;
+  format?: "png" | "jpeg";
+  floorShadow?: boolean;
   quality: "standard" | "fine";
   studio: "softbox" | "daylight" | "dramatic";
   background: "white" | "warm" | "transparent";

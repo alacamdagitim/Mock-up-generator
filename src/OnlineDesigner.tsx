@@ -43,6 +43,8 @@ import { ModeSwitch } from "./ModeSwitch";
 import { PreviewWindowControls } from "./PreviewWindowControls";
 import { PreviewToolbar } from "./PreviewToolbar";
 import { RenderDialog } from "./RenderDialog";
+import { DielineExportPanel, ShareExportPanel } from "./ExportPanels";
+import { faceBackground } from "../shared/surface-colors.mjs";
 import { renderFace } from "./Editor";
 import {
   artworkMultiplier,
@@ -129,6 +131,7 @@ export default function OnlineDesigner({
   const [mobileConfig, setMobileConfig] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [renderOpen, setRenderOpen] = useState(false);
+  const [renderPreviewUrl, setRenderPreviewUrl] = useState("");
   const [exports, setExports] = useState({ png: "", json: "" });
   useEffect(() => {
     const node = root.current;
@@ -347,13 +350,13 @@ export default function OnlineDesigner({
     const [front, back] = await Promise.all([
       renderFace(
         design.faces.front,
-        design.background,
+        faceBackground(design, "front"),
         multiplier,
         design.artboard,
       ),
       renderFace(
         design.faces.back,
-        design.background,
+        faceBackground(design, "back"),
         multiplier,
         design.artboard,
       ),
@@ -461,6 +464,11 @@ export default function OnlineDesigner({
             onClick={() => {
               setExportOpen(false);
               changeMode("3d");
+              try {
+                setRenderPreviewUrl(d.preview.current?.png(4) || "");
+              } catch {
+                setRenderPreviewUrl("");
+              }
               setRenderOpen(true);
             }}
           >
@@ -767,11 +775,11 @@ export default function OnlineDesigner({
                   <button
                     key={color}
                     aria-label={`Ambalaj rengi ${color}`}
-                    aria-pressed={d.design.background === color}
+                    aria-pressed={faceBackground(d.design, d.face) === color}
                     style={{ background: color }}
                     onClick={() => d.background(color)}
                   >
-                    {d.design.background === color && (
+                    {faceBackground(d.design, d.face) === color && (
                       <Check
                         size={14}
                         style={{
@@ -791,13 +799,14 @@ export default function OnlineDesigner({
                 <input
                   type="color"
                   aria-label="Özel ambalaj rengi"
-                  value={d.design.background}
+                  value={faceBackground(d.design, d.face)}
                   onChange={(e) => d.background(e.target.value)}
                 />
-                <code>{d.design.background.toUpperCase()}</code>
+                <code>{faceBackground(d.design, d.face).toUpperCase()}</code>
               </label>
               <p className="panel-note">
-                Base color applies to both faces. Screen colors are approximate.
+                Renk seçili baskı yüzeyine uygulanır. Ekran renkleri yaklaşık
+                gösterilir.
               </p>
               <h3>Patterns</h3>
               <div className="pattern-grid">
@@ -947,6 +956,7 @@ export default function OnlineDesigner({
           onSelect={d.setSelected}
           onTexture={d.onTexture}
           onError={(message) => d.notify(message, true)}
+          onBackground={d.background}
         />
         {d.selected && mode === "2d" && tool !== "layout" && (
           <div
@@ -1216,8 +1226,32 @@ export default function OnlineDesigner({
       </main>
       <RenderDialog
         open={renderOpen}
-        onClose={() => setRenderOpen(false)}
+        onClose={() => {
+          setRenderOpen(false);
+          setRenderPreviewUrl("");
+        }}
         source={renderSource}
+        previewUrl={renderPreviewUrl}
+        panels={{
+          dieline: (
+            <DielineExportPanel
+              design={d.design}
+              face={d.face}
+              templateUrl={d.templateUrl}
+              originalUrl={manufacturerFile || undefined}
+            />
+          ),
+          share: (
+            <ShareExportPanel
+              design={d.design}
+              saved={d.saved}
+              storageConfigured={d.storage}
+              onSave={d.save}
+              busy={d.busy}
+              previewUrl={renderPreviewUrl}
+            />
+          ),
+        }}
       />
       {configureOpen && (
         <ConfigureDialog

@@ -31,6 +31,9 @@ npx playwright install chromium
 npm run test:workspace
 npm run test:preview
 npm run test:render
+npm run test:exports
+npm run test:high-resolution
+npm run test:render-snapshot
 npm run test:denoise
 ```
 
@@ -39,11 +42,11 @@ npm run test:denoise
 ## Editör akışı
 
 - Üstte tasarım adı, **3D / 2D**, **Render al**, **Şablonu indir**, **Görsel yükle**, PNG/JSON menüsü ve kapatma düğmesi bulunur.
-- **Render al**, ayrı WebGL2 path tracing motoruyla stüdyo görseli üretir. 1024/2048 px, 64/256 ışık örneği, üç ışık düzeni, beyaz/sıcak/şeffaf arka plan ve kare/dikey/yatay oran seçilir. Mobilde 1024 px sınırı vardır. İlerleme, iptal, hata ve tamamlanan PNG indirme gerçek render işine bağlıdır. Ayrıntılar: [Stüdyo render](docs/RENDER.md).
+- **Render al**, büyük önizleme ve sağ ayarlar sütunuyla açılır. **Görsel / Bıçak izi / Paylaş** sekmeleri bulunur. Ayrı WebGL2 path tracing motoru PNG/JPG, 1K/2K/4K/8K, 64/256 ışık örneği, üç ışık düzeni, gölge seçimi ve kare/dikey/yatay oran sunar. Mobilde 1K sınırı vardır. 4K/8K gerçek kamera parçalarıyla hesaplanır; ilerleme, iptal, hata ve indirme gerçek işten gelir. Bıçak izi sekmesi SVG/PNG/RGB PDF ve düzenlenebilir JSON indirir. Paylaşım, yapılandırılmış sunucudan gelen gerçek dosya bağlantılarını kullanır. Ayrıntılar: [Stüdyo render](docs/RENDER.md).
 - Solda API demosundaki İngilizce görünür etiketlerle **Inspirations / Uploads / Text / Background / Shapes / Layout** vardır. 16 örnek bu proje için özgün hazırlanmıştır; seçili yüzü değiştirir, geri alınabilir. Erişilebilirlik ve entegrasyon etiketleri Türkçe tutulur.
 - 2D modunda merkezde ölçülü yüz, sağ üstte canlı 3D, altında ürün ayarları vardır. 3D modunda model ana alanı kaplar; sol içerik paneli kapanır, araçlardan tekrar açılabilir.
 - **Yerleşim** panelinde Tek ürün, Ön ve yan, Ön ve arka, Eğik ikili, İkili, Üçlü seri, Yelpaze, Kademeli, Vitrin, Beşli seri ve Katalog vardır. Seçim gerçek 3D sahnesini değiştirir; mesafe ayarlanabilir. 2D modunda tek yüz gösterilir, seçili yerleşim korunur. Yerleşim ve mesafe JSON/yerel taslakta saklanır; geri alınabilir ve PNG önizlemeye yansır. Kompozisyondaki ürün kopyaları sipariş adedini değiştirmez.
-- Ön ve arka yüzler bağımsızdır. Yükleme PNG/JPG için 8 MB, SVG için 1 MB sınırındadır. SVG temizlenip yerel raster dokuya dönüştürülür; betik, harici görsel/bağlantı ve animasyon kabul edilmez. AI/PDF görsel içe aktarma yoktur.
+- Ön ve arka yüzler bağımsızdır. **Yüzey rengi** seçicisi HSV, HEX, önerilen renkler ve desteklenen tarayıcılarda ekran renk seçicisiyle seçili yüzü değiştirir; tek sürükleme tek geri alma adımıdır. Yükleme PNG/JPG için 8 MB, SVG için 1 MB sınırındadır. SVG temizlenip yerel raster dokuya dönüştürülür; betik, harici görsel/bağlantı ve animasyon kabul edilmez. AI/PDF görsel içe aktarma yoktur.
 - Öğeler taşınır, ölçeklenir, döndürülür ve silinir. Seçili öğe araçları tuval üzerinde açılır. Yazıda içerik, DM Sans ve dört sistem fontu, boyut, renk, hizalama, kalın/italik/altı çizili; öğelerde dönüş, ölçek, saydamlık, yatay/dikey çevirme, çoğaltma, kilitleme ve dört katman sırası işlemi vardır. Üç nokta menüsü ayrıntıları açar. Katman listesi sol panelin altında açılır.
 - Tuval çubuğunda seçim, kaydırma, geri al/yinele, silme, zoom, ekrana sığdırma ve baskı/güvenli alan kılavuzları vardır. `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z` ve Delete/Backspace desteklenir.
 - Baskı alanı dışındaki öğeler dokuda kırpılır. Görsel çözünürlüğü örnek baskı ölçüsüne göre hesaplanır, 300 DPI altı uyarılır.
@@ -138,7 +141,7 @@ Sunucu ilk sürümde kalıcı dosya sistemi kullanır. Geçici container diski u
 - Canlı editör `custom.3b_glb_dosyasi` doluysa ürün GLB’sini, `custom.bicak_i_zi` SVG ise ürün şablonunu yükler. Baskı yüzleri yukarıdaki ad/UV sözleşmesiyle eşlenir; bilinmeyen yüzlerde eşleme uyarısı görünür. Meta alanları boşken özgün örnek model kullanılır. PDF, üretim güvenli alanı ve keyfi kesim kırpması otomatik hazırlanmaz. Ayrıntılar: `docs/SHOPIFY-BUTON.md`.
 - 140 × 210 mm örnektir. Üreticinin gerçek kesim/katlama/kaynak/körük ölçüleri, taşma ve güvenli alanı, baskı gereksinimleri ve renk profili sağlanmadan **baskıya hazır** çıktı yoktur.
 - Üretici şablonu bağlantısı yoksa **Şablonu indir** yalnızca açıkça etiketli örnek SVG kılavuzu verir. Gerçek kesim makinesi dosyası değildir. `productionReady=false` korunur.
-- İndirme menüsündeki PNG hızlı ekran önizlemesidir. **Render al** ile indirilen PNG ise ışık yolları hesaplanmış stüdyo sunumudur. İkisi de üretim dosyası değildir. JSON düzenlenebilir tasarımdır; üretim PDF'si değildir. `src/production.ts` gelecekteki ölçekli üretim çıktısı için sözleşmedir, exporter kayıtlı değildir.
+- İndirme menüsündeki PNG hızlı ekran önizlemesidir. **Render al** ile indirilen PNG/JPG, ışık yolları hesaplanmış stüdyo sunumudur. Bıçak izi sekmesindeki SVG, ayrı kesim katmanı ve gömülü raster tasarım taşır; PDF, tanımlı fiziksel ölçüde RGB görsel içerir. Bu çıktılar üretim onaylı değildir; CMYK/ICC, AI ve düzenlenebilir vektör PDF yoktur. JSON düzenlenebilir tasarımdır. `src/production.ts` gelecekteki onaylı üretim çıktısı için sözleşmedir, üretim exporter'ı kayıtlı değildir.
 - Bardak, kutu, farklı ölçü ve yeni baskı yüzleri için uygun model/UV adaptörü ve açık şema sürümü gerekir. Pacdora'nın modelleri/şablonları alınmaz.
 - 3D dokular yüz başına 600 × 900; mobil piksel oranı sınırlandırılmıştır. Fiziksel telefonlarda performans benchmark'ı yapılmadı. Işık, gölge ve malzeme bir WebGL önizlemesidir; fotoğraf doğruluğu veya baskı rengi garantisi yoktur.
 
@@ -157,7 +160,7 @@ Doğrudan bağımlılıklar ticari kullanıma uygun ücretsiz açık kaynaktır.
 
 Eski ZIP takma adları ve açılmış proje kopyaları yoktur. Test ekran görüntüleri `test-results/screenshots/` altında geçici üretilir; teslim ZIP'lerine eklenmez. Geliştirme için gereken `node_modules` yerel bilgisayarda kalır; teslimin parçası değildir.
 
-Yerleşim kapakları özgün modelden bir defa hazırlanmış toplam yaklaşık 82 KB WebP'dir; müşteri cihazında ek WebGL renderer açılmaz. Kapakları yeniden üretmek için Vite çalışırken `npm run assets:layouts` kullanın (Playwright Chromium gerekir). Canlı 3D her zaman müşterinin güncel tasarımını gösterir; kapaklar yalnız yerleşim örnekleridir.
+Yerleşim paneli açıldığında kapaklar seçili ürün ve güncel tasarımdan mevcut renderer ile hazırlanır; ayrı WebGL bağlamı açılmaz. Hazır özgün örnek kapaklar yükleme sırasında kullanılır. Bunları yeniden üretmek için Vite çalışırken `npm run assets:layouts` kullanılabilir (Playwright Chromium gerekir).
 
 Arayüz fontu DM Sans (SIL OFL 1.1) yerel paketlenir. Pacdora'nın Gilroy fontu ve özel ikon fontu alınmadı; standart araç simgeleri bağımsız SVG olarak çizildi. Shapes panelinde sekiz temel şekil, 14 ambalaj sembolü ve altı sosyal/iletişim simgesi; Background panelinde 12 özgün desen vardır. Desen seçimi yüzü kaplayacak şekilde en arka katmana eklenir. Tuval 90° görünüm döndürmesi üretim koordinatlarını değiştirmez.
 

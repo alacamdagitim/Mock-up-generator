@@ -181,13 +181,17 @@ export function captureRenderSnapshot(
           : object.name === "print_back"
             ? "back"
             : undefined);
-      if (mappedFace === "front" || mappedFace === "back") {
-        const face = mappedFace;
-        for (const material of Array.isArray(object.material)
-          ? object.material
-          : [object.material])
-          if (material instanceof THREE.MeshStandardMaterial)
-            overridePrint(face, material);
+      for (const material of Array.isArray(object.material)
+        ? object.material
+        : [object.material]) {
+        // Keep the same mesh/extras/material-name contract as the GLB binder.
+        const face =
+          mappedFace || /^artwork_(front|back)$/.exec(material.name)?.[1];
+        if (
+          (face === "front" || face === "back") &&
+          material instanceof THREE.MeshStandardMaterial
+        )
+          overridePrint(face, material);
       }
     });
     // Close only this original pouch's unsealed perimeter in the offline copy.

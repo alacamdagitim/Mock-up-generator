@@ -12,6 +12,7 @@ import type { EditorHandle } from "./Editor";
 import type { PreviewHandle } from "./Preview";
 import { renderFace } from "./Editor";
 import { artworkMultiplier } from "../shared/render-quality.mjs";
+import { faceBackground, withSurfaceColor } from "../shared/surface-colors.mjs";
 import {
   blankDesign,
   parseDesign,
@@ -299,12 +300,16 @@ export function useDesigner(config: EditorConfig) {
       .catch(() => setStorage(false));
     return () => abort.abort();
   }, [api]);
+  const oppositeBackground = faceBackground(
+    design,
+    face === "front" ? "back" : "front",
+  );
   useEffect(() => {
     const opposite = face === "front" ? "back" : "front";
     let stale = false;
     void renderFace(
       state.current.faces[opposite],
-      state.current.background,
+      faceBackground(state.current, opposite),
       artworkMultiplier(
         state.current.artboard?.canvasWidth || 600,
         state.current.artboard?.canvasHeight || 900,
@@ -319,7 +324,7 @@ export function useDesigner(config: EditorConfig) {
     return () => {
       stale = true;
     };
-  }, [face, loadKey, design.background, design.artboard, onTexture, notify]);
+  }, [face, loadKey, oppositeBackground, design.artboard, onTexture, notify]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 6500);
@@ -425,12 +430,14 @@ export function useDesigner(config: EditorConfig) {
       presentation: { ...settings, ...values },
       updatedAt: new Date().toISOString(),
     });
-  const background = (color: string) =>
-    change({
-      ...state.current,
-      background: color,
-      updatedAt: new Date().toISOString(),
-    });
+  const background = (color: string, record = true) =>
+    change(
+      {
+        ...withSurfaceColor(state.current, faceRef.current, color),
+        updatedAt: new Date().toISOString(),
+      },
+      record,
+    );
   const add = async (element: Element, fit = true) => {
     if (!editor.current) throw new Error("Düzenleyici henüz hazır değil.");
     if (
@@ -583,7 +590,7 @@ export function useDesigner(config: EditorConfig) {
           png = (
             await renderFace(
               snapshot.faces.front,
-              snapshot.background,
+              faceBackground(snapshot, "front"),
               1,
               snapshot.artboard,
             )
