@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { renderDenoisedResult } from "./denoise";
+import { renderTextureSize } from "../../shared/render-quality.mjs";
 import type {
   RenderContext,
   RenderOptions,
@@ -150,6 +151,9 @@ export async function renderStudio(
     lost = true;
   };
   canvas.addEventListener("webglcontextlost", contextLost);
+  const abortGpu = () =>
+    rawContext?.getExtension("WEBGL_lose_context")?.loseContext();
+  signal?.addEventListener("abort", abortGpu, { once: true });
   try {
     assertActive();
     report("preparing");
@@ -174,7 +178,13 @@ export async function renderStudio(
       throw new Error(
         "Bu cihaz fiziksel render için gereken float render hedeflerini desteklemiyor.",
       );
-    if (Math.max(width, height) > gl.getParameter(gl.MAX_TEXTURE_SIZE))
+    if (
+      Math.max(width, height) >
+      Math.min(
+        gl.getParameter(gl.MAX_TEXTURE_SIZE),
+        gl.getParameter(gl.MAX_RENDERBUFFER_SIZE),
+      )
+    )
       throw new Error("Seçilen çözünürlük bu cihazın doku sınırını aşıyor.");
     renderer = new THREE.WebGLRenderer({
       canvas,
@@ -278,13 +288,23 @@ export async function renderStudio(
     assertActive();
     tracer = new WebGLPathTracer(renderer);
     tracer.tiles.set(2, 2);
-    tracer.bounces = options.quality === "fine" ? 10 : 6;
+    let transmissive = false;
+    snapshot.product.traverse((node) => {
+      if (!(node instanceof THREE.Mesh)) return;
+      for (const material of Array.isArray(node.material)
+        ? node.material
+        : [node.material])
+        if (
+          material instanceof THREE.MeshPhysicalMaterial &&
+          material.transmission > 0
+        )
+          transmissive = true;
+    });
+    tracer.bounces = options.quality === "fine" ? 10 : transmissive ? 6 : 4;
     tracer.transmissiveBounces = 4;
     tracer.multipleImportanceSampling = true;
     tracer.filterGlossyFactor = options.quality === "fine" ? 0.2 : 0.35;
-    tracer.textureSize.setScalar(
-      mobile ? 1024 : options.quality === "fine" ? 2048 : 1024,
-    );
+    tracer.textureSize.setScalar(renderTextureSize(longEdge, mobile));
     tracer.renderDelay = 0;
     tracer.minSamples = 1;
     tracer.fadeDuration = 0;
@@ -300,7 +320,39 @@ export async function renderStudio(
       lastAdvance = performance.now();
     while (tracer.samples < total) {
       assertActive();
-      tracer.renderSample();
+      // One complete sample per UI turn, rather than one of its four tiles.
+      // Composite only the last tile. A GPU fence bounds queued work, keeping
+      // cancellation responsive even when CPU submission is much faster than GL.
+      for (let tile = 0; tile < 4 && tracer.samples < total; tile++) {
+        tracer.renderToCanvas = tile === 3;
+        const before = tracer.samples;
+        tracer.renderSample();
+        assertActive();
+        if (tracer.samples === before) break; // asynchronous shader compilation
+      }
+      const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      if (fence) {
+        try {
+          gl.flush();
+          const submitted = performance.now();
+          let status = gl.clientWaitSync(fence, 0, 0);
+          while (status === gl.TIMEOUT_EXPIRED) {
+            assertActive();
+            if (performance.now() - submitted > 60000)
+              throw new Error(
+                "GPU yanıt vermedi. Daha düşük çözünürlükle yeniden deneyin.",
+              );
+            await frame(signal);
+            status = gl.clientWaitSync(fence, 0, 0);
+          }
+          if (status === gl.WAIT_FAILED)
+            throw new Error(
+              "GPU işlemi tamamlanamadı. Renderı yeniden başlatın.",
+            );
+        } finally {
+          gl.deleteSync(fence);
+        }
+      }
       assertActive();
       const samples = tracer.samples;
       if (samples > previous) {
@@ -382,6 +434,7 @@ export async function renderStudio(
         } else rawContext?.getExtension("WEBGL_lose_context")?.loseContext();
       } finally {
         canvas.removeEventListener("webglcontextlost", contextLost);
+        signal?.removeEventListener("abort", abortGpu);
       }
     }
   }

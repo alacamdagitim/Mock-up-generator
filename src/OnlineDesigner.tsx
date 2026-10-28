@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   Box,
@@ -44,6 +44,11 @@ import { PreviewWindowControls } from "./PreviewWindowControls";
 import { PreviewToolbar } from "./PreviewToolbar";
 import { RenderDialog } from "./RenderDialog";
 import { renderFace } from "./Editor";
+import {
+  artworkMultiplier,
+  renderTextureSize,
+} from "../shared/render-quality.mjs";
+import type { RenderOptions } from "./render/types";
 import {
   BASIC_SHAPES,
   SOCIAL_SYMBOLS,
@@ -304,11 +309,54 @@ export default function OnlineDesigner({
     setExports({ png, json });
     setExportOpen(true);
   };
-  const renderSource = async () => {
+  const getLayoutCovers = useCallback(
+    (signal: AbortSignal) => {
+      if (!d.preview.current)
+        return Promise.reject(new Error("3B model henüz hazır değil."));
+      return d.preview.current.layoutCovers(signal);
+    },
+    [d.preview],
+  );
+  const layoutRevision = useMemo(
+    () => ({}),
+    [
+      d.textures,
+      d.product.id,
+      manufacturerModel,
+      modelFaces,
+      d.settings.material,
+      d.settings.finishing,
+      d.settings.substrate,
+      d.settings.printMode,
+      d.settings.exposure,
+      d.settings.shadows,
+      d.settings.lighting,
+      d.settings.inflate,
+    ],
+  );
+  const renderSource = async (options: RenderOptions) => {
     const design = d.state.current;
+    const multiplier = artworkMultiplier(
+      design.artboard?.canvasWidth || 600,
+      design.artboard?.canvasHeight || 900,
+      renderTextureSize(
+        options.resolution,
+        matchMedia("(max-width:700px)").matches,
+      ),
+    );
     const [front, back] = await Promise.all([
-      renderFace(design.faces.front, design.background, 2, design.artboard),
-      renderFace(design.faces.back, design.background, 2, design.artboard),
+      renderFace(
+        design.faces.front,
+        design.background,
+        multiplier,
+        design.artboard,
+      ),
+      renderFace(
+        design.faces.back,
+        design.background,
+        multiplier,
+        design.artboard,
+      ),
     ]);
     try {
       if (!d.preview.current)
@@ -560,6 +608,8 @@ export default function OnlineDesigner({
           </div>
           {tool === "layout" && (
             <LayoutPanel
+              getCovers={getLayoutCovers}
+              revision={layoutRevision}
               layout={d.settings.layout || "single"}
               spacing={d.settings.spacing || 1}
               onSelect={(layout) => {

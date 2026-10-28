@@ -63,10 +63,11 @@ export async function imageFile(
     if (img.naturalWidth * img.naturalHeight > 40_000_000)
       throw new Error("Görsel 40 megapiksel sınırını aşıyor.");
     const max = vector ? 2400 : 3200;
-    const ratio = Math.min(
-      1,
-      max / Math.max(img.naturalWidth, img.naturalHeight),
-    );
+    // SVG dimensions describe its artboard, not its detail. Rasterize sanitized
+    // paths at the texture budget instead of freezing a 64px logo at 64px.
+    const ratio = vector
+      ? max / Math.max(img.naturalWidth, img.naturalHeight)
+      : Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
     const c = document.createElement("canvas");
     c.width = Math.max(1, Math.round(img.naturalWidth * ratio));
     c.height = Math.max(1, Math.round(img.naturalHeight * ratio));

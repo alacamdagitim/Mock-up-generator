@@ -20,7 +20,6 @@ export function captureRenderSnapshot(
   const extraTextures = new Set<THREE.Texture>();
   const extraGeometries = new Set<THREE.BufferGeometry>();
   const overrideMaps = new Map<string, THREE.Texture>();
-  let filmNormal: THREE.DataTexture | null = null;
   let disposed = false;
   const dispose = () => {
     if (disposed) return;
@@ -41,46 +40,6 @@ export function captureRenderSnapshot(
     extraTextures.clear();
     extraGeometries.clear();
     overrideMaps.clear();
-  };
-  const normalMap = () => {
-    if (filmNormal) return filmNormal;
-    const size = 128,
-      heights = new Float32Array(size * size),
-      pixels = new Uint8Array(size * size * 4);
-    let seed = 904331;
-    for (let i = 0; i < heights.length; i++) {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-      heights[i] = seed / 0xffffffff;
-    }
-    for (let y = 0; y < size; y++)
-      for (let x = 0; x < size; x++) {
-        const dx =
-          (heights[y * size + ((x + 1) % size)] -
-            heights[y * size + ((x + size - 1) % size)]) *
-          0.24;
-        const dy =
-          (heights[((y + 1) % size) * size + x] -
-            heights[((y + size - 1) % size) * size + x]) *
-          0.24;
-        const inverse = 1 / Math.hypot(dx, dy, 1),
-          i = (y * size + x) * 4;
-        pixels.set(
-          [
-            Math.round((0.5 - dx * inverse * 0.5) * 255),
-            Math.round((0.5 - dy * inverse * 0.5) * 255),
-            Math.round((0.5 + inverse * 0.5) * 255),
-            255,
-          ],
-          i,
-        );
-      }
-    filmNormal = new THREE.DataTexture(pixels, size, size, THREE.RGBAFormat);
-    filmNormal.wrapS = filmNormal.wrapT = THREE.RepeatWrapping;
-    filmNormal.repeat.set(5, 7);
-    filmNormal.minFilter = filmNormal.magFilter = THREE.LinearFilter;
-    filmNormal.needsUpdate = true;
-    extraTextures.add(filmNormal);
-    return filmNormal;
   };
   const overridePrint = (
     face: "front" | "back",
@@ -174,6 +133,17 @@ export function captureRenderSnapshot(
         "Stüdyo renderı fiziksel MeshStandard/Physical malzeme gerektirir.",
       );
     const copy = source.clone();
+    // The WebGL tracer's separate coat lobe can produce black thin shells.
+    // Fold its roughness into one stable GGX lobe in the owned offline copy.
+    // This is an approximation, not a change to the authored/live material.
+    if (copy instanceof THREE.MeshPhysicalMaterial && copy.clearcoat > 0) {
+      const weight = Math.min(1, copy.clearcoat) * 0.25;
+      const coatRoughness = Math.max(0.04, copy.clearcoatRoughness);
+      copy.roughness = Math.sqrt(
+        (1 - weight) * copy.roughness ** 2 + weight * coatRoughness ** 2,
+      );
+      copy.clearcoat = 0;
+    }
     materials.set(source, copy);
     for (const key of Object.keys(source)) {
       if (key === "bumpMap") continue;
@@ -182,10 +152,8 @@ export function captureRenderSnapshot(
         (copy as unknown as Record<string, unknown>)[key] = cloneTexture(value);
     }
     copy.bumpMap = null;
-    if (!copy.normalMap) {
-      copy.normalMap = normalMap();
-      copy.normalScale.setScalar(source.roughness <= 0.4 ? 0.08 : 0.14);
-    }
+    // Keep authored normal maps. Synthesizing tangent-space normals from
+    // unrelated noise can make thin, double-sided packaging self-occlude.
     return copy;
   };
   try {

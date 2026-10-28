@@ -84,8 +84,9 @@ export async function loadProductModel(url: string, signal: AbortSignal) {
           color: "#ffffff",
           metalness: 0,
           roughness: 0.54,
-          clearcoat: 0.08,
-          side: THREE.DoubleSide,
+          clearcoat: 0,
+          // Follow glTF's default winding when the file omits materials.
+          side: THREE.FrontSide,
         });
         node.material = material;
         original.forEach((item) => item.dispose());
@@ -145,7 +146,7 @@ export function createImportedAsset(
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.flipY = false; // glTF UV convention
-    texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    texture.anisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy());
     return texture;
   });
   const mappedFaces = new Set<string>();

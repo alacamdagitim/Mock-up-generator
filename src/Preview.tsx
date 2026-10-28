@@ -9,7 +9,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { createPouchAsset } from "./pouchAsset";
-import { layoutPoses } from "../shared/layouts.mjs";
+import { arrangeProduct, fittedDistance } from "./productLayout";
+import { previewBuffer } from "../shared/render-quality.mjs";
 import type { Presentation } from "./types";
 import { sceneColors } from "./scene";
 import { createContactShadow } from "./ContactShadow";
@@ -22,6 +23,7 @@ export type PreviewHandle = {
   view: (v: "front" | "back" | "perspective") => void;
   zoom: (delta: number) => void;
   interaction: (mode: "rotate" | "pan") => void;
+  layoutCovers: (signal?: AbortSignal) => Promise<Record<string, string>>;
   snapshot: (
     printTextures?: Record<"front" | "back", HTMLCanvasElement>,
   ) => RenderSnapshot;
@@ -49,6 +51,7 @@ type SceneState = {
   updateShadow: () => void;
   flushInteraction: () => void;
   interaction: "rotate" | "pan";
+  resize: () => void;
 };
 export const Preview = forwardRef<
   PreviewHandle,
@@ -67,6 +70,19 @@ export const Preview = forwardRef<
   useImperativeHandle(
     ref,
     () => ({
+      layoutCovers: async (signal) => {
+        const s = state.current;
+        if (!s) throw new Error("3B model henüz hazır değil.");
+        const { createLayoutCovers } = await import("./layoutCovers");
+        return createLayoutCovers(
+          s.renderer,
+          s.prototype,
+          s.scene,
+          settingsRef.current,
+          s.external,
+          signal,
+        );
+      },
       snapshot: (printTextures) => {
         const s = state.current;
         if (!s)
@@ -87,19 +103,25 @@ export const Preview = forwardRef<
         s.flushInteraction();
         const size = s.renderer.getSize(new THREE.Vector2()),
           ratio = s.renderer.getPixelRatio();
-        const factor = Math.min(s.mobile ? 1.5 : 2, Math.max(1, scale));
-        const exportRatio = Math.min(
-          2,
-          ratio * factor,
-          2560 / Math.max(size.x, size.y),
+        const factor = Math.max(1, scale);
+        const longEdge = s.mobile ? 1536 : 2560;
+        const exportScale = Math.min(
+          factor,
+          longEdge / Math.max(size.x, size.y),
         );
         try {
-          s.renderer.setPixelRatio(exportRatio);
+          s.renderer.setPixelRatio(1);
+          s.renderer.setSize(
+            Math.round(size.x * exportScale),
+            Math.round(size.y * exportScale),
+            false,
+          );
           s.scene.background = s.exportBackground || null;
           s.render();
           return s.renderer.domElement.toDataURL("image/png");
         } finally {
           s.renderer.setPixelRatio(ratio);
+          s.renderer.setSize(size.x, size.y, false);
           s.scene.background = null;
           s.render();
         }
@@ -145,9 +167,7 @@ export const Preview = forwardRef<
       return;
     }
     const mobile = window.matchMedia("(max-width:700px)").matches;
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, mobile ? 1.25 : 1.5),
-    );
+    renderer.setPixelRatio(1);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.VSMShadowMap;
     renderer.shadowMap.autoUpdate = false;
@@ -213,7 +233,7 @@ export const Preview = forwardRef<
     const root = new THREE.Group(),
       contacts = new THREE.Group();
     scene.add(root, contacts);
-    const contactShadow = createContactShadow(renderer, mobile ? 256 : 512);
+    const contactShadow = createContactShadow(renderer, mobile ? 512 : 1024);
     contacts.add(contactShadow.mesh);
     let disposed = false;
     let dragFrame = 0;
@@ -280,7 +300,8 @@ export const Preview = forwardRef<
       if (!dragFrame) dragFrame = requestAnimationFrame(flushInteraction);
     };
     let fitted = false;
-    let framing: { distance: number; center: THREE.Vector3 } | undefined;
+    let framing:
+      { distance: number; center: THREE.Vector3; layout: string } | undefined;
     const fit = (view?: "front" | "back" | "perspective") => {
       if (view) {
         root.quaternion.identity();
@@ -290,9 +311,6 @@ export const Preview = forwardRef<
         size = bounds.getSize(new THREE.Vector3()),
         center = bounds.getCenter(new THREE.Vector3());
       if (!Number.isFinite(center.x)) return;
-      const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-      const padding =
-        (settingsRef.current.layout || "single") === "single" ? 1.65 : 1.18;
       const direction =
         view === "front"
           ? new THREE.Vector3(0, 0.025, 1)
@@ -302,29 +320,11 @@ export const Preview = forwardRef<
               ? new THREE.Vector3(0.27, 0.13, 1)
               : camera.position.clone().sub(controls.target);
       direction.normalize();
-      const right = new THREE.Vector3()
-        .crossVectors(camera.up, direction)
-        .normalize();
-      const up = new THREE.Vector3().crossVectors(direction, right).normalize();
-      const tanX = tan * Math.max(0.3, camera.aspect);
-      let distance = 6;
-      for (const x of [bounds.min.x, bounds.max.x])
-        for (const y of [bounds.min.y, bounds.max.y])
-          for (const z of [bounds.min.z, bounds.max.z]) {
-            const corner = new THREE.Vector3(x, y, z).sub(center);
-            distance = Math.max(
-              distance,
-              corner.dot(direction) +
-                padding *
-                  Math.max(
-                    Math.abs(corner.dot(right)) / tanX,
-                    Math.abs(corner.dot(up)) / tan,
-                  ),
-            );
-          }
+      const distance = fittedDistance(bounds, camera, direction, 1.2);
       // Preserve the user's orbit, pan offset and relative zoom as spacing
       // changes. Returning to the original arrangement returns the same view.
-      const preserve = !view && fitted && framing;
+      const layout = settingsRef.current.layout || "single";
+      const preserve = !view && fitted && framing?.layout === layout;
       const zoomRatio = preserve
         ? camera.position.distanceTo(controls.target) / framing!.distance
         : 1;
@@ -338,7 +338,7 @@ export const Preview = forwardRef<
       camera.position
         .copy(controls.target)
         .addScaledVector(direction, distance * zoomRatio);
-      framing = { distance, center: center.clone() };
+      framing = { distance, center: center.clone(), layout };
       fitted = true;
       controls.update();
       if (view) updateShadow();
@@ -351,13 +351,14 @@ export const Preview = forwardRef<
       if (!w || !h) return;
       const compact = window.matchMedia("(max-width:700px)").matches;
       if (state.current) state.current.mobile = compact;
-      renderer.setPixelRatio(
-        Math.min(
-          window.devicePixelRatio,
-          compact ? 1.25 : settingsRef.current.quality === "detail" ? 2 : 1.5,
-        ),
+      const buffer = previewBuffer(
+        w,
+        h,
+        window.devicePixelRatio,
+        compact,
+        settingsRef.current.quality === "detail",
       );
-      renderer.setSize(w, h);
+      renderer.setSize(buffer.width, buffer.height, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       if (!fitted && root.children.length) {
@@ -392,6 +393,7 @@ export const Preview = forwardRef<
       updateShadow,
       flushInteraction,
       interaction: "rotate",
+      resize,
     };
     // Rotate the product around the dominant drag axis. OrbitControls handles
     // wheel/pinch zoom and the explicit Hand mode, with no inertial movement.
@@ -508,21 +510,13 @@ export const Preview = forwardRef<
     const s = state.current;
     if (!s) return;
     s.root.clear();
-    for (const p of layoutPoses(settings.layout, settings.spacing)) {
-      const model = s.prototype.clone(true);
-      model.position.set(
-        p.x,
-        p.y + Math.abs(Math.sin(p.rz)) * 1.17 * p.scale,
-        p.z,
-      );
-      model.rotation.set(0, p.ry, p.rz);
-      model.scale.set(
-        p.scale,
-        p.scale,
-        p.scale * (s.external ? 1 : 0.08 + (settings.inflate ?? 100) * 0.0092),
-      );
-      s.root.add(model);
-    }
+    arrangeProduct(
+      s.root,
+      s.prototype,
+      settings.layout,
+      settings.spacing,
+      s.external ? 1 : 0.08 + (settings.inflate ?? 100) * 0.0092,
+    );
     s.updateShadow();
     s.contacts.visible = settings.shadows;
     // React has already committed the mode/layout CSS. Fit the arrangement
@@ -530,7 +524,7 @@ export const Preview = forwardRef<
     // preview's aspect ratio; ordinary resizes still preserve camera position.
     const el = host.current;
     if (el?.clientWidth && el.clientHeight) {
-      s.renderer.setSize(el.clientWidth, el.clientHeight);
+      s.resize();
       s.camera.aspect = el.clientWidth / el.clientHeight;
       s.camera.updateProjectionMatrix();
     }
@@ -585,12 +579,7 @@ export const Preview = forwardRef<
     s.contacts.visible = settings.shadows;
     s.renderer.shadowMap.enabled = settings.shadows;
     s.updateShadow();
-    s.renderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio,
-        s.mobile ? 1.25 : settings.quality === "detail" ? 2 : 1.5,
-      ),
-    );
+    s.resize();
     s.render();
   }, [
     settings.background,
@@ -615,7 +604,7 @@ export const Preview = forwardRef<
         sourceHeight = source?.height || 900;
       const ratio = Math.min(
         1,
-        (s.mobile ? 1024 : 1536) / Math.max(sourceWidth, sourceHeight),
+        (s.mobile ? 1536 : 2048) / Math.max(sourceWidth, sourceHeight),
       );
       const width = Math.max(1, Math.round(sourceWidth * ratio)),
         height = Math.max(1, Math.round(sourceHeight * ratio));

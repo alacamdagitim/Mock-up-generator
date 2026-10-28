@@ -1,7 +1,7 @@
 // Public UI + real WebGL checks. Isolated storage, no production debug hooks.
 import { chromium, expect } from "@playwright/test";
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { blankDesign, DEFAULT_PRESENTATION } from "../shared/schema.mjs";
 
 const base = process.env.ALACAM_TEST_URL || "http://127.0.0.1:5184";
@@ -624,6 +624,14 @@ try {
   lifecycle.on("pageerror", (error) => summary.pageErrors.push(error.message));
   await lifecycle.route("**/api/health", (route) =>
     route.fulfill({ json: { storageConfigured: false } }),
+  );
+  await lifecycle.route(
+    "https://cdn.shopify.com/files/urun.glb?v=123",
+    async (route) =>
+      route.fulfill({
+        body: await readFile("public/product-assets/doypack-v1-r1/model.glb"),
+        contentType: "model/gltf-binary",
+      }),
   );
   await lifecycle.goto(`${base}/tests/fixtures/shopify-launcher.html`);
   const editor = lifecycle.getByRole("dialog", {

@@ -1,60 +1,74 @@
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { LAYOUTS } from "../shared/layouts.mjs";
 import type { Presentation } from "./types";
-
-const names: Record<string, string> = {
-  single: "Single",
-  "front-back": "Front & back",
-  duo: "Duo",
-  trio: "Trio",
-  fan: "Fan",
-  stagger: "Staggered",
-  hero: "Hero",
-  catalog: "Catalog",
-  "side-pair": "Front & side",
-  "tilted-duo": "Tilted pair",
-  lineup: "Five products",
-};
-const covers = import.meta.glob("./assets/layout-*.webp", {
-  eager: true,
-  query: "?url",
-  import: "default",
-}) as Record<string, string>;
 
 export function LayoutPanel({
   layout,
   spacing,
   onSelect,
   onSpacing,
+  getCovers,
+  revision,
 }: {
   layout: NonNullable<Presentation["layout"]>;
   spacing: number;
   onSelect: (layout: NonNullable<Presentation["layout"]>) => void;
   onSpacing: (spacing: number) => void;
+  getCovers: (signal: AbortSignal) => Promise<Record<string, string>>;
+  revision: unknown;
 }) {
+  const [covers, setCovers] = useState<Record<string, string>>({});
+  const [status, setStatus] = useState("Ürününüzün yerleşimleri hazırlanıyor…");
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      setStatus("Ürününüzün yerleşimleri hazırlanıyor…");
+      getCovers(controller.signal)
+        .then((value) => {
+          if (!controller.signal.aborted) {
+            setCovers(value);
+            setStatus("");
+          }
+        })
+        .catch(() => {
+          if (!controller.signal.aborted)
+            setStatus(
+              "Kart önizlemeleri hazırlanamadı. Yerleşimleri seçerek 3B alanda görebilirsiniz.",
+            );
+        });
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [revision, spacing, getCovers]);
   return (
     <div className="layout-panel">
+      {status && (
+        <p className="panel-note" role="status">
+          {status}
+        </p>
+      )}
       <div className="layout-grid">
         {LAYOUTS.map((item) => (
           <button
             key={item.id}
             aria-label={`${item.name} yerleşimini uygula`}
-            title={names[item.id]}
+            title={item.name}
             aria-pressed={layout === item.id}
             onClick={() =>
               onSelect(item.id as NonNullable<Presentation["layout"]>)
             }
           >
             <div className="layout-cover">
-              <img
-                src={covers[`./assets/layout-${item.id}.webp`]}
-                alt=""
-                draggable={false}
-              />
-              <span className="layout-apply">Apply</span>
+              {covers[item.id] && (
+                <img src={covers[item.id]} alt="" draggable={false} />
+              )}
+              <span className="layout-apply">Uygula</span>
             </div>
             <span className="layout-name">
-              {names[item.id]}
+              {item.name}
               {layout === item.id && <Check size={13} />}
             </span>
           </button>
@@ -62,7 +76,7 @@ export function LayoutPanel({
       </div>
       <label className="layout-spacing">
         <span>
-          Product spacing<output>{Math.round(spacing * 100)}%</output>
+          Ürün aralığı<output>{Math.round(spacing * 100)}%</output>
         </span>
         <input
           aria-label="Yerleşim aralığı"
@@ -76,8 +90,8 @@ export function LayoutPanel({
         />
       </label>
       <p className="panel-note">
-        Copies share the same front and back design. Layout does not change
-        order quantity. Your selected layout is retained while editing in 2D.
+        Kartlar seçili ürününüzü ve tasarımınızı gösterir. Kopyalar aynı
+        tasarımı kullanır; yerleşim sipariş adedini değiştirmez.
       </p>
     </div>
   );

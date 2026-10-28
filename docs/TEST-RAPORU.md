@@ -114,3 +114,14 @@ Sınırlar: SVG viewBox alanı dikdörtgen olarak kırpılır; keyfi kesim maske
 
 
 Gerçek GPU kullanan uygulama içi tarayıcıda, aynı CDN GLB/SVG dosyaları ve özgün Botanik tasarımıyla **1024 × 1024 / 64 örnek render 11,5 saniyede tamamlandı**; PNG indirme bağlantısı oluştu. Yerel kanıt `test-results/product-metafields/native-product-render.png`. Bu tek cihaz ölçümüdür. Headless Chromium'daki isteğe bağlı tam render testi 180 saniye sınırında, yazılım GPU'sunda 2,5/64 örnekte zaman aşımına uğradı; renderın tamamlanması bu ortamda doğrulanmadı. Canlı önizleme/şablon/logo/yenileme/hata kontrolleri masaüstü ve mobilde geçti; tamamlanan render ayrıca gerçek GPU'da doğrulandı.
+
+## 28 Ekim 2026 — Render, Retina ve ürün yerleşimleri
+
+- `npm test`: 31/31 geçti; piksel bütçesi ve 2K doku aktarımı kontrolleri dahil.
+- `npm run build`: TypeScript, üretim derlemesi, lisans listesi ve Shopify paketleme geçti. Mevcut ana paket boyutu uyarısı sürüyor.
+- `test:preview`: 7 akış geçti; tekerlek/araç çubuğu yakınlaştırması, hareket sırasında gölge, aralık/dolgunluk/boyutlandırma dönüşü, dokunmatik geçişler, kaydırma, soğuk font yükleme, dört Shopify aç/kapat ve bağlam bırakma. Eski yaşam döngüsü fixture'ının eksik GLB ağ yanıtı yerel izinli modelle tamamlandı.
+- `test:render`: 7 akış geçti; gerçek iptal/tekrar deneme ve kaynak bırakma, 1024×1024/64 örnek PNG, gerçek kırmızı/mavi baskı pikselleri, JSON değişmezliği, modal boyutları, mobil sınır ve motor yükleme hatası. Test makinesinde 1K akışı yaklaşık 14,6 saniye.
+- `test:quality`: 11 ayrı canlı ürün kartı, 66 geniş/merkezi kaymış model ve kadraj durumu, 32 px SVG'den 2400 px logo, 2× ekran tamponu bütçesi, mobil taşma ve gerçek üretici bardak GLB'siyle 2048×2048/64 örnek PNG geçti. Son 2K akışı yaklaşık 54,4 saniye, yeşil tasarım kontrolünde 512 px örneklemede 8877 piksel bulundu. Siyah siluet başarı kabul edilmedi.
+- `test:denoise`: Standart/Yüksek gerçek shader kontrolleri geçti; sentetik gürültü standart sapması 20,31'den 2,95/3,52'ye indi; ince çizgi oranı yaklaşık 1,005, alfa hatası en fazla 0,5. Bu sentetik ölçüm fotoğraf gerçekçiliği ölçümü değildir.
+
+Tarayıcı testleri yerel izole Vite sunucusunda, macOS Apple M2 Max / ANGLE Metal ile çalıştırıldı. Gerçek GLB yalnız yerel test girdisidir; dosya depoya kopyalanmadı. Süreler cihazlar arası garanti değildir. Offline vernik, WebGL motorundaki siyah yüzey sorununu önlemek için tek yüzey lobuna yaklaşık birleştirilir; gerçek çok katmanlı kaplama optiği ve üretim doğruluğu iddiası yoktur. Kanıtlar `test-results/render-quality/`, `test-results/studio-render/`, `test-results/preview-polish/` altında yerel tutulur.

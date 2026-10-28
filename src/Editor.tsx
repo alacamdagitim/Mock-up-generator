@@ -19,6 +19,7 @@ import {
 import type { ArtboardSpec, Element, Face } from "./types";
 import { PRODUCT } from "../shared/schema.mjs";
 import { DesignFontError, ensureDesignFont } from "./designFonts";
+import { artworkMultiplier } from "../shared/render-quality.mjs";
 type Meta = {
   id: string;
   name: string;
@@ -276,6 +277,13 @@ export const Editor = forwardRef<
     const out = document.createElement("canvas");
     out.width = latest.current.artboard?.canvasWidth || 600;
     out.height = latest.current.artboard?.canvasHeight || 900;
+    const multiplier = artworkMultiplier(
+      out.width,
+      out.height,
+      matchMedia("(max-width:700px)").matches ? 1536 : 2048,
+    );
+    out.width = Math.round(out.width * multiplier);
+    out.height = Math.round(out.height * multiplier);
     const ctx = out.getContext("2d")!;
     ctx.fillStyle = latest.current.background;
     ctx.fillRect(0, 0, out.width, out.height);
@@ -288,7 +296,7 @@ export const Editor = forwardRef<
       c.backgroundColor = latest.current.background;
       c.clipPath = printClip();
       c.backgroundImage = undefined;
-      ctx.drawImage(c.toCanvasElement(1), 0, 0);
+      ctx.drawImage(c.toCanvasElement(multiplier), 0, 0, out.width, out.height);
     } finally {
       c.backgroundColor = background;
       c.clipPath = clip;
@@ -618,7 +626,7 @@ export const Editor = forwardRef<
 export async function renderFace(
   elements: Element[],
   background: string,
-  multiplier: 1 | 2 = 1,
+  multiplier: number = 1,
   artboard?: ArtboardSpec,
 ) {
   const node = document.createElement("canvas");
@@ -646,12 +654,12 @@ export async function renderFace(
     for (const e of elements) c.add(await objectFrom(e));
     c.renderAll();
     const out = document.createElement("canvas");
-    out.width = (artboard?.canvasWidth || 600) * multiplier;
-    out.height = (artboard?.canvasHeight || 900) * multiplier;
+    out.width = Math.round((artboard?.canvasWidth || 600) * multiplier);
+    out.height = Math.round((artboard?.canvasHeight || 900) * multiplier);
     const ctx = out.getContext("2d")!;
     ctx.fillStyle = background;
     ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(c.toCanvasElement(multiplier), 0, 0);
+    ctx.drawImage(c.toCanvasElement(multiplier), 0, 0, out.width, out.height);
     return out;
   } finally {
     await c.dispose();

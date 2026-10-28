@@ -11,6 +11,7 @@ import type {
 import type { EditorHandle } from "./Editor";
 import type { PreviewHandle } from "./Preview";
 import { renderFace } from "./Editor";
+import { artworkMultiplier } from "../shared/render-quality.mjs";
 import {
   blankDesign,
   parseDesign,
@@ -304,7 +305,11 @@ export function useDesigner(config: EditorConfig) {
     void renderFace(
       state.current.faces[opposite],
       state.current.background,
-      1,
+      artworkMultiplier(
+        state.current.artboard?.canvasWidth || 600,
+        state.current.artboard?.canvasHeight || 900,
+        matchMedia("(max-width:700px)").matches ? 1536 : 2048,
+      ),
       state.current.artboard,
     )
       .then((canvas) => {

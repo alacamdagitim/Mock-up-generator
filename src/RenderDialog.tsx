@@ -5,7 +5,7 @@ import type { RenderOptions, RenderSnapshot } from "./render/types";
 type RenderDialogProps = {
   open: boolean;
   onClose: () => void;
-  source: () => RenderSnapshot | Promise<RenderSnapshot>;
+  source: (options: RenderOptions) => RenderSnapshot | Promise<RenderSnapshot>;
 };
 
 type RenderProgress = {
@@ -125,7 +125,7 @@ function RenderDialogContent({
       );
       if (active.signal.aborted)
         throw new DOMException("Render cancelled", "AbortError");
-      snapshot = await source();
+      snapshot = await source(effectiveOptions);
       if (active.signal.aborted)
         throw new DOMException("Render cancelled", "AbortError");
       const { renderStudio } = await import("./render/studioRender");
