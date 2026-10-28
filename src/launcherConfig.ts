@@ -128,6 +128,7 @@ export function validateLaunchConfig(value: unknown): EditorConfig {
     productId,
     productTitle: optionalString(input.productTitle, "Ürün adı", 300),
     productImage: assetUrl(input.productImage, "Ürün görseli"),
+    productModelUrl: assetUrl(input.productModelUrl, "3B model dosyası"),
     productDielineUrl: assetUrl(input.productDielineUrl, "Bıçak izi dosyası"),
     apiBase: publicUrl(input.apiBase, "Tasarım API adresi"),
     variants,

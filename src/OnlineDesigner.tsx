@@ -148,6 +148,7 @@ export default function OnlineDesigner({
     [],
   );
   const manufacturerFile = manufacturerDielineUrl(d.product.dielineUrl);
+  const manufacturerModel = manufacturerDielineUrl(d.product.modelUrl);
   useEffect(() => () => URL.revokeObjectURL(guideUrl), [guideUrl]);
   useEffect(
     () => () =>
@@ -1001,6 +1002,19 @@ export default function OnlineDesigner({
                     </dd>
                   </div>
                 </dl>
+                {manufacturerModel && (
+                  <p className="config-approximate">
+                    <a
+                      href={manufacturerModel}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Ürünün GLB dosyasını aç
+                    </a>
+                    <br />
+                    Dosya bağlı · 3B önizlemeye UV eşlemesi henüz yapılmadı.
+                  </p>
+                )}
                 <p className="config-approximate">
                   Approximate model · Sample dimensions
                   <br />

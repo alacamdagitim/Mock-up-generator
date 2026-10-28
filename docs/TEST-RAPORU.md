@@ -91,3 +91,10 @@ Son derlemeyle `test:launcher:build` **4 kontrol grubunu** tekrar geçti; JavaSc
 ## Vercel'den yüklenen Shopify düğmesi
 
 `shopify/custom-liquid/online-design-vercel.liquid` içindeki gerçek Vercel launcher/editor dosyaları, ayrı bir origin'de çalışan izole Shopify benzeri ürün formuyla denendi. Masaüstü 1456×1034 ve mobil 390×844 geçti: tam ekran, sayfa adresinin korunması, tıklama anındaki 10002/10001 örnek varyantı, X/Escape, tekrar açılış ve masaüstü cihaz kaydı doğrulandı; JavaScript hatası yok. Mobilde ürün ayarları açılarak varyant kontrol edildi. API sağlığı taklit edilmedi; gerçek `/api/health` 404 verdiğinden sepet düğmesi doğru biçimde kapalı kaldı. Sonuç `test-results/vercel-launcher/summary.json` içinde. Gerçek Shopify teması üzerindeki Liquid derlemesi ve ürün formu bağlantısı ayrıca doğrulanmalıdır.
+
+
+## Ürün dosyası meta alanları · 28 Ekim 2026
+
+Liquid girişleri `custom.3b_glb_dosyasi` ve `custom.bicak_i_zi` alanlarını okur; dosya URL'leri launcher doğrulamasından ürün ayarlarına taşınır. GLB bağlantısı ve bıçak izi indirme adresi sürüm sorgusunu korur. Bağlı GLB'nin henüz canlı önizlemeye eşlenmediği görünür şekilde belirtilir.
+
+`npm test`: 27/27 başarılı. İlk sandbox çalışmasında iki API testi port açma izni nedeniyle EPERM verdi; izinli yerel çalışmada tümü geçti. `npm run build` başarılı; mevcut büyük paket uyarısı sürüyor. `test:launcher`: 14 tarayıcı kontrolü başarılı, sayfa JavaScript hatası yok; yeni kontrol iki gerçekçi CDN referansının ürün arayüzüne ulaştığını doğrular. Bunlar izole fixture testleridir; gerçek mağazadaki dosyalar, Liquid çıktısı ve UV eşlemesi dosyalar sağlanınca kontrol edilecek.

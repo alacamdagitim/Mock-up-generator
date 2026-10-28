@@ -40,12 +40,12 @@ GLB boş beyaz PBR malzemeleri içerir. Canlı editörün ışık, zemin, temas 
 
 | Alan | Tür | İçerik |
 | --- | --- | --- |
-| `custom.alacam_model` | Dosya | `model.glb` dosyası veya Shopify model kaynağı. |
-| `custom.alacam_dieline` | Dosya | Üreticinin **gerçek** kesim şablonu; şu an bu alana örnek SVG'yi üretici dosyası diye koymayın. |
+| `custom.3b_glb_dosyasi` | Dosya | `model.glb` dosyası veya Shopify model kaynağı. |
+| `custom.bicak_i_zi` | Dosya | Üreticinin **gerçek** kesim şablonu; şu an bu alana örnek SVG'yi üretici dosyası diye koymayın. |
 | `custom.alacam_editor_template` | Dosya | Hazırlanmış editör yüz şablonu. İki yüzün dosyaları tanımda ayrıca adreslenir. |
 | `custom.alacam_design_config` | JSON | Dosyalar yüklendikten sonra gerçek CDN adresleriyle uyarlanmış yüz eşlemeleri. |
 
-Önemli: Bunlar genel dosya tabanlı entegrasyon için alan önerileridir. Şu an Liquid yalnız mevcut model kimliğini (`custom.alacam_model_id`) ve üretici dosyası bağlantısını okur. Genel GLB/SVG/konfigürasyon içe alma henüz yoktur. Shopify yükleyicisinde GLB dosya seçimi uygun değilse ürün medyasındaki 3B model kaynağı kullanılabilir; seçilen kaynağın GLB adresi entegrasyonda ayrıca çıkarılmalıdır. Bir dosya referansı genel dosya veya Model3d dönebilir; ikisinin URL okuma yolu farklıdır.
+GLB ve bıçak izi alan adları mağaza için kesinleştirilmiştir. Liquid bu iki alanın dosya URL'lerini editöre aktarır; GLB bağlantısı ürün ayarlarında, bıçak izi üstteki indirme düğmesinde açılır. Genel GLB/SVG/konfigürasyon içe alma ve baskı yüzü eşleştirme henüz yoktur. Diğer alanlar gelecekteki model adaptörü için öneridir; şu anda okunmaz. Genel dosyada `.url`, kaynak listesi bulunan model nesnesinde GLB `.sources` kaydı kullanılır. Shopify alanı GLB seçimine izin vermiyorsa gerçek alan türü ve dosya bağlantısı ayrıca kontrol edilmelidir. Ayrıntılar: `docs/SHOPIFY-BUTON.md`, “Ürün dosyası meta alanları”.
 
 Paket JSON'undaki göreli dosya adları Shopify'a yükleme sonrası kendiliğinden CDN adresine dönüşmez. Otomatik çözümleyici eklenene kadar bağlantıların entegrasyon katmanında eşleştirilmesi gerekir. Mevcut müşteri tasarım JSON'u içe aktarma düğmesi bu ürün tanımını kabul etmez.
 

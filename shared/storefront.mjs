@@ -21,9 +21,14 @@ export function storefrontProducts(config) {
       modelId: "doypack-v1",
       variants: config.variants || [],
       image: config.productImage,
+      modelUrl: config.productModelUrl,
       dielineUrl: config.productDielineUrl,
     });
-  else if (!found.modelId) found.modelId = "doypack-v1";
+  else {
+    if (!found.modelId) found.modelId = "doypack-v1";
+    if (config.productModelUrl) found.modelUrl = config.productModelUrl;
+    if (config.productDielineUrl) found.dielineUrl = config.productDielineUrl;
+  }
   return products.filter(
     (p, i, all) => p.id && p.title && all.findIndex((x) => x.id === p.id) === i,
   );

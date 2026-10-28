@@ -116,3 +116,21 @@ Yerel düğme örneği: Vite çalışırken `http://127.0.0.1:5184/launcher-demo
 6. Tema düzenleyicisinde bloğu silip yeniden ekleyin; sayfada iki düğme olsa da çift editör açılmamalı. Eski JavaScript parçaları CDN'de kalıyorsa tüm dosyaları aynı derleme paketinden yeniden yükleyin.
 
 Yerel tarayıcı testleri gerçek Shopify tema kodu, CDN yüklemesi ve sipariş yerine geçmez. Mağazaya dağıtım ve gerçek sipariş testi bu yerel teslimat kapsamında otomatik yapılmaz.
+
+
+## Ürün dosyası meta alanları
+
+Tüm Liquid girişleri bu iki **ürün** meta alanını okur:
+
+| Meta alan | Editör ayarı | Davranış |
+| --- | --- | --- |
+| `custom.3b_glb_dosyasi` | `productModelUrl` | Dosya bağlantısı ürün ayarlarında açılır. |
+| `custom.bicak_i_zi` | `productDielineUrl` | Download dieline düğmesi üretici dosyasını açar. |
+
+Dosya alanları tek dosya referansı olmalıdır; boş alan boş bağlantı üretir. GLB için `.value.url`, kaynak listesi bulunan bir model nesnesi dönerse GLB biçimindeki `.sources` kaydı okunur. Bıçak izinde dosya URL'si veya görselin `src` değeri okunur. CDN `?v=` sürümleri korunur; `//` adresleri HTTPS'e çevrilir. Eski `custom.alacam_dieline` alanı artık okunmaz.
+
+Shopify'daki mevcut Özel Liquid bloğunu `shopify/custom-liquid/online-design-vercel.liquid` dosyasının güncel içeriğiyle değiştirin. GitHub/Vercel güncellemesi tema içindeki yapıştırılmış Liquid kodunu kendiliğinden değiştirmez.
+
+Bu bağlantılar genel GLB yükleyicisi veya otomatik kesim şablonu içe aktarımı değildir. Canlı 3B hâlâ örnek doypack'tir; GLB bağlıysa arayüzde UV eşlemesinin yapılmadığı açıkça belirtilir. İlk gerçek ürünün GLB dosyası, baskı yüzleri, UV'leri ve bıçak izinin ölçüleri incelendikten sonra ürün adaptörü hazırlanmalıdır. Dosya adından baskı ölçüsü çıkarılmaz.
+
+Kontrol: Bir ürüne iki dosya atayın; gerçek ürün sayfasını yenileyip Tasarla'ya basın. Ürün ayarlarındaki GLB bağlantısının ve Download dieline düğmesinin aynı ürüne ait dosyaları açtığını doğrulayın. Farklı üründe dosya bağlamadıysanız önceki ürünün bağlantısı görünmemelidir.

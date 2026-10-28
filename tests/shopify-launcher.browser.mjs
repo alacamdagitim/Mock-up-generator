@@ -106,6 +106,21 @@ try {
   await triggerA(page).click();
   await ready(page);
   await fullViewport(page);
+  await expect(
+    editor(page).getByRole("link", { name: "Ürünün GLB dosyasını aç" }),
+  ).toHaveAttribute("href", "https://cdn.shopify.com/files/urun.glb?v=123");
+  await expect(
+    editor(page).getByRole("link", { name: "Download dieline", exact: true }),
+  ).toHaveAttribute("href", "https://cdn.shopify.com/files/bicak.pdf?v=456");
+  await expect(
+    editor(page).getByText(
+      "Dosya bağlı · 3B önizlemeye UV eşlemesi henüz yapılmadı.",
+    ),
+  ).toBeVisible();
+  summary.passed.push(
+    "Product GLB/dieline references reach the UI with CDN versions; unmapped model status is explicit",
+  );
+
   expect(page.url()).toBe(fixtureUrl);
   await expect(
     editor(page)

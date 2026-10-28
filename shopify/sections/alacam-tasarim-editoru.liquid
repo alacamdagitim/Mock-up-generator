@@ -4,12 +4,21 @@
   Gizli anahtar içermez. API URL'si herkese açık bir adres olmalıdır.
 {% endcomment %}
 {% assign editor_product = section.settings.product | default: product %}
+{% assign alacam_model_file = editor_product.metafields.custom['3b_glb_dosyasi'].value %}
+{% assign alacam_model_url = alacam_model_file.url | default: '' %}
+{% if alacam_model_url == blank and alacam_model_file.sources != blank %}
+  {% assign alacam_glb_source = alacam_model_file.sources | where: 'format', 'glb' | first %}
+  {% assign alacam_model_url = alacam_glb_source.url | default: '' %}
+{% endif %}
+{% assign alacam_dieline_file = editor_product.metafields.custom['bicak_i_zi'].value %}
+{% assign alacam_dieline_url = alacam_dieline_file.url | default: alacam_dieline_file.src | default: '' %}
 {% capture editor_config %}
 {
   "apiBase": {{ section.settings.api_base | default: '/api' | json }},
   "productId": {{ editor_product.id | append: '' | json }},
   "productTitle": {{ editor_product.title | default: 'Beyaz Doypack' | json }},
-  "productDielineUrl": {{ editor_product.metafields.custom.alacam_dieline.value.url | default: '' | json }},
+  "productModelUrl": {{ alacam_model_url | json }},
+  "productDielineUrl": {{ alacam_dieline_url | json }},
   "productImage": {% if editor_product.featured_image %}{{ editor_product.featured_image | image_url: width: 400 | json }}{% else %}null{% endif %},
   "libraryKey": {{ 'alacam:library:v1:' | append: section.id | json }},
   "storageKey": {{ 'alacam:v1:' | append: section.id | append: ':' | append: editor_product.id | json }},

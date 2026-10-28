@@ -65,3 +65,19 @@ test("manufacturer files accept HTTPS but reject executable URLs and embedded cr
   ])
     assert.equal(manufacturerDielineUrl(value), null);
 });
+
+test("product file references survive launch mapping for new and existing catalog entries", () => {
+  const config = {
+    productId: "100",
+    productTitle: "Ürün",
+    productModelUrl: "https://cdn.shopify.com/files/urun.glb?v=123",
+    productDielineUrl: "https://cdn.shopify.com/files/bicak.pdf?v=456",
+  };
+  for (const products of [undefined, [{ id: "100", title: "Ürün" }]]) {
+    const [product] = storefrontProducts({ ...config, products });
+    assert.equal(product.modelUrl, config.productModelUrl);
+    assert.equal(product.dielineUrl, config.productDielineUrl);
+    // File references do not imply that an arbitrary model has a print mapping.
+    assert.equal(product.modelId, "doypack-v1");
+  }
+});

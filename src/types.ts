@@ -9,6 +9,7 @@ export type EditorConfig = {
   productId?: string;
   productTitle?: string;
   productImage?: string;
+  productModelUrl?: string;
   productDielineUrl?: string;
   products?: StoreProduct[];
   variants?: { id: number; title: string; available: boolean }[];
@@ -34,6 +35,7 @@ export type StoreProduct = {
   subcategory?: string;
   modelId?: string;
   image?: string;
+  modelUrl?: string;
   dielineUrl?: string;
   variants: { id: number; title: string; available: boolean }[];
 };

@@ -8,12 +8,21 @@
 {% if alacam_button_product != blank and alacam_button_product.id != blank %}
   {% assign alacam_button_instance = instance_id | default: block.id | default: 'button' %}
   {% capture alacam_button_config_id %}alacam-online-design-{{ section.id }}-{{ alacam_button_product.id }}-{{ alacam_button_instance }}{% endcapture %}
+  {% assign alacam_model_file = alacam_button_product.metafields.custom['3b_glb_dosyasi'].value %}
+  {% assign alacam_model_url = alacam_model_file.url | default: '' %}
+  {% if alacam_model_url == blank and alacam_model_file.sources != blank %}
+    {% assign alacam_glb_source = alacam_model_file.sources | where: 'format', 'glb' | first %}
+    {% assign alacam_model_url = alacam_glb_source.url | default: '' %}
+  {% endif %}
+  {% assign alacam_dieline_file = alacam_button_product.metafields.custom['bicak_i_zi'].value %}
+  {% assign alacam_dieline_url = alacam_dieline_file.url | default: alacam_dieline_file.src | default: '' %}
   {% capture alacam_button_config %}
   {
     "apiBase": {{ api_base | default: 'https://mock-up-generator-y265.vercel.app/api' | json }},
     "productId": {{ alacam_button_product.id | append: '' | json }},
     "productTitle": {{ alacam_button_product.title | json }},
-    "productDielineUrl": {{ alacam_button_product.metafields.custom.alacam_dieline.value.url | default: '' | json }},
+    "productModelUrl": {{ alacam_model_url | json }},
+    "productDielineUrl": {{ alacam_dieline_url | json }},
     "productImage": {% if alacam_button_product.featured_image %}{{ alacam_button_product.featured_image | image_url: width: 400 | json }}{% else %}null{% endif %},
     "initialVariantId": {{ alacam_button_product.selected_or_first_available_variant.id | json }},
     "libraryKey": {{ 'alacam:library:v1:product:' | append: alacam_button_product.id | json }},
