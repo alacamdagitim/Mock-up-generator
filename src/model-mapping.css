@@ -7,7 +7,7 @@
   font-size: 10px;
   color: #555;
 }
-.online-app[data-mode="3d"] .product-model-note {
+.online-app.mode-3d .product-model-note {
   left: 16px;
   right: auto;
   bottom: 84px;
