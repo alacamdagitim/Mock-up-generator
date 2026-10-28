@@ -29,3 +29,17 @@ Render son işlemindeki glslSmartDeNoise filtresinin Michele Morrone telif bildi
 ## DM Sans
 
 Arayüz ve isteğe bağlı metin fontu: `@fontsource-variable/dm-sans`, SIL Open Font License 1.1. Copyright 2014 The DM Sans Project Authors. Lisans metni derlenen THIRD_PARTY_LICENSES.txt ve Shopify alacam-licenses.txt dosyalarına dahil edilir. Fontlar Pacdora'dan alınmaz. Kaynak: https://github.com/google/fonts/tree/main/ofl/dmsans
+
+## İsteğe bağlı, çevrimdışı PSD hazırlama araçları
+
+`scripts/requirements-private-mockup.txt` içindeki araçlar yalnız özel/yerel mockup hazırlığı içindir; tarayıcı paketine, Shopify varlıklarına veya Vercel çalışma ortamına eklenmez. Kurulu sürümlerin lisans metadatası kontrol edilmiştir:
+
+| Araç | Lisans | Kaynak |
+| --- | --- | --- |
+| psd-tools 1.11.0 | MIT | https://github.com/psd-tools/psd-tools |
+| Pillow 11.3.0 | MIT-CMU | https://github.com/python-pillow/Pillow |
+| NumPy 2.0.2 | BSD-3-Clause | https://github.com/numpy/numpy |
+| SciPy 1.13.1 | BSD-3-Clause | https://github.com/scipy/scipy |
+| opencv-python-headless 4.13.0.92 / OpenCV | Apache-2.0 | https://github.com/opencv/opencv-python |
+
+Bu Python paketlerinin wheel dosyaları ek alt bileşen lisansları taşıyabilir; paketler kendi lisans bildirimleriyle kurulmalıdır. Kaynak mockup'ın lisansı bu araçların lisansından ayrıdır. Kullanıcı tarafından verilen Matcha PSD'nin katmanları bu depoda dağıtılmaz; yalnız yeni tasarımla düzleştirilmiş son görsel denemesi hazırlanır. Ayrıntılar: [Hazır mockup denemesi](docs/HAZIR-MOCKUP-DENEMESI.md).

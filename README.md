@@ -197,3 +197,7 @@ Alt körük kapaması baskı yüzünün dışına beyaz bir oval olarak taşmaya
 DM Sans ve Türkçe karakter alt kümesi, Fabric metni ölçmeden önce yüklenir. Böylece ilk açılışta 2D yazısı veya 3D baskı dokusu geçici yedek fontla kalmaz. Font indirme hatası açıkça gösterilir; son geçerli font korunur. İşletim sistemi fontlarının bulunabilirliği cihaza bağlıdır.
 
 `npm run test:preview` gerçek WebGL çıktısıyla zoom sınırlarını, basılı sürükleme sırasında gölgeyi, kamera konumunun korunmasını, iki parmaktan tek parmağa geçişi, modifier tuşuyla pan hareketini, geciken ilk font yüklemesini ve dört Shopify aç/kapat döngüsünden sonra GPU bağlamlarının serbest kalmasını doğrular.
+
+## Hazır PSD mockup denemesi
+
+Matcha bardak dosyası için sabit açılı, tasarım değiştirilebilen yerel bir kalite denemesi hazırlandı. `npm run mockup:preview`, özel katman paketinden yalnız birleşik PNG/JPG üretir. Kaynak PSD/katmanlar proje ve herkese açık dağıtım dışında tutulur; Shopify Yerleşimler paneli bu pilotla değişmez. Doğal çıktı 600×800 px; merkez baskı eşlemesi yaklaşık olarak kalibre edilir. Kurulum, lisans sınırları ve testler: [Hazır mockup denemesi](docs/HAZIR-MOCKUP-DENEMESI.md).

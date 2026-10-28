@@ -28,7 +28,10 @@
     "test:exports": "node tests/export-workflow.browser.mjs",
     "test:render-snapshot": "node tests/render-snapshot.browser.mjs",
     "test:model-binding": "node tests/model-binding.browser.mjs",
-    "test:live-preview": "node tests/live-preview.browser.mjs"
+    "test:live-preview": "node tests/live-preview.browser.mjs",
+    "mockup:preview": "node scripts/private-mockup-preview.mjs",
+    "test:private-mockup": "node tests/private-mockup-preview.browser.mjs && node tests/private-mockup-compositor.browser.mjs",
+    "test:private-mockup:fixture": "node tests/private-mockup-fixture.browser.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
