@@ -2,6 +2,15 @@
 
 Ürün sayfasındaki **Online design** düğmesi editörü aynı sayfa üzerinde tam ekran açar. Sayfa yönlendirilmez. Editör ilk tıklamada yüklenir; açılışta yüklenme durumu, hata halinde tekrar deneme gösterilir. X ile kapatınca ürün sayfasına dönülür ve odak düğmeye geri gelir. Taslak aynı ürün için yeniden açılışta korunur. **Save** kayıt yapar; editörü kapatmaz.
 
+## Vercel yayınıyla hazır Custom Liquid
+
+Mevcut yayın: `https://mock-up-generator-y265.vercel.app`.
+`shopify/custom-liquid/online-design-vercel.liquid` dosyasının tamamını ürün şablonundaki **Özel Liquid / Custom Liquid** bloğuna yapıştırıp kaydedin ve ürün sayfasını yenileyin. Bu yöntemde editör dosyaları Vercel'den yüklenir. Ürün JSON'u Liquid'den, tıklama anındaki seçili varyant ürün formundan alınır. Editör aynı Shopify belgesinde açıldığı için sepet oturumu korunur. Aşağıdaki tema-assets yükleme adımları bu yöntem için gerekli değildir.
+
+Bu dağıtımda `/api/health` henüz 404 döndürüyor: **Save cihaz kaydıdır; tasarımla sepete ekleme kapalı kalır.** Kalıcı kayıt API'si ayrıca kurulmalıdır. GLB meta alanının otomatik yüklenmesi bu düğme koduyla eklenmez.
+
+Vercel adresi değişirse dosyadaki launcher, editor ve API adreslerini birlikte güncelleyin. JS/font dosyalarında mağazadan yüklemeye izin veren CORS başlıkları bulunmalı; yayın kullanıcı girişi gerektirmeden açılmalıdır. Mevcut yayındaki iki JS girişi 200 ve `Access-Control-Allow-Origin: *` döndürüyor.
+
 ## 1. Derlenmiş dosyaları yükleyin
 
 ```sh

@@ -55,6 +55,8 @@ Taslak 650 ms gecikmeyle localStorage'a yazılır; yenilemede desteklenen v1 JSO
 
 ## Shopify kurulumu
 
+**Vercel yayını üzerinden düğmeyle açılış:** `shopify/custom-liquid/online-design-vercel.liquid` dosyasının tamamını ürün şablonundaki Custom Liquid bloğuna yapıştırın. Mevcut Vercel adresi dosyada hazırdır; editör varlıkları buradan yüklenir. Kalıcı kayıt API'si bu dağıtımda henüz kurulu değildir; Save yalnız cihaz kaydıdır. Ayrıntılar: [Vercel Custom Liquid](docs/SHOPIFY-BUTON.md#vercel-yayınıyla-hazır-custom-liquid).
+
 **Ürün sayfasında düğmeyle tam ekran açılış:** [Custom Liquid / Online design kurulumu](docs/SHOPIFY-BUTON.md). `shopify/custom-liquid/online-design-button.liquid` dosyasının tamamını temanın Custom Liquid bloğuna yapıştırabilirsiniz; önce derlenmiş dosyalar tema `assets/` dizinine yüklenmelidir. Alternatif olarak aynı işlevi snippet ile çağırabilirsiniz.
 
 **Sayfaya doğrudan editör ekleme:** Normal sayfanın içerik/metin kutusuna kod yapıştırılmaz. `npm run build` sonrası dosyaları tema kod düzenleyicisinden yerleştirin:

@@ -87,3 +87,7 @@ Alt körüğün beyaz oval olarak dışarı taşması giderildi; özgün GLB ve 
 Native tarayıcıda son model ve yeni Gloss profiliyle gerçek **1024 × 1024, 256 ışık örnekli** stüdyo render tamamlandı: bu bilgisayarda **44 saniye**. `docs/screenshots/preview-polish-render.png` sonucu gösterir. Bu süre başka cihazlara genellenmez; özgün yaklaşık model ve üretim dışı görsel sınırı değişmedi.
 
 Son derlemeyle `test:launcher:build` **4 kontrol grubunu** tekrar geçti; JavaScript, eksik dosya ve başarısız ağ isteği yok. Kaynak ve Shopify ZIP'leri bu sürümden yenilendi. Güncel renkli 3B kontrol görüntüsü `docs/screenshots/preview-polish-gloss.png`; yerel açılış görüntüsü `preview-polish-live.png` içindedir. Geçici test PNG'leri teslim paketlerine alınmaz.
+
+## Vercel'den yüklenen Shopify düğmesi
+
+`shopify/custom-liquid/online-design-vercel.liquid` içindeki gerçek Vercel launcher/editor dosyaları, ayrı bir origin'de çalışan izole Shopify benzeri ürün formuyla denendi. Masaüstü 1456×1034 ve mobil 390×844 geçti: tam ekran, sayfa adresinin korunması, tıklama anındaki 10002/10001 örnek varyantı, X/Escape, tekrar açılış ve masaüstü cihaz kaydı doğrulandı; JavaScript hatası yok. Mobilde ürün ayarları açılarak varyant kontrol edildi. API sağlığı taklit edilmedi; gerçek `/api/health` 404 verdiğinden sepet düğmesi doğru biçimde kapalı kaldı. Sonuç `test-results/vercel-launcher/summary.json` içinde. Gerçek Shopify teması üzerindeki Liquid derlemesi ve ürün formu bağlantısı ayrıca doğrulanmalıdır.
