@@ -1,6 +1,6 @@
-# Shopify: Online design düğmesi
+# Shopify: Online tasarla düğmesi
 
-Ürün sayfasındaki **Online design** düğmesi editörü aynı sayfa üzerinde tam ekran açar. Sayfa yönlendirilmez. Editör ilk tıklamada yüklenir; açılışta yüklenme durumu, hata halinde tekrar deneme gösterilir. X ile kapatınca ürün sayfasına dönülür ve odak düğmeye geri gelir. Taslak aynı ürün için yeniden açılışta korunur. **Save** kayıt yapar; editörü kapatmaz.
+Ürün sayfasındaki **Online tasarla** düğmesi editörü aynı sayfa üzerinde tam ekran açar. Sayfa yönlendirilmez. Editör ilk tıklamada yüklenir; açılışta yüklenme durumu, hata halinde tekrar deneme gösterilir. X ile kapatınca ürün sayfasına dönülür ve odak düğmeye geri gelir. Taslak aynı ürün için yeniden açılışta korunur. **Save** kayıt yapar; editörü kapatmaz.
 
 ## Vercel yayınıyla hazır Custom Liquid
 
@@ -142,8 +142,8 @@ PDF/AI/DXF dosyası orijinal bağlantıdan açılabilir; 2D alanına otomatik y�
 Kontrol: Bir ürüne iki dosya atayın; gerçek ürün sayfasını yenileyip Tasarla'ya basın. Ürün ayarlarındaki GLB bağlantısının ve Download dieline düğmesinin aynı ürüne ait dosyaları açtığını doğrulayın. Farklı üründe dosya bağlamadıysanız önceki ürünün bağlantısı görünmemelidir.
 
 
-## Online design düğmesinin görünümü
+## Online tasarla düğmesinin görünümü
 
-Güncel Custom Liquid ve snippet, beyaz dolgulu oval düğme ve 2 px sabit gökkuşağı çerçeve kullanır. Düğme ürün sütununun tamamını kaplar; altında sağa hizalı, altı çizili **Download the Dieline** bağlantısı bulunur. Yazı tipi tema gövde fontundan alınır. Bağlantı `custom.bicak_i_zi` alanındaki dosyayı açar/indirir; dosya tanımlanmamışsa gösterilmez. Mobilde bağlantının dokunma alanı en az 44 px olur.
+Güncel Custom Liquid ve snippet, kalem ikonlu **Online tasarla** yazısı, beyaz dolgulu oval düğme ve 2 px sabit gökkuşağı çerçeve kullanır. Düğme ürün sütununun tamamını kaplar; altında sağa hizalı, altı çizili **Bıçak izini indir** bağlantısı bulunur. Yazı tipi tema gövde fontundan alınır. Bağlantı `custom.bicak_i_zi` alanındaki dosyayı açar/indirir; dosya tanımlanmamışsa gösterilmez. Mobilde bağlantının dokunma alanı en az 44 px olur.
 
 Shopify tema düzenleyicisindeki mevcut Özel Liquid bloğunu `shopify/custom-liquid/online-design-vercel.liquid` dosyasının **tamamıyla** değiştirin. Bu görünüm Liquid içinde tanımlıdır; yalnız Vercel'i güncellemek mağazaya yapıştırılmış kodun stilini değiştirmez. Editör açılışı ve meta alanı anahtarları korunur.

@@ -37,7 +37,12 @@
       data-alacam-launcher-button
       data-alacam-open="{{ alacam_button_config_id | strip | escape }}"
       aria-haspopup="dialog"
-    >Online design</button>
+    >
+      <svg data-alacam-design-icon xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="m15 5 4 4M4 20l4.5-1L20 7.5a2.8 2.8 0 0 0-4-4L4.5 15Z" />
+      </svg>
+      <span>Online tasarla</span>
+    </button>
     {% if alacam_dieline_url != blank %}
       <a
         data-alacam-dieline-link
@@ -45,13 +50,13 @@
         target="_blank"
         rel="noopener noreferrer"
         download
-      >Download the Dieline</a>
+      >Bıçak izini indir</a>
     {% endif %}
   </div>
   <script id="{{ alacam_button_config_id | strip | escape }}" type="application/json">{{ alacam_button_config | replace: '<', '\u003c' }}</script>
   <script src="https://mock-up-generator-y265.vercel.app/alacam-launcher.js" data-alacam-editor-src="https://mock-up-generator-y265.vercel.app/alacam-editor.js" type="module"></script>
 {% else %}
-  <p data-alacam-launcher-message role="status">Alaçam Online design: Bu düğmeyi bir ürün şablonuna ekleyin veya snippet'e editor_product parametresiyle bir ürün verin.</p>
+  <p data-alacam-launcher-message role="status">Alaçam Online tasarım: Bu düğmeyi bir ürün şablonuna ekleyin veya snippet'e editor_product parametresiyle bir ürün verin.</p>
 {% endif %}
 <style>
   [data-alacam-design-launcher] {
@@ -69,6 +74,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     width: 100%;
     min-height: 48px;
     padding: 10px 24px;
@@ -91,6 +97,14 @@
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+  }
+  [data-alacam-design-launcher] button[data-alacam-launcher-button] [data-alacam-design-icon] {
+    display: block;
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    color: inherit;
+    pointer-events: none;
   }
   [data-alacam-design-launcher] button[data-alacam-launcher-button]::before,
   [data-alacam-design-launcher] button[data-alacam-launcher-button]::after,
