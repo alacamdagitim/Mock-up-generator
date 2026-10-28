@@ -140,3 +140,10 @@ SVG en fazla 1 MB olabilir; script, harici görsel ve bağlantılar temizlenir. 
 PDF/AI/DXF dosyası orijinal bağlantıdan açılabilir; 2D alanına otomatik yüklenmez. Keyfi kesim şekline göre kırpma, taşma ve güvenli alan, CMYK/ICC ve üretim onayı ayrıca tanımlanmalıdır. Mevcut SVG yüklemesi tüm viewBox sınırını dikdörtgen önizleme alanı olarak kullanır; baskıya hazır çıktı anlamına gelmez.
 
 Kontrol: Bir ürüne iki dosya atayın; gerçek ürün sayfasını yenileyip Tasarla'ya basın. Ürün ayarlarındaki GLB bağlantısının ve Download dieline düğmesinin aynı ürüne ait dosyaları açtığını doğrulayın. Farklı üründe dosya bağlamadıysanız önceki ürünün bağlantısı görünmemelidir.
+
+
+## Online design düğmesinin görünümü
+
+Güncel Custom Liquid ve snippet, beyaz dolgulu oval düğme ve 2 px sabit gökkuşağı çerçeve kullanır. Düğme ürün sütununun tamamını kaplar; altında sağa hizalı, altı çizili **Download the Dieline** bağlantısı bulunur. Yazı tipi tema gövde fontundan alınır. Bağlantı `custom.bicak_i_zi` alanındaki dosyayı açar/indirir; dosya tanımlanmamışsa gösterilmez. Mobilde bağlantının dokunma alanı en az 44 px olur.
+
+Shopify tema düzenleyicisindeki mevcut Özel Liquid bloğunu `shopify/custom-liquid/online-design-vercel.liquid` dosyasının **tamamıyla** değiştirin. Bu görünüm Liquid içinde tanımlıdır; yalnız Vercel'i güncellemek mağazaya yapıştırılmış kodun stilini değiştirmez. Editör açılışı ve meta alanı anahtarları korunur.

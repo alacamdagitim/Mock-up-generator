@@ -31,42 +31,124 @@
     "variants": [{% for alacam_variant in alacam_button_product.variants %}{"id": {{ alacam_variant.id | json }}, "title": {{ alacam_variant.title | json }}, "available": {{ alacam_variant.available | json }}}{% unless forloop.last %},{% endunless %}{% endfor %}]
   }
   {% endcapture %}
-  <button
-    type="button"
-    data-alacam-launcher-button
-    data-alacam-open="{{ alacam_button_config_id | strip | escape }}"
-    aria-haspopup="dialog"
-  >Tasarla</button>
+  <div data-alacam-design-launcher>
+    <button
+      type="button"
+      data-alacam-launcher-button
+      data-alacam-open="{{ alacam_button_config_id | strip | escape }}"
+      aria-haspopup="dialog"
+    >Online design</button>
+    {% if alacam_dieline_url != blank %}
+      <a
+        data-alacam-dieline-link
+        href="{{ alacam_dieline_url | escape }}"
+        target="_blank"
+        rel="noopener noreferrer"
+        download
+      >Download the Dieline</a>
+    {% endif %}
+  </div>
   <script id="{{ alacam_button_config_id | strip | escape }}" type="application/json">{{ alacam_button_config | replace: '<', '\u003c' }}</script>
   <script src="https://mock-up-generator-y265.vercel.app/alacam-launcher.js" data-alacam-editor-src="https://mock-up-generator-y265.vercel.app/alacam-editor.js" type="module"></script>
 {% else %}
   <p data-alacam-launcher-message role="status">Alaçam Online design: Bu düğmeyi bir ürün şablonuna ekleyin veya snippet'e editor_product parametresiyle bir ürün verin.</p>
 {% endif %}
 <style>
-  button[data-alacam-launcher-button] {
+  [data-alacam-design-launcher] {
+    display: grid;
+    gap: 14px;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  [data-alacam-design-launcher] button[data-alacam-launcher-button] {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 24px;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background:
+      linear-gradient(#fff, #fff) padding-box,
+      conic-gradient(from 0deg, #ff004c 0deg, #ffac00 28deg, #d8ff00 54deg, #35ff4d 86deg, #14ff5a 140deg, #00e8da 180deg, #0000ff 202deg, #9000ff 248deg, #be00ce 280deg, #be00ce 320deg, #ff004c 360deg) border-box;
+    color: #191919;
+    font-family: var(--font-body-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 24px;
+    letter-spacing: -.35px;
+    text-transform: none;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  [data-alacam-design-launcher] button[data-alacam-launcher-button]::before,
+  [data-alacam-design-launcher] button[data-alacam-launcher-button]::after,
+  [data-alacam-design-launcher] a[data-alacam-dieline-link]::before,
+  [data-alacam-design-launcher] a[data-alacam-dieline-link]::after {
+    content: none;
+    display: none;
+  }
+  [data-alacam-design-launcher] button[data-alacam-launcher-button]:hover {
+    color: #191919;
+    filter: brightness(.985);
+  }
+  [data-alacam-design-launcher] button[data-alacam-launcher-button]:disabled {
+    opacity: .55;
+    cursor: wait;
+  }
+  [data-alacam-design-launcher] a[data-alacam-dieline-link] {
     all: unset;
     box-sizing: border-box;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    width: 100%;
+    justify-content: flex-end;
+    justify-self: end;
     max-width: 100%;
-    padding: 11px 24px;
-    border: 1px solid #191919;
-    border-radius: 8px;
-    background: #191919;
-    color: #fff;
-    font: 500 14px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    letter-spacing: 0;
-    text-align: center;
-    text-decoration: none;
+    min-height: 24px;
+    color: #333;
+    font-family: var(--font-body-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 24px;
+    letter-spacing: -.15px;
+    text-align: right;
+    text-transform: none;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    overflow-wrap: anywhere;
     cursor: pointer;
     touch-action: manipulation;
   }
-  button[data-alacam-launcher-button]:hover { background: #333; }
-  button[data-alacam-launcher-button]:focus-visible { outline: 2px solid #8f45ff; outline-offset: 3px; }
-  button[data-alacam-launcher-button]:disabled { opacity: .55; cursor: wait; }
+  [data-alacam-design-launcher] a[data-alacam-dieline-link]:hover { color: #191919; }
+  [data-alacam-design-launcher] button[data-alacam-launcher-button]:focus-visible,
+  [data-alacam-design-launcher] a[data-alacam-dieline-link]:focus-visible {
+    outline: 2px solid #8f45ff;
+    outline-offset: 4px;
+  }
+  @media (max-width: 749px) {
+    [data-alacam-design-launcher] { gap: 8px; }
+    [data-alacam-design-launcher] a[data-alacam-dieline-link] { min-height: 44px; }
+  }
+  @media (forced-colors: active) {
+    [data-alacam-design-launcher] button[data-alacam-launcher-button] {
+      border-color: ButtonText;
+      background: Canvas;
+      color: ButtonText;
+    }
+  }
   [data-alacam-launcher-message] {
     color: #a52620;
     font: 400 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
