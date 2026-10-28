@@ -104,6 +104,24 @@ export const designSchema = z
     schemaVersion: z.literal(1),
     productId: z.literal("doypack-v1"),
     name: z.string().min(1).max(100),
+    artboard: z
+      .object({
+        canvasWidth: finite.int().min(60).max(2400),
+        canvasHeight: finite.int().min(60).max(2400),
+        widthMm: finite.positive().max(5000).optional(),
+        heightMm: finite.positive().max(5000).optional(),
+        sourceUrl: z
+          .string()
+          .url()
+          .max(2048)
+          .refine((value) => {
+            const url = new URL(value);
+            return url.protocol === "https:" && !url.username && !url.password;
+          })
+          .optional(),
+      })
+      .strict()
+      .optional(),
     updatedAt: z.string().datetime(),
     faces: z
       .object({
@@ -138,14 +156,24 @@ export function blankDesign() {
 export function parseDesign(value) {
   return designSchema.parse(value);
 }
-export function effectiveDpi(el) {
-  if (el.kind !== "image") return null;
+/** @param {any} el
+ * @param {{ canvasWidth: number, canvasHeight: number, widthMm?: number, heightMm?: number } | undefined} [artboard] */
+export function effectiveDpi(el, artboard = undefined) {
+  if (
+    el.kind !== "image" ||
+    (artboard && (!artboard.widthMm || !artboard.heightMm))
+  )
+    return null;
   return Math.round(
     Math.min(
       el.pixelWidth /
-        ((((el.width * el.scaleX) / 600) * PRODUCT.widthMm) / 25.4),
+        ((((el.width * el.scaleX) / (artboard?.canvasWidth || 600)) *
+          (artboard?.widthMm || PRODUCT.widthMm)) /
+          25.4),
       el.pixelHeight /
-        ((((el.height * el.scaleY) / 900) * PRODUCT.heightMm) / 25.4),
+        ((((el.height * el.scaleY) / (artboard?.canvasHeight || 900)) *
+          (artboard?.heightMm || PRODUCT.heightMm)) /
+          25.4),
     ),
   );
 }

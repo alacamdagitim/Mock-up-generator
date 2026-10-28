@@ -21,7 +21,8 @@
     "test:denoise": "node tests/guided-denoise.browser.mjs",
     "test:launcher": "node tests/shopify-launcher.browser.mjs",
     "test:launcher:build": "node tests/shopify-build.browser.mjs",
-    "test:preview": "node tests/preview-polish.browser.mjs"
+    "test:preview": "node tests/preview-polish.browser.mjs",
+    "test:product-files": "node tests/product-metafields.browser.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",

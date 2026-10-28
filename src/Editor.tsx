@@ -16,7 +16,7 @@ import {
   Polygon,
   Path,
 } from "fabric";
-import type { Element, Face } from "./types";
+import type { ArtboardSpec, Element, Face } from "./types";
 import { PRODUCT } from "../shared/schema.mjs";
 import { DesignFontError, ensureDesignFont } from "./designFonts";
 type Meta = {
@@ -179,6 +179,8 @@ async function objectFrom(e: Element): Promise<Obj> {
 export const Editor = forwardRef<
   EditorHandle,
   {
+    artboard?: ArtboardSpec;
+    templateUrl?: string;
     face: Face;
     elements: Element[];
     background: string;
@@ -213,7 +215,14 @@ export const Editor = forwardRef<
   };
   const guideUnderlay = useRef<FabricImage | null>(null);
   const printClip = () => {
-    const p = PRODUCT.print;
+    const p = latest.current.artboard
+      ? {
+          x: 0,
+          y: 0,
+          width: latest.current.artboard.canvasWidth,
+          height: latest.current.artboard.canvasHeight,
+        }
+      : PRODUCT.print;
     return new Rect({
       left: p.x,
       top: p.y,
@@ -227,7 +236,11 @@ export const Editor = forwardRef<
     c.backgroundColor =
       current.showMaterial === false ? "" : current.background;
     c.clipPath = current.cutBleedline === false ? undefined : printClip();
-    if (current.guides && current.guidesTopmost === false) {
+    if (
+      current.guides &&
+      current.guidesTopmost === false &&
+      !current.artboard
+    ) {
       if (!guideUnderlay.current) {
         const sheet = document.createElement("canvas");
         sheet.width = 600;
@@ -261,11 +274,11 @@ export const Editor = forwardRef<
     const c = canvas.current;
     if (!c) return null;
     const out = document.createElement("canvas");
-    out.width = 600;
-    out.height = 900;
+    out.width = latest.current.artboard?.canvasWidth || 600;
+    out.height = latest.current.artboard?.canvasHeight || 900;
     const ctx = out.getContext("2d")!;
     ctx.fillStyle = latest.current.background;
-    ctx.fillRect(0, 0, 600, 900);
+    ctx.fillRect(0, 0, out.width, out.height);
     const background = c.backgroundColor,
       clip = c.clipPath,
       backgroundImage = c.backgroundImage;
@@ -298,8 +311,8 @@ export const Editor = forwardRef<
   };
   useEffect(() => {
     const c = new Canvas(node.current!, {
-      width: 600,
-      height: 900,
+      width: latest.current.artboard?.canvasWidth || 600,
+      height: latest.current.artboard?.canvasHeight || 900,
       preserveObjectStacking: true,
       enablePointerEvents: true,
       selection: false,
@@ -336,10 +349,12 @@ export const Editor = forwardRef<
     };
     c.on("object:moving", ({ target }) => {
       const center = target.getCenterPoint();
-      const sx = Math.abs(center.x - 300) < 7,
-        sy = Math.abs(center.y - 450) < 7;
-      if (sx) target.left += 300 - center.x;
-      if (sy) target.top += 450 - center.y;
+      const midX = c.width / 2,
+        midY = c.height / 2;
+      const sx = Math.abs(center.x - midX) < 7,
+        sy = Math.abs(center.y - midY) < 7;
+      if (sx) target.left += midX - center.x;
+      if (sy) target.top += midY - center.y;
       setSnap({ x: sx, y: sy });
       live();
     });
@@ -565,18 +580,28 @@ export const Editor = forwardRef<
       data-testid="artboard"
       data-cut-bleedline={props.cutBleedline !== false}
       data-guides-position={props.guidesTopmost === false ? "bottom" : "top"}
-      style={
-        props.showMaterial === false
-          ? undefined
-          : { background: props.background }
-      }
+      style={{
+        width: props.artboard?.canvasWidth || 600,
+        height: props.artboard?.canvasHeight || 900,
+        ...(props.showMaterial === false
+          ? {}
+          : { background: props.background }),
+      }}
     >
       <canvas ref={node} />
-      {props.guides && props.guidesTopmost !== false && (
+      {props.guides && props.guidesTopmost !== false && !props.artboard && (
         <div className="guide-overlay">
           <div className="print-guide" />
           <div className="safe-guide" />
         </div>
+      )}
+      {props.guides && props.templateUrl && (
+        <img
+          className="product-template-overlay"
+          src={props.templateUrl}
+          alt="Ürünün bıçak izi"
+          draggable={false}
+        />
       )}
       {snap.x && <div className="snap-x" />}
       {snap.y && <div className="snap-y" />}
@@ -594,15 +619,23 @@ export async function renderFace(
   elements: Element[],
   background: string,
   multiplier: 1 | 2 = 1,
+  artboard?: ArtboardSpec,
 ) {
   const node = document.createElement("canvas");
   const c = new StaticCanvas(node, {
-    width: 600,
-    height: 900,
+    width: artboard?.canvasWidth || 600,
+    height: artboard?.canvasHeight || 900,
     backgroundColor: background,
   });
   try {
-    const p = PRODUCT.print;
+    const p = artboard
+      ? {
+          x: 0,
+          y: 0,
+          width: artboard.canvasWidth,
+          height: artboard.canvasHeight,
+        }
+      : PRODUCT.print;
     c.clipPath = new Rect({
       left: p.x,
       top: p.y,
@@ -613,8 +646,8 @@ export async function renderFace(
     for (const e of elements) c.add(await objectFrom(e));
     c.renderAll();
     const out = document.createElement("canvas");
-    out.width = 600 * multiplier;
-    out.height = 900 * multiplier;
+    out.width = (artboard?.canvasWidth || 600) * multiplier;
+    out.height = (artboard?.canvasHeight || 900) * multiplier;
     const ctx = out.getContext("2d")!;
     ctx.fillStyle = background;
     ctx.fillRect(0, 0, out.width, out.height);

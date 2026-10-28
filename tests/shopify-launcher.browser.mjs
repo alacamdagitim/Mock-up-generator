@@ -1,7 +1,7 @@
 // Public-UI regression checks against an isolated Vite storefront fixture.
 // This test never attaches to user tabs and never writes to a real Shopify cart.
 import { chromium, expect } from "@playwright/test";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 
 const base = process.env.ALACAM_TEST_URL || "http://127.0.0.1:5184";
 const fixtureUrl = `${base}/tests/fixtures/shopify-launcher.html`;
@@ -23,6 +23,14 @@ async function storefront(options = {}) {
   latestPage = page;
   await page.route("**/api/health", (route) =>
     route.fulfill({ json: { storageConfigured: false } }),
+  );
+  await page.route(
+    "https://cdn.shopify.com/files/urun.glb?v=123",
+    async (route) =>
+      route.fulfill({
+        body: await readFile("public/product-assets/doypack-v1-r1/model.glb"),
+        contentType: "model/gltf-binary",
+      }),
   );
   page.on("pageerror", (error) => summary.pageErrors.push(error.message));
   return { context, page };
@@ -113,12 +121,10 @@ try {
     editor(page).getByRole("link", { name: "Download dieline", exact: true }),
   ).toHaveAttribute("href", "https://cdn.shopify.com/files/bicak.pdf?v=456");
   await expect(
-    editor(page).getByText(
-      "Dosya bağlı · 3B önizlemeye UV eşlemesi henüz yapılmadı.",
-    ),
+    editor(page).getByText("Ürünün kendi GLB dosyası önizlemede yüklenir."),
   ).toBeVisible();
   summary.passed.push(
-    "Product GLB/dieline references reach the UI with CDN versions; unmapped model status is explicit",
+    "Product GLB/dieline references reach the UI with CDN versions; product file status is explicit",
   );
 
   expect(page.url()).toBe(fixtureUrl);

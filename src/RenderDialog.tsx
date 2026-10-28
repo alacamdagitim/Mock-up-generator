@@ -659,8 +659,8 @@ function RenderDialogContent({
           </aside>
         </div>
         <footer className="studio-render-footer" id={noteId}>
-          Render tasarımınızı değiştirmez. Özgün yaklaşık model · Görsel
-          önizlemedir; baskı veya üretim dosyası değildir.
+          Render tasarımınızı değiştirmez. Görsel önizlemedir; baskı veya üretim
+          dosyası değildir.
         </footer>
       </div>
     </div>

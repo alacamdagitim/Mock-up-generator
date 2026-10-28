@@ -19,6 +19,8 @@ import {
 } from "../shared/schema.mjs";
 import { storefrontProducts, productDraftKey } from "../shared/storefront.mjs";
 import { imageFile } from "./files";
+import { loadProductTemplate } from "./productTemplate";
+import { manufacturerDielineUrl } from "../shared/storefront.mjs";
 import { projectThumbnail, storeProject } from "./library";
 
 export const newElement = (kind: Element["kind"], name: string): Element => ({
@@ -53,6 +55,8 @@ export function useDesigner(config: EditorConfig) {
     }
     return blankDesign() as Design;
   });
+  const [templateUrl, setTemplateUrl] = useState<string>();
+  const [templateStatus, setTemplateStatus] = useState("");
   const [face, setFace] = useState<Face>("front");
   const faceRef = useRef(face);
   faceRef.current = face;
@@ -120,6 +124,103 @@ export function useDesigner(config: EditorConfig) {
     setSaved(null);
     setHistoryCount([history.current.length, future.current.length]);
   }, []);
+  const dielineUrl = manufacturerDielineUrl(product.dielineUrl);
+  useEffect(() => {
+    setTemplateUrl(undefined);
+    if (!dielineUrl) {
+      setTemplateStatus(
+        config.productId ? "Bıçak izi meta alanında dosya bulunamadı." : "",
+      );
+      return;
+    }
+    if (!/\.svg$/i.test(new URL(dielineUrl).pathname)) {
+      setTemplateStatus(
+        "Bıçak izi bağlı. Düzenleyicide göstermek için SVG dosyası gerekli; orijinal dosyayı üstteki bağlantıdan açabilirsiniz.",
+      );
+      return;
+    }
+    const controller = new AbortController();
+    let active = true,
+      localUrl: string | undefined;
+    const timeout = window.setTimeout(() => controller.abort(), 30_000);
+    setTemplateStatus("Ürünün bıçak izi yükleniyor…");
+    loadProductTemplate(dielineUrl, controller.signal)
+      .then(({ artboard, svg }) => {
+        if (!active) return;
+        localUrl = URL.createObjectURL(
+          new Blob([svg], { type: "image/svg+xml" }),
+        );
+        setTemplateUrl(localUrl);
+        const current = state.current;
+        if (JSON.stringify(current.artboard) !== JSON.stringify(artboard)) {
+          const old = current.artboard || {
+            canvasWidth: 600,
+            canvasHeight: 900,
+          };
+          const scale = Math.min(
+            artboard.canvasWidth / old.canvasWidth,
+            artboard.canvasHeight / old.canvasHeight,
+          );
+          const fit = (elements: Element[]) =>
+            elements.map((element) => ({
+              ...element,
+              x:
+                element.x * scale +
+                (artboard.canvasWidth - old.canvasWidth * scale) / 2,
+              y:
+                element.y * scale +
+                (artboard.canvasHeight - old.canvasHeight * scale) / 2,
+              scaleX: element.scaleX * scale,
+              scaleY: element.scaleY * scale,
+            }));
+          if (current.faces.front.length || current.faces.back.length) {
+            try {
+              localStorage.setItem(
+                `${key}:before-template`,
+                JSON.stringify(current),
+              );
+            } catch {
+              /* Existing device storage may be full. */
+            }
+          }
+          change(
+            {
+              ...current,
+              artboard,
+              faces: {
+                front: fit(current.faces.front),
+                back: fit(current.faces.back),
+              },
+              updatedAt: new Date().toISOString(),
+            },
+            false,
+          );
+          history.current = [];
+          future.current = [];
+          setHistoryCount([0, 0]);
+          setSelected(null);
+          setLoadKey((value) => value + 1);
+        }
+        setTemplateStatus(
+          "Ürünün SVG bıçak izi yüklendi · Güvenli alan ve üretim onayı henüz tanımlanmadı.",
+        );
+      })
+      .catch((error) => {
+        if (active)
+          setTemplateStatus(
+            error instanceof Error && error.name !== "AbortError"
+              ? error.message
+              : "Bıçak izi yükleme süresi doldu.",
+          );
+      })
+      .finally(() => clearTimeout(timeout));
+    return () => {
+      active = false;
+      controller.abort();
+      clearTimeout(timeout);
+      if (localUrl) URL.revokeObjectURL(localUrl);
+    };
+  }, [dielineUrl, change, key, config.productId]);
   const edit = useCallback(
     (elements: Element[]) => {
       try {
@@ -200,7 +301,12 @@ export function useDesigner(config: EditorConfig) {
   useEffect(() => {
     const opposite = face === "front" ? "back" : "front";
     let stale = false;
-    void renderFace(state.current.faces[opposite], state.current.background)
+    void renderFace(
+      state.current.faces[opposite],
+      state.current.background,
+      1,
+      state.current.artboard,
+    )
       .then((canvas) => {
         if (!stale) onTexture(opposite, canvas);
       })
@@ -208,7 +314,7 @@ export function useDesigner(config: EditorConfig) {
     return () => {
       stale = true;
     };
-  }, [face, loadKey, design.background, onTexture, notify]);
+  }, [face, loadKey, design.background, design.artboard, onTexture, notify]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 6500);
@@ -320,8 +426,29 @@ export function useDesigner(config: EditorConfig) {
       background: color,
       updatedAt: new Date().toISOString(),
     });
-  const add = async (element: Element) => {
+  const add = async (element: Element, fit = true) => {
     if (!editor.current) throw new Error("Düzenleyici henüz hazır değil.");
+    if (
+      fit &&
+      state.current.artboard &&
+      !state.current.faces[faceRef.current].some(
+        (item) => item.id === element.id,
+      )
+    ) {
+      const { canvasWidth, canvasHeight } = state.current.artboard;
+      const scale = Math.min(
+        1,
+        (canvasWidth * 0.8) / (element.width * element.scaleX),
+        (canvasHeight * 0.65) / (element.height * element.scaleY),
+      );
+      element = {
+        ...element,
+        scaleX: element.scaleX * scale,
+        scaleY: element.scaleY * scale,
+      };
+      element.x = (canvasWidth - element.width * element.scaleX) / 2;
+      element.y = (canvasHeight - element.height * element.scaleY) / 2;
+    }
     await editor.current.add(element);
   };
   const addImage = async (
@@ -340,10 +467,16 @@ export function useDesigner(config: EditorConfig) {
         .reduce((sum, element) => sum + (element.src?.length || 0), 0);
       if (total + (data.src?.length || 0) > 16_000_000)
         throw new Error("Toplam görsel verisi 16 MB sınırını aşıyor.");
+      const width = state.current.artboard?.canvasWidth || 600;
+      const height = state.current.artboard?.canvasHeight || 900;
       const scale =
         placement === "cover"
-          ? Math.max(600 / data.pixelWidth!, 900 / data.pixelHeight!)
-          : Math.min(330 / data.pixelWidth!, 500 / data.pixelHeight!, 100);
+          ? Math.max(width / data.pixelWidth!, height / data.pixelHeight!)
+          : Math.min(
+              (width * 0.55) / data.pixelWidth!,
+              (height * 0.55) / data.pixelHeight!,
+              100,
+            );
       const element = {
         ...newElement("image", file.name.slice(0, 100)),
         ...data,
@@ -351,10 +484,10 @@ export function useDesigner(config: EditorConfig) {
         height: data.pixelHeight!,
         scaleX: scale,
         scaleY: scale,
-        x: 300 - (data.pixelWidth! * scale) / 2,
-        y: 450 - (data.pixelHeight! * scale) / 2,
+        x: width / 2 - (data.pixelWidth! * scale) / 2,
+        y: height / 2 - (data.pixelHeight! * scale) / 2,
       };
-      await add(element);
+      await add(element, false);
       if (placement === "cover") editor.current?.layer("back");
       setUploaded((old) => [...old, element].slice(-24));
       return true;
@@ -443,7 +576,12 @@ export function useDesigner(config: EditorConfig) {
           png = preview.current!.png();
         } catch {
           png = (
-            await renderFace(snapshot.faces.front, snapshot.background)
+            await renderFace(
+              snapshot.faces.front,
+              snapshot.background,
+              1,
+              snapshot.artboard,
+            )
           ).toDataURL("image/png");
         }
         const thumbnail = await projectThumbnail(png);
@@ -537,6 +675,8 @@ export function useDesigner(config: EditorConfig) {
   return {
     keyboardScope,
     product,
+    templateUrl,
+    templateStatus,
     design,
     state,
     change,

@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import type { EditorConfig, Element } from "./types";
 import { DesignCanvas } from "./DesignCanvas";
-import { Preview } from "./Preview";
+import { ProductPreview } from "./ProductPreview";
 import { useDesigner, newElement } from "./useDesigner";
 import { SelectionInspector } from "./SelectionInspector";
 import { PRESETS, presetElements } from "./designPresets";
@@ -109,6 +109,7 @@ export default function OnlineDesigner({
     top: 84,
   });
   const [interaction, setInteraction] = useState<"rotate" | "pan">("rotate");
+  const [modelFaces, setModelFaces] = useState<string[]>([]);
   const [mode, setMode] = useState<"2d" | "3d">("2d");
   const last2dTool = useRef<Tool>("presets");
   const [previewSize, setPreviewSize] = useState(280);
@@ -306,8 +307,8 @@ export default function OnlineDesigner({
   const renderSource = async () => {
     const design = d.state.current;
     const [front, back] = await Promise.all([
-      renderFace(design.faces.front, design.background, 2),
-      renderFace(design.faces.back, design.background, 2),
+      renderFace(design.faces.front, design.background, 2, design.artboard),
+      renderFace(design.faces.back, design.background, 2, design.artboard),
     ]);
     try {
       if (!d.preview.current)
@@ -321,7 +322,24 @@ export default function OnlineDesigner({
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
     d.change({
       ...d.state.current,
-      faces: { ...d.state.current.faces, [d.face]: presetElements(preset) },
+      faces: {
+        ...d.state.current.faces,
+        [d.face]: presetElements(preset).map((element) => {
+          const board = d.state.current.artboard;
+          if (!board) return element;
+          const scale = Math.min(
+            board.canvasWidth / 600,
+            board.canvasHeight / 900,
+          );
+          return {
+            ...element,
+            x: element.x * scale + (board.canvasWidth - 600 * scale) / 2,
+            y: element.y * scale + (board.canvasHeight - 900 * scale) / 2,
+            scaleX: element.scaleX * scale,
+            scaleY: element.scaleY * scale,
+          };
+        }),
+      },
       updatedAt: new Date().toISOString(),
     });
     d.reload();
@@ -863,6 +881,8 @@ export default function OnlineDesigner({
         </aside>
         <DesignCanvas
           open={mode === "2d"}
+          templateUrl={d.templateUrl}
+          singleFace={modelFaces.length === 1 && modelFaces[0] === "front"}
           editor={d.editor}
           design={d.design}
           face={d.face}
@@ -905,7 +925,9 @@ export default function OnlineDesigner({
           </div>
         )}
         <section className="online-preview" aria-label="Canlı 3B önizleme">
-          <Preview
+          <ProductPreview
+            modelUrl={manufacturerModel}
+            onFaces={setModelFaces}
             ref={d.preview}
             textures={d.textures}
             settings={
@@ -923,6 +945,7 @@ export default function OnlineDesigner({
           ) : (
             <PreviewToolbar
               preview={d.preview}
+              allowInflate={!manufacturerModel}
               inflate={d.settings.inflate ?? 100}
               onInflate={(inflate) => d.setPresentation({ inflate })}
               interaction={interaction}
@@ -948,6 +971,12 @@ export default function OnlineDesigner({
             </button>
             <button
               className="configure-trigger"
+              disabled={!!manufacturerModel}
+              title={
+                manufacturerModel
+                  ? "Bu modelin özgün GLB malzemeleri kullanılıyor; kaplama eşlemesi ayrıca tanımlanmalı."
+                  : undefined
+              }
               onClick={() => setConfigureOpen(true)}
             >
               Config
@@ -959,19 +988,26 @@ export default function OnlineDesigner({
                 <h2 className="config-product-title">{d.product.title}</h2>
                 <dl>
                   <div>
-                    <dt>Size</dt>
-                    <dd>140 × 210 mm</dd>
+                    <dt>{d.design.artboard ? "Şablon alanı" : "Size"}</dt>
+                    <dd>
+                      {d.design.artboard
+                        ? d.design.artboard.widthMm &&
+                          d.design.artboard.heightMm
+                          ? `${d.design.artboard.widthMm} × ${d.design.artboard.heightMm} mm`
+                          : "Ölçü tanımlanmadı"
+                        : "140 × 210 mm"}
+                    </dd>
                   </div>
                   <div>
                     <dt>Material</dt>
                     <dd>
-                      {
-                        {
-                          white: "White film",
-                          kraft: "Kraft",
-                          metallic: "Metallic film",
-                        }[d.settings.substrate || "white"]
-                      }
+                      {manufacturerModel
+                        ? "GLB malzemeleri"
+                        : {
+                            white: "White film",
+                            kraft: "Kraft",
+                            metallic: "Metallic film",
+                          }[d.settings.substrate || "white"]}
                     </dd>
                   </div>
                   <div>
@@ -986,22 +1022,37 @@ export default function OnlineDesigner({
                   </div>
                   <div>
                     <dt>Print Sides</dt>
-                    <dd>Front and back</dd>
+                    <dd>
+                      {modelFaces.length === 1
+                        ? "Tek sarım yüzeyi"
+                        : "Front and back"}
+                    </dd>
                   </div>
                   <div>
                     <dt>Finishing</dt>
                     <dd>
-                      {
-                        { gloss: "Gloss", matte: "Matte", none: "Blank" }[
-                          d.settings.finishing ||
-                            (d.settings.material === "glossy"
-                              ? "gloss"
-                              : "matte")
-                        ]
-                      }
+                      {manufacturerModel
+                        ? "Modelde tanımlı"
+                        : { gloss: "Gloss", matte: "Matte", none: "Blank" }[
+                            d.settings.finishing ||
+                              (d.settings.material === "glossy"
+                                ? "gloss"
+                                : "matte")
+                          ]}
                     </dd>
                   </div>
                 </dl>
+                {d.templateStatus && (
+                  <p className="config-approximate" role="status">
+                    {d.templateStatus}
+                  </p>
+                )}
+                {config.productId && !manufacturerModel && (
+                  <p className="config-approximate" role="status">
+                    GLB meta alanında dosya bulunamadı; örnek model
+                    gösteriliyor.
+                  </p>
+                )}
                 {manufacturerModel && (
                   <p className="config-approximate">
                     <a
@@ -1012,11 +1063,13 @@ export default function OnlineDesigner({
                       Ürünün GLB dosyasını aç
                     </a>
                     <br />
-                    Dosya bağlı · 3B önizlemeye UV eşlemesi henüz yapılmadı.
+                    Ürünün kendi GLB dosyası önizlemede yüklenir.
                   </p>
                 )}
                 <p className="config-approximate">
-                  Approximate model · Sample dimensions
+                  {manufacturerModel
+                    ? "Ürün modeli · Baskı ölçüleri henüz onaylanmadı"
+                    : "Approximate model · Sample dimensions"}
                   <br />
                   Manufacturer dieline{" "}
                   {manufacturerFile

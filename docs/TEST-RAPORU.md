@@ -98,3 +98,19 @@ Son derlemeyle `test:launcher:build` **4 kontrol grubunu** tekrar geçti; JavaSc
 Liquid girişleri `custom.3b_glb_dosyasi` ve `custom.bicak_i_zi` alanlarını okur; dosya URL'leri launcher doğrulamasından ürün ayarlarına taşınır. GLB bağlantısı ve bıçak izi indirme adresi sürüm sorgusunu korur. Bağlı GLB'nin henüz canlı önizlemeye eşlenmediği görünür şekilde belirtilir.
 
 `npm test`: 27/27 başarılı. İlk sandbox çalışmasında iki API testi port açma izni nedeniyle EPERM verdi; izinli yerel çalışmada tümü geçti. `npm run build` başarılı; mevcut büyük paket uyarısı sürüyor. `test:launcher`: 14 tarayıcı kontrolü başarılı, sayfa JavaScript hatası yok; yeni kontrol iki gerçekçi CDN referansının ürün arayüzüne ulaştığını doğrular. Bunlar izole fixture testleridir; gerçek mağazadaki dosyalar, Liquid çıktısı ve UV eşlemesi dosyalar sağlanınca kontrol edilecek.
+
+
+## Canlı ürün GLB ve SVG yüklemesi · 28 Ekim 2026
+
+Canlı Waffle Kabartmalı Karton Bardak ürününün Liquid çıktısında her iki meta alanı adresi doğrulandı. Sağlanan GLB 666.236 bayt, SVG 456 bayt; iki CDN dosyası da erişilebilir. SVG 198 × 60 mm viewBox/ölçü bilgisi içeriyor. Modelin üç parçalı sarım yüzeyi UV eşlemesi incelendi; dosyalar depoya kopyalanmadı.
+
+GLB artık ürün sahnesinde yükleniyor; SVG kendi yatay oranıyla tasarım alanına alınıyor. Portre doypack dokusundan yatay ürün dokusuna geçişte Three.js/WebGL2'nin değişmeyen doku depolama boyutları nedeniyle siyah yüzey üreten hata düzeltildi: boyut değiştiğinde GPU dokusu yeniden ayrılıyor.
+
+`npm test`: 29/29 başarılı. GLB dış kaynaklarının parse öncesi reddi, geometri bütçeleri, artboard JSON ve DPI kontrolü eklendi. `test:launcher`: 14 kontrol başarılı. `test:workspace` başarılı; mevcut 2D/3D düzenleme, SVG, dönüşüm/geçmiş, tipografi, JSON, yenileme, hatalar, mobil görünüm ve izole sepet akışı korundu.
+
+`test:product-files` varsayılan özgün GLB ve zararlı bağlantı/script içeren SVG fixture ile geçti; harici kaynak isteği ve sayfa/WebGL hatası oluşmadı. Sağlanan gerçek GLB/SVG dosyalarıyla masaüstü ve 390 × 844 mobil testlerde model/şablon yükleme, logonun UV dokusunda görünmesi, taslağın geri gelmesi, bozuk model hatası ve yeniden deneme geçti. Gerçek dosyalar için `ALACAM_MODEL_FIXTURE` ve `ALACAM_DIELINE_FIXTURE`, mobil için `ALACAM_TEST_MOBILE=1` kullanılır. Dosyalar yalnız yerel geçici dosyalardan test edilir.
+
+Sınırlar: SVG viewBox alanı dikdörtgen olarak kırpılır; keyfi kesim maskesi, güvenli/taşma alanı, üretim onayı ve PDF/AI/DXF'nin 2D içe aktarımı eklenmedi. Bilinmeyen GLB baskı yüzleri otomatik tahmin edilmez. Kaynak malzemeler korunur; dış GLB için doypack kaplama/dolgunluk kontrolleri uygulanmaz. Kalıcı API/Shopify sepeti yapılandırma durumu bu değişiklikle değişmez.
+
+
+Gerçek GPU kullanan uygulama içi tarayıcıda, aynı CDN GLB/SVG dosyaları ve özgün Botanik tasarımıyla **1024 × 1024 / 64 örnek render 11,5 saniyede tamamlandı**; PNG indirme bağlantısı oluştu. Yerel kanıt `test-results/product-metafields/native-product-render.png`. Bu tek cihaz ölçümüdür. Headless Chromium'daki isteğe bağlı tam render testi 180 saniye sınırında, yazılım GPU'sunda 2,5/64 örnekte zaman aşımına uğradı; renderın tamamlanması bu ortamda doğrulanmadı. Canlı önizleme/şablon/logo/yenileme/hata kontrolleri masaüstü ve mobilde geçti; tamamlanan render ayrıca gerçek GPU'da doğrulandı.

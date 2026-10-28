@@ -39,6 +39,7 @@ async function scan(dir) {
 await scan("node_modules");
 // Embedded shaders have their own notice in addition to the package MIT license.
 sections.push(await readFile("scripts/licenses/glslSmartDeNoise.txt", "utf8"));
+sections.push(await readFile("scripts/licenses/meshoptimizer.txt", "utf8"));
 await mkdir("dist", { recursive: true });
 await writeFile(
   "dist/THIRD_PARTY_LICENSES.txt",

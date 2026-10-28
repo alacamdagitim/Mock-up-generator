@@ -21,6 +21,8 @@ import { effectiveDpi, PRODUCT } from "../shared/schema.mjs";
 
 export function DesignCanvas({
   open,
+  templateUrl,
+  singleFace,
   editor,
   design,
   face,
@@ -37,6 +39,8 @@ export function DesignCanvas({
   onError,
 }: {
   open: boolean;
+  templateUrl?: string;
+  singleFace?: boolean;
   editor: RefObject<EditorHandle>;
   design: Design;
   face: Face;
@@ -93,6 +97,15 @@ export function DesignCanvas({
       }
     | null
   >(null);
+  const width = design.artboard?.canvasWidth || 600;
+  const height = design.artboard?.canvasHeight || 900;
+  const widthMm = design.artboard ? design.artboard.widthMm : PRODUCT.widthMm;
+  const heightMm = design.artboard
+    ? design.artboard.heightMm
+    : PRODUCT.heightMm;
+  useEffect(() => {
+    if (singleFace && face !== "front") onFace("front");
+  }, [singleFace, face, onFace]);
   const scale = zoom ?? fit;
   const fitRef = useRef(fit);
   fitRef.current = fit;
@@ -186,8 +199,8 @@ export function DesignCanvas({
         Math.max(
           0.08,
           Math.min(
-            (node.clientWidth - 96) / (rotation % 180 ? 900 : 600),
-            (node.clientHeight - 92) / (rotation % 180 ? 600 : 900),
+            (node.clientWidth - 96) / (rotation % 180 ? height : width),
+            (node.clientHeight - 92) / (rotation % 180 ? width : height),
             1,
           ),
         ),
@@ -197,7 +210,7 @@ export function DesignCanvas({
     observer.observe(node);
     resize();
     return () => observer.disconnect();
-  }, [rotation]);
+  }, [rotation, width, height]);
   useEffect(() => {
     const node = viewport.current!;
     const wheel = (event: WheelEvent) => {
@@ -353,7 +366,7 @@ export function DesignCanvas({
       event.currentTarget.releasePointerCapture(event.pointerId);
   };
   const warnings = design.faces[face].filter((element) => {
-    const dpi = effectiveDpi(element);
+    const dpi = effectiveDpi(element, design.artboard);
     return dpi !== null && dpi < 300;
   });
   const zoomPercent = Math.round((scale / fit) * 100);
@@ -390,11 +403,17 @@ export function DesignCanvas({
             value={face}
             onChange={(event) => onFace(event.target.value as Face)}
           >
-            <option value="front">Front</option>
-            <option value="back">Back</option>
+            <option value="front">
+              {singleFace ? "Sarım yüzeyi" : "Front"}
+            </option>
+            {!singleFace && <option value="back">Back</option>}
           </select>
         </div>
-        <span>Örnek doypack · 140 × 210 mm</span>
+        <span>
+          {design.artboard
+            ? `Ürün bıçak izi · ${widthMm && heightMm ? `${widthMm} × ${heightMm} mm` : "Ölçü tanımlanmadı"}`
+            : "Örnek doypack · 140 × 210 mm"}
+        </span>
       </div>
       <div
         className={`design-viewport tool-${spacePan ? "pan" : tool}`}
@@ -501,17 +520,28 @@ export function DesignCanvas({
         <div
           className="design-paper"
           style={{
+            width,
+            height,
             transform: `translate(-50%, -50%) translate(${pan.x}px, ${pan.y}px) scale(${scale}) rotate(${rotation}deg)`,
           }}
         >
-          <div className="paper-width" hidden={!showDimensions}>
-            <span>{PRODUCT.widthMm} mm</span>
+          <div
+            className="paper-width"
+            hidden={!showDimensions || !widthMm || !heightMm}
+          >
+            <span>{widthMm} mm</span>
           </div>
-          <div className="paper-height" hidden={!showDimensions}>
-            <span>{PRODUCT.heightMm} mm</span>
+          <div
+            className="paper-height"
+            hidden={!showDimensions || !widthMm || !heightMm}
+          >
+            <span>{heightMm} mm</span>
           </div>
           <Editor
+            key={`${width}x${height}`}
             ref={editor}
+            artboard={design.artboard}
+            templateUrl={templateUrl}
             face={face}
             elements={design.faces[face]}
             background={design.background}
@@ -529,19 +559,28 @@ export function DesignCanvas({
         </div>
       </div>
       <div className="design-footnotes">
-        <span>
-          <i className="print-dot" /> Print area
-        </span>
-        <span>
-          <i className="safe-dot" /> Safe area
-        </span>
+        {design.artboard ? (
+          <span>Ürün SVG bıçak izi · Güvenli alan tanımlanmadı</span>
+        ) : (
+          <>
+            <span>
+              <i className="print-dot" /> Print area
+            </span>
+            <span>
+              <i className="safe-dot" /> Safe area
+            </span>
+          </>
+        )}
         <span className="production-note">
-          Sample template · Not for production
+          {design.artboard
+            ? "Üretim onayı gerekli"
+            : "Sample template · Not for production"}
         </span>
       </div>
       {warnings.length > 0 && (
         <div className="design-dpi-warning" role="status">
-          {warnings.length} image(s) below 300 DPI at the sample print size.
+          {warnings.length} image(s) below 300 DPI at the{" "}
+          {design.artboard ? "template" : "sample print"} size.
         </div>
       )}
       <div

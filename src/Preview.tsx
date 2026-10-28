@@ -15,6 +15,7 @@ import { sceneColors } from "./scene";
 import { createContactShadow } from "./ContactShadow";
 import { captureRenderSnapshot } from "./render/snapshot";
 import { applyPouchFinish } from "./previewFinish";
+import type { PreviewAsset } from "./productModel";
 import type { RenderSnapshot } from "./render/types";
 export type PreviewHandle = {
   png: (scale?: number) => string;
@@ -26,6 +27,7 @@ export type PreviewHandle = {
   ) => RenderSnapshot;
 };
 type SceneState = {
+  external: boolean;
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
@@ -53,8 +55,9 @@ export const Preview = forwardRef<
   {
     textures: Record<"front" | "back", HTMLCanvasElement | null>;
     settings: Presentation;
+    assetFactory?: (renderer: THREE.WebGLRenderer) => PreviewAsset;
   }
->(({ textures, settings }, ref) => {
+>(({ textures, settings, assetFactory }, ref) => {
   const host = useRef<HTMLDivElement>(null),
     state = useRef<SceneState | null>(null);
   const settingsRef = useRef(settings);
@@ -110,8 +113,7 @@ export const Preview = forwardRef<
           s.controls.enableRotate = false;
           s.controls.mouseButtons.LEFT =
             mode === "pan" ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
-          s.controls.touches.ONE =
-            mode === "pan" ? THREE.TOUCH.PAN : null;
+          s.controls.touches.ONE = mode === "pan" ? THREE.TOUCH.PAN : null;
         }
       },
       zoom: (delta) => {
@@ -200,8 +202,11 @@ export const Preview = forwardRef<
     rim.position.set(2, 5, -5);
     scene.add(rim);
     scene.add(key.target, fill.target, rim.target);
-    const { prototype, maps, materials, seal, grain } =
-      createPouchAsset(renderer);
+    const asset = assetFactory
+      ? assetFactory(renderer)
+      : createPouchAsset(renderer);
+    const { prototype, maps, materials, seal } = asset;
+    const external = "external" in asset && asset.external === true;
     // Reuse one derived canvas per face. Print treatments never change the
     // editable artwork canvases or allocate a new GPU texture on each update.
     const printCanvases = maps.map(() => document.createElement("canvas"));
@@ -367,6 +372,7 @@ export const Preview = forwardRef<
     const observer = new ResizeObserver(resize);
     observer.observe(el);
     state.current = {
+      external,
       renderer,
       scene,
       camera,
@@ -487,22 +493,7 @@ export const Preview = forwardRef<
         endProductDrag,
       );
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
-      const geometries = new Set<THREE.BufferGeometry>(),
-        mats = new Set<THREE.Material>();
-      const collect = (o: THREE.Object3D) => {
-        if (o instanceof THREE.Mesh) {
-          geometries.add(o.geometry);
-          (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) =>
-            mats.add(m),
-          );
-        }
-      };
-      scene.traverse(collect);
-      prototype.traverse(collect);
-      geometries.forEach((g) => g.dispose());
-      mats.forEach((m) => m.dispose());
-      maps.forEach((t) => t.dispose());
-      grain.dispose();
+      asset.dispose();
       contactShadow.dispose();
       environmentTarget.dispose();
       state.current?.backgroundMap?.dispose();
@@ -528,7 +519,7 @@ export const Preview = forwardRef<
       model.scale.set(
         p.scale,
         p.scale,
-        p.scale * (0.08 + (settings.inflate ?? 100) * 0.0092),
+        p.scale * (s.external ? 1 : 0.08 + (settings.inflate ?? 100) * 0.0092),
       );
       s.root.add(model);
     }
@@ -548,6 +539,7 @@ export const Preview = forwardRef<
   useEffect(() => {
     const s = state.current;
     if (!s) return;
+    if (s.external) return;
     const depth = 0.08 + (settings.inflate ?? 100) * 0.0092;
     s.root.children.forEach((model) => {
       model.scale.z = model.scale.x * depth;
@@ -581,7 +573,7 @@ export const Preview = forwardRef<
     }
     s.scene.background = null;
     s.renderer.toneMappingExposure = settings.exposure;
-    applyPouchFinish(s.materials, s.seal, settings);
+    if (!s.external) applyPouchFinish(s.materials, s.seal, settings);
     const presets = {
       softbox: [2.25, 0.7, 1.4, 0.6],
       daylight: [2.8, 1.05, 1, 0.55],
@@ -619,9 +611,18 @@ export const Preview = forwardRef<
     (["front", "back"] as const).forEach((face, i) => {
       const source = textures[face];
       const output = s.printCanvases[i];
-      const width = source?.width || 600,
-        height = source?.height || 900;
+      const sourceWidth = source?.width || 600,
+        sourceHeight = source?.height || 900;
+      const ratio = Math.min(
+        1,
+        (s.mobile ? 1024 : 1536) / Math.max(sourceWidth, sourceHeight),
+      );
+      const width = Math.max(1, Math.round(sourceWidth * ratio)),
+        height = Math.max(1, Math.round(sourceHeight * ratio));
       if (output.width !== width || output.height !== height) {
+        // WebGL2 texture storage has immutable dimensions. Reallocate before
+        // switching from the sample portrait to a product's landscape UV map.
+        s.maps[i].dispose();
         output.width = width;
         output.height = height;
       }
@@ -638,7 +639,7 @@ export const Preview = forwardRef<
       s.maps[i].needsUpdate = true;
     });
     const canvas = s.printCanvases[0];
-    if (canvas) {
+    if (canvas && !s.external) {
       const rgb = canvas.getContext("2d")?.getImageData(0, 0, 1, 1).data;
       if (rgb) {
         const substrate = settings.substrate || "white";
@@ -665,7 +666,12 @@ export const Preview = forwardRef<
     <div
       className="preview-render"
       ref={host}
-      aria-label="Döndürülebilen 3D doypack önizlemesi"
+      aria-label={
+        assetFactory
+          ? "Ürünün 3B model önizlemesi"
+          : "Döndürülebilen 3D doypack önizlemesi"
+      }
+      data-model-source={assetFactory ? "product-glb" : "sample"}
       data-layout={settings.layout || "single"}
       data-finishing={
         settings.finishing ||

@@ -45,7 +45,11 @@ export function productDraftKey(config, id) {
 /** Only direct HTTPS links from the merchant configuration may be opened. */
 export function manufacturerDielineUrl(value) {
   try {
-    const url = new URL(value);
+    const url = new URL(
+      typeof value === "string" && value.startsWith("//")
+        ? `https:${value}`
+        : value,
+    );
     return url.protocol === "https:" && !url.username && !url.password
       ? url.href
       : null;

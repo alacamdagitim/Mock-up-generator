@@ -7,7 +7,7 @@
 Mevcut yayın: `https://mock-up-generator-y265.vercel.app`.
 `shopify/custom-liquid/online-design-vercel.liquid` dosyasının tamamını ürün şablonundaki **Özel Liquid / Custom Liquid** bloğuna yapıştırıp kaydedin ve ürün sayfasını yenileyin. Bu yöntemde editör dosyaları Vercel'den yüklenir. Ürün JSON'u Liquid'den, tıklama anındaki seçili varyant ürün formundan alınır. Editör aynı Shopify belgesinde açıldığı için sepet oturumu korunur. Aşağıdaki tema-assets yükleme adımları bu yöntem için gerekli değildir.
 
-Bu dağıtımda `/api/health` henüz 404 döndürüyor: **Save cihaz kaydıdır; tasarımla sepete ekleme kapalı kalır.** Kalıcı kayıt API'si ayrıca kurulmalıdır. GLB meta alanının otomatik yüklenmesi bu düğme koduyla eklenmez.
+Bu dağıtımda `/api/health` henüz 404 döndürüyor: **Save cihaz kaydıdır; tasarımla sepete ekleme kapalı kalır.** Kalıcı kayıt API'si ayrıca kurulmalıdır. GLB ve SVG meta alanları güncel editörde yüklenir; aşağıdaki ürün dosyası sözleşmesine bakın.
 
 Vercel adresi değişirse dosyadaki launcher, editor ve API adreslerini birlikte güncelleyin. JS/font dosyalarında mağazadan yüklemeye izin veren CORS başlıkları bulunmalı; yayın kullanıcı girişi gerektirmeden açılmalıdır. Mevcut yayındaki iki JS girişi 200 ve `Access-Control-Allow-Origin: *` döndürüyor.
 
@@ -101,7 +101,7 @@ document.addEventListener('alacam:close', (event) => {
 - Düğme için Pacdora SDK/API anahtarı veya ücretli SDK gerekmez. Tarayıcıya Admin API, depolama sırrı veya gizli anahtar yazılmaz.
 - `api_base` herkese erişilebilir API adresidir. Kalıcı depolama ve uçlar [README](../README.md#sunucu-ve-ortam-değişkenleri) içinde açıklanır. Sunucu yapılandırılmadan yerel düzenleme, JSON, PNG ve render kullanılabilir; **Save yalnız cihaz kaydıdır** ve tasarımla sepete ekleme için sunucu gerekir.
 - Ürünün adı, görseli, kimliği ve varyantları Liquid'den aktarılır. Ürün meta alanı `custom.alacam_dieline` (Dosya) üreticinin bıçak izi bağlantısını geçirir; dosyayı otomatik UV veya baskı şablonuna dönüştürmez.
-- Canlı 3B hâlâ projedeki özgün yaklaşık doypack modelidir. Ürüne herhangi bir GLB yüklemek bu sürümde modeli otomatik değiştirmez. Genel GLB yükleme/UV eşleştirme henüz bağlı değildir. Gerçek ölçü ve üretici gereksinimleri olmadan baskıya hazır dosya iddiası yoktur.
+- GLB alanı doluysa ürüne ait model yüklenir; boşsa özgün yaklaşık doypack örneği görünür. Yükleme hatasında doypack’e sessizce dönülmez. Tanınmayan baskı yüzlerinde tasarım eşlemesi gerektiği belirtilir. Gerçek ölçü ve üretici gereksinimleri olmadan baskıya hazır dosya iddiası yoktur.
 - Bu kurulum için `.env` tarayıcıya yüklenmez. Sunucunun `DESIGN_STORAGE_DIR`, `PUBLIC_BASE_URL`, `ALLOWED_ORIGINS` ve gerekirse `PORT` ayarları sunucuda tutulur.
 
 ## Canlı mağaza kontrolü
@@ -124,13 +124,19 @@ Tüm Liquid girişleri bu iki **ürün** meta alanını okur:
 
 | Meta alan | Editör ayarı | Davranış |
 | --- | --- | --- |
-| `custom.3b_glb_dosyasi` | `productModelUrl` | Dosya bağlantısı ürün ayarlarında açılır. |
-| `custom.bicak_i_zi` | `productDielineUrl` | Download dieline düğmesi üretici dosyasını açar. |
+| `custom.3b_glb_dosyasi` | `productModelUrl` | Model canlı 3B sahneye yüklenir; dosya bağlantısı ürün ayarlarında da açılır. |
+| `custom.bicak_i_zi` | `productDielineUrl` | SVG, 2D tasarım alanına kılavuz olarak yüklenir; Download dieline orijinal dosyayı açar. |
 
 Dosya alanları tek dosya referansı olmalıdır; boş alan boş bağlantı üretir. GLB için `.value.url`, kaynak listesi bulunan bir model nesnesi dönerse GLB biçimindeki `.sources` kaydı okunur. Bıçak izinde dosya URL'si veya görselin `src` değeri okunur. CDN `?v=` sürümleri korunur; `//` adresleri HTTPS'e çevrilir. Eski `custom.alacam_dieline` alanı artık okunmaz.
 
 Shopify'daki mevcut Özel Liquid bloğunu `shopify/custom-liquid/online-design-vercel.liquid` dosyasının güncel içeriğiyle değiştirin. GitHub/Vercel güncellemesi tema içindeki yapıştırılmış Liquid kodunu kendiliğinden değiştirmez.
 
-Bu bağlantılar genel GLB yükleyicisi veya otomatik kesim şablonu içe aktarımı değildir. Canlı 3B hâlâ örnek doypack'tir; GLB bağlıysa arayüzde UV eşlemesinin yapılmadığı açıkça belirtilir. İlk gerçek ürünün GLB dosyası, baskı yüzleri, UV'leri ve bıçak izinin ölçüleri incelendikten sonra ürün adaptörü hazırlanmalıdır. Dosya adından baskı ölçüsü çıkarılmaz.
+GLB tek dosyalı, gömülü geometrili/dokulu GLB 2.0 olmalı; en fazla 40 MB, 1 milyon üçgen, 128 malzeme, 2000 düğüm ve 4096 px kaynak dokusu kabul edilir. Meshopt sıkıştırması desteklenir; Draco/KTX2 için henüz decoder kurulmaz. Model yalnız görüntüleme için normalize edilir, fiziksel ürün ölçüsü buradan çıkarılmaz. Orijinal malzemeler korunur; malzemesiz GLB için beyaz ambalaj malzemesi kullanılır. İskeletli animasyon desteklenmez. Mobil canlı baskı dokusu 1024 px ile sınırlandırılır.
+
+Baskı eşlemesi için UV'li parçaları `print_front` / `print_back`, malzemeleri `artwork_front` / `artwork_back` adlandırın veya mesh extras içinde `printableFace: "front" | "back"` tanımlayın. glTF standardında doku `flipY=false`; extras `textureFlipY` açıkça verilirse o yön kullanılır. Ürünün incelenen üç parçalı bardak modelinde `盖子` (kapak), `主体` (gövde), `贴图` (baskı sarımı) sözleşmesi de tanınır; tasarım tek sarım yüzüne uygulanır. Başka modelin baskı parçası bilinmiyorsa model özgün haliyle gösterilir ve eşleme uyarısı çıkar. Otomatik ön/arka tahmini yapılmaz. Doypack'e özgü Inflate kontrolü dış GLB'de uygulanmaz. Config kaplama kontrolleri dış GLB için devre dışıdır; kaynak malzemeler korunur, modelin kaplama eşlemesi ayrıca tanımlanmalıdır.
+
+SVG en fazla 1 MB olabilir; script, harici görsel ve bağlantılar temizlenir. `viewBox` en/boy oranı tasarım alanına taşınır; `width` / `height` içindeki mm, cm, in veya pt değerleri varsa ölçü ve DPI için kullanılır. Bunlar yoksa fiziksel ölçü tahmin edilmez. Güvenli alan için SVG sınırı yeterli kabul edilmez. Ölçü/viewBox oranı uyuşmuyorsa hata gösterilir. Şablon çizgileri tasarım PNG'sine ve 3B dokuya basılmaz. JSON taslağı `artboard` alanında koordinat ölçülerini ve sürümlü SVG adresini saklar. Eski dikey taslak yeni alana orantılı yerleştirilir; dolu eski taslağın cihaz yedeği `:before-template` anahtarında tutulur.
+
+PDF/AI/DXF dosyası orijinal bağlantıdan açılabilir; 2D alanına otomatik yüklenmez. Keyfi kesim şekline göre kırpma, taşma ve güvenli alan, CMYK/ICC ve üretim onayı ayrıca tanımlanmalıdır. Mevcut SVG yüklemesi tüm viewBox sınırını dikdörtgen önizleme alanı olarak kullanır; baskıya hazır çıktı anlamına gelmez.
 
 Kontrol: Bir ürüne iki dosya atayın; gerçek ürün sayfasını yenileyip Tasarla'ya basın. Ürün ayarlarındaki GLB bağlantısının ve Download dieline düğmesinin aynı ürüne ait dosyaları açtığını doğrulayın. Farklı üründe dosya bağlamadıysanız önceki ürünün bağlantısı görünmemelidir.

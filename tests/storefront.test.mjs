@@ -52,6 +52,10 @@ test("switching products isolates drafts and retains the original section draft"
 
 test("manufacturer files accept HTTPS but reject executable URLs and embedded credentials", () => {
   assert.equal(
+    manufacturerDielineUrl("//cdn.shopify.com/files/cut.svg?v=2"),
+    "https://cdn.shopify.com/files/cut.svg?v=2",
+  );
+  assert.equal(
     manufacturerDielineUrl("https://cdn.shopify.com/files/template.pdf?v=1"),
     "https://cdn.shopify.com/files/template.pdf?v=1",
   );

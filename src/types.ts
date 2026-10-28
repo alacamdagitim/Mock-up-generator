@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type { designSchema, elementSchema } from "../shared/schema.mjs";
 export type Design = z.infer<typeof designSchema>;
 export type Element = z.infer<typeof elementSchema>;
+export type ArtboardSpec = NonNullable<Design["artboard"]>;
 export type Face = "front" | "back";
 export type SavedDesign = { id: string; designUrl: string; previewUrl: string };
 export type EditorConfig = {

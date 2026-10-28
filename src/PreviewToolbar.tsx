@@ -5,12 +5,14 @@ import type { PreviewHandle } from "./Preview";
 
 export function PreviewToolbar({
   preview,
+  allowInflate = true,
   inflate,
   onInflate,
   interaction,
   onInteraction,
 }: {
   preview: RefObject<PreviewHandle>;
+  allowInflate?: boolean;
   inflate: number;
   onInflate: (value: number) => void;
   interaction: "rotate" | "pan";
@@ -105,20 +107,22 @@ export function PreviewToolbar({
         <Minus size={18} />
       </button>
       <i className="preview-toolbar-divider" aria-hidden="true" />
-      <label className="preview-inflate">
-        <span>Inflate</span>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          step="1"
-          aria-label="Paket dolgunluğu"
-          aria-valuetext={`${inflate}%`}
-          value={inflate}
-          onChange={(event) => onInflate(Number(event.target.value))}
-        />
-        <output>{inflate}%</output>
-      </label>
+      {allowInflate && (
+        <label className="preview-inflate">
+          <span>Inflate</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            aria-label="Paket dolgunluğu"
+            aria-valuetext={`${inflate}%`}
+            value={inflate}
+            onChange={(event) => onInflate(Number(event.target.value))}
+          />
+          <output>{inflate}%</output>
+        </label>
+      )}
       <i className="preview-toolbar-divider" aria-hidden="true" />
       <button
         type="button"

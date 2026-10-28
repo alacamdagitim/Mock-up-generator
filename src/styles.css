@@ -2226,3 +2226,51 @@ strong {
     bottom: 158px;
   }
 }
+
+.product-model-state {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+  color: #191919;
+}
+.product-model-state p {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.product-model-state button,
+.product-model-state a {
+  display: inline-block;
+  padding: 9px 12px;
+  margin: 4px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  color: #191919;
+  font-size: 13px;
+}
+.product-model-note {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  right: 12px;
+  pointer-events: none;
+  background: #ffffffeb;
+  color: #191919;
+  padding: 7px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  z-index: 2;
+}
+
+.product-template-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 3;
+  pointer-events: none;
+}

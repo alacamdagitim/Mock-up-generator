@@ -206,8 +206,15 @@ export function captureRenderSnapshot(
       object.material = Array.isArray(object.material)
         ? object.material.map(cloneMaterial)
         : cloneMaterial(object.material);
-      if (object.name === "print_front" || object.name === "print_back") {
-        const face = object.name === "print_front" ? "front" : "back";
+      const mappedFace =
+        object.userData.printableFace ||
+        (object.name === "print_front"
+          ? "front"
+          : object.name === "print_back"
+            ? "back"
+            : undefined);
+      if (mappedFace === "front" || mappedFace === "back") {
+        const face = mappedFace;
         for (const material of Array.isArray(object.material)
           ? object.material
           : [object.material])

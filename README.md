@@ -135,7 +135,7 @@ Sunucu ilk sürümde kalıcı dosya sistemi kullanır. Geçici container diski u
 
 Özgün yaklaşık GLB ve SVG paketi `public/product-assets/doypack-v1-r1/` altındadır. `npm run assets:generate` aynı kaynak geometriden yeniden üretir. Açıklama: `docs/MODEL-VE-SABLON-DOSYALARI.md`.
 
-- Canlı editör özgün parametrik modeli kullanır. GLB meta alanından genel model yükleme henüz uygulanmadı. SVG/PDF bıçak izini yüklemek otomatik UV eşlemesi sağlamaz.
+- Canlı editör `custom.3b_glb_dosyasi` doluysa ürün GLB’sini, `custom.bicak_i_zi` SVG ise ürün şablonunu yükler. Baskı yüzleri yukarıdaki ad/UV sözleşmesiyle eşlenir; bilinmeyen yüzlerde eşleme uyarısı görünür. Meta alanları boşken özgün örnek model kullanılır. PDF, üretim güvenli alanı ve keyfi kesim kırpması otomatik hazırlanmaz. Ayrıntılar: `docs/SHOPIFY-BUTON.md`.
 - 140 × 210 mm örnektir. Üreticinin gerçek kesim/katlama/kaynak/körük ölçüleri, taşma ve güvenli alanı, baskı gereksinimleri ve renk profili sağlanmadan **baskıya hazır** çıktı yoktur.
 - Üretici şablonu bağlantısı yoksa **Şablonu indir** yalnızca açıkça etiketli örnek SVG kılavuzu verir. Gerçek kesim makinesi dosyası değildir. `productionReady=false` korunur.
 - İndirme menüsündeki PNG hızlı ekran önizlemesidir. **Render al** ile indirilen PNG ise ışık yolları hesaplanmış stüdyo sunumudur. İkisi de üretim dosyası değildir. JSON düzenlenebilir tasarımdır; üretim PDF'si değildir. `src/production.ts` gelecekteki ölçekli üretim çıktısı için sözleşmedir, exporter kayıtlı değildir.
