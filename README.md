@@ -7,6 +7,8 @@ React + TypeScript, Fabric.js ve Three.js ile çalışır. İlk ürün özgün, 
 
 Ürün için `custom.mockup_sahneleri` JSON meta alanı tanımlandığında ana sunum **hazır mockup** olur: bıçak izi üzerinde düzenleme → anlık mockup → kaynak piksel boyutunda PNG/JPG. Ayrı stüdyo render işlemi gerekmez. Özgün örneği `http://127.0.0.1:5184/mockup-demo.html` adresinde deneyin. Bu demo fotoğraf veya üretici modeli değildir ve mağaza ürünlerine otomatik atanmaz. Shopify kurulumu, sahne hazırlığı ve örnek JSON: [Hazır mockup sahneleri](docs/SHOPIFY-MOCKUP-SAHNELERI.md).
 
+JPG/PNG kaynaklarından özel sahne hazırlama, sayısal UV kalibrasyonu ve yalnız bu bilgisayarda çalışan inceleme aracı: [Fotoğraftan mockup hazırlama](docs/FOTOGRAFTAN-MOCKUP-HAZIRLAMA.md).
+
 ## Kurulum
 
 Node 20.11+ gerekir. 2D ve hazır mockup Canvas ile çalışır; 3D görünüm için WebGL destekli tarayıcı gerekir.
