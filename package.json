@@ -34,7 +34,9 @@
     "test:private-mockup:fixture": "node tests/private-mockup-fixture.browser.mjs",
     "test:mockup": "node tests/mockup-engine.browser.mjs && node tests/mockup-preview-component.browser.mjs && node tests/mockup-workflow.browser.mjs && node tests/hand-cup-mockup.browser.mjs && node tests/shopify-relative-mockup.browser.mjs",
     "test:tin-can": "node tests/tin-can-prepared.browser.mjs",
-    "test:tin-can:public": "node tests/tin-can-public.browser.mjs"
+    "test:tin-can:public": "node tests/tin-can-public.browser.mjs",
+    "psd:worker": "node --env-file=worker/.env worker/server.mjs",
+    "test:psd": "node tests/psd-import.browser.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",

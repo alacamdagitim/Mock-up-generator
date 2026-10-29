@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Alaçam · Ürün mockupları</title>
+  </head>
+  <body style="margin: 0">
+    <div id="psd-product-demo"></div>
+    <script type="module">
+      import { mountEditor } from "/src/main.tsx";
+      const q = new URLSearchParams(location.search);
+      const product = q.get("product") || "demo";
+      mountEditor(document.getElementById("psd-product-demo"), {
+        config: {
+          productId: product,
+          productTitle: "Ürün mockupları",
+          mockupApiBase: q.get("api") || "/mockup-worker",
+          storageKey: `alacam:psd-product:${product}`,
+        },
+      });
+    </script>
+  </body>
+</html>

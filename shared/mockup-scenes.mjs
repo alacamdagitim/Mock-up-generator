@@ -147,6 +147,15 @@ export const mockupSceneSchema = z
     width: z.number().int().min(1).max(8192),
     height: z.number().int().min(1).max(8192),
     baseImageUrl: rasterUrl,
+    backgroundControl: z
+      .object({
+        label: z.string().min(1).max(60),
+        color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+        blackUrl: rasterUrl,
+        transmissionUrl: rasterUrl,
+      })
+      .strict()
+      .optional(),
     thumbnailUrl: rasterUrl.optional(),
     // Explicitly identifies an unprinted resized photograph for Layout cards.
     // Legacy thumbnailUrl may contain sample artwork and is not used here.

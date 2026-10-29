@@ -152,3 +152,22 @@
     font-size: 17px;
   }
 }
+.mockup-background-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid #e8e8e8;
+  font-size: 13px;
+  color: #111;
+}
+.mockup-background-control input {
+  width: 40px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}

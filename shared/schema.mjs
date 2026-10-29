@@ -101,6 +101,10 @@ export const presentationSchema = z
       .max(100)
       .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/)
       .optional(),
+    mockupBackgrounds: z
+      .record(z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/), color)
+      .refine((value) => Object.keys(value).length <= 64)
+      .optional(),
     lighting: z.enum(["softbox", "daylight", "dramatic"]).optional(),
     quality: z.enum(["balanced", "detail"]).optional(),
   })

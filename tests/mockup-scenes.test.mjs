@@ -231,3 +231,27 @@ test("prepared scene artwork dimensions and named surfaces are optional, bounded
     assert.equal(mockupSceneSchema.safeParse(value).success, false);
   }
 });
+
+test("PSD background controls accept only bounded raster passes and valid default colors", () => {
+  const input = scene();
+  input.backgroundControl = {
+    label: "Arka plan",
+    color: "#aaccff",
+    blackUrl: "/bg-black.png",
+    transmissionUrl: "/bg-transmission.png",
+  };
+  assert.equal(mockupSceneSchema.safeParse(input).success, true);
+  for (const extra of [
+    { color: "red" },
+    { blackUrl: "/source.psd" },
+    { transmissionUrl: "javascript:alert(1)" },
+    { script: "ignored" },
+  ])
+    assert.equal(
+      mockupSceneSchema.safeParse({
+        ...input,
+        backgroundControl: { ...input.backgroundControl, ...extra },
+      }).success,
+      false,
+    );
+});

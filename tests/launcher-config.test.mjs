@@ -124,3 +124,21 @@ test("launcher accepts the public versioned mockup catalog and rejects malformed
       /mockup sahneleri geçersiz/,
     );
 });
+
+test("optional PSD catalog service survives the launcher without exposing admin credentials", () => {
+  assert.equal(
+    validateLaunchConfig({
+      ...config,
+      mockupApiBase: "https://mockup.example.com/",
+    }).mockupApiBase,
+    "https://mockup.example.com",
+  );
+  assert.equal(validateLaunchConfig(config).mockupApiBase, undefined);
+  for (const mockupApiBase of [
+    "javascript:alert(1)",
+    "https://user:secret@example.com",
+    "https://example.com?token=secret",
+    "http://external.example.com",
+  ])
+    assert.throws(() => validateLaunchConfig({ ...config, mockupApiBase }));
+});

@@ -36,6 +36,7 @@ export type EditorConfig = {
   productDielineUrl?: string;
   productMockupScenes?: MockupScenes;
   productMockupImages?: MockupImage[];
+  mockupApiBase?: string;
   products?: StoreProduct[];
   variants?: { id: number; title: string; available: boolean }[];
   initialVariantId?: string | number;

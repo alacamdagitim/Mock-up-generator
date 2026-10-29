@@ -164,6 +164,7 @@ export function validateLaunchConfig(
     productMockupScenes: parseMockupScenes(input.productMockupScenes),
     productMockupImages: parseMockupImages(input.productMockupImages),
     apiBase: publicUrl(input.apiBase, "Tasarım API adresi"),
+    mockupApiBase: publicUrl(input.mockupApiBase, "PSD katalog servisi"),
     variants,
     initialVariantId:
       input.initialVariantId === undefined

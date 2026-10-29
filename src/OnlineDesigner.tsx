@@ -785,28 +785,51 @@ export default function OnlineDesigner({
             </button>
           </div>
           {tool === "layout" && (
-            <LayoutPanel
-              getCovers={getLayoutCovers}
-              revision={layoutRevision}
-              mockupScenes={mockupScenes}
-              mockupCards={resolvedMockups.cards}
-              hasMockupWorkflow={hasMockups}
-              mockupSceneId={selectedScene?.id}
-              activeMode={photoActive ? "mockup" : "3d"}
-              onMockupSelect={(id) => {
-                d.setPresentation({ mockupSceneId: id });
-                setMode("mockup");
-                if (matchMedia("(max-width:700px)").matches) setPanel(false);
-              }}
-              layout={d.settings.layout || "single"}
-              spacing={d.settings.spacing || 1}
-              onSelect={(layout) => {
-                d.setPresentation({ layout });
-                setMode("3d");
-                if (matchMedia("(max-width:700px)").matches) setPanel(false);
-              }}
-              onSpacing={(spacing) => d.setPresentation({ spacing })}
-            />
+            <>
+              <LayoutPanel
+                getCovers={getLayoutCovers}
+                revision={layoutRevision}
+                mockupScenes={mockupScenes}
+                mockupCards={resolvedMockups.cards}
+                hasMockupWorkflow={hasMockups}
+                mockupSceneId={selectedScene?.id}
+                activeMode={photoActive ? "mockup" : "3d"}
+                onMockupSelect={(id) => {
+                  d.setPresentation({ mockupSceneId: id });
+                  setMode("mockup");
+                  if (matchMedia("(max-width:700px)").matches) setPanel(false);
+                }}
+                layout={d.settings.layout || "single"}
+                spacing={d.settings.spacing || 1}
+                onSelect={(layout) => {
+                  d.setPresentation({ layout });
+                  setMode("3d");
+                  if (matchMedia("(max-width:700px)").matches) setPanel(false);
+                }}
+                onSpacing={(spacing) => d.setPresentation({ spacing })}
+              />
+              {selectedScene?.backgroundControl && (
+                <label className="mockup-background-control">
+                  {selectedScene.backgroundControl.label}
+                  <input
+                    type="color"
+                    aria-label="Mockup arka plan rengi"
+                    value={
+                      d.settings.mockupBackgrounds?.[selectedScene.id] ||
+                      selectedScene.backgroundControl.color
+                    }
+                    onChange={(e) =>
+                      d.setPresentation({
+                        mockupBackgrounds: {
+                          ...d.settings.mockupBackgrounds,
+                          [selectedScene.id]: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </label>
+              )}
+            </>
           )}
           {tool === "presets" && (
             <>
@@ -1200,6 +1223,9 @@ export default function OnlineDesigner({
               <MockupPreview
                 ref={mockupPreview}
                 scene={selectedScene}
+                backgroundColor={
+                  d.settings.mockupBackgrounds?.[selectedScene.id]
+                }
                 textures={d.textures}
                 artworkProvider={artworkProvider}
                 exportArtworkProvider={exportArtworkProvider}

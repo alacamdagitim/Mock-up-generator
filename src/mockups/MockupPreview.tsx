@@ -18,6 +18,7 @@ import type {
 
 export type MockupPreviewProps = {
   scene: MockupScene;
+  backgroundColor?: string;
   textures: MockupTextures;
   artworkProvider?: ArtworkProvider;
   exportArtworkProvider?: ArtworkProvider;
@@ -31,6 +32,7 @@ export const MockupPreview = forwardRef<
   (
     {
       scene,
+      backgroundColor,
       textures,
       artworkProvider,
       exportArtworkProvider,
@@ -46,6 +48,7 @@ export const MockupPreview = forwardRef<
     const canvasHost = useRef<HTMLDivElement>(null);
     const loadedRef = useRef<LoadedMockup | null>(null);
     const propsRef = useRef({
+      backgroundColor,
       textures,
       artworkProvider,
       exportArtworkProvider,
@@ -53,6 +56,7 @@ export const MockupPreview = forwardRef<
       onStatus,
     });
     propsRef.current = {
+      backgroundColor,
       textures,
       artworkProvider,
       exportArtworkProvider,
@@ -131,6 +135,7 @@ export const MockupPreview = forwardRef<
           maxEdge: mobile ? 960 : 1440,
           signal: controller.signal,
           artworkProvider,
+          backgroundColor,
         })
           .then((value) => {
             output = value;
@@ -179,7 +184,7 @@ export const MockupPreview = forwardRef<
         controller.abort();
         if (output && !output.isConnected) output.width = output.height = 1;
       };
-    }, [loaded, textures, artworkProvider]);
+    }, [loaded, textures, artworkProvider, backgroundColor]);
     useImperativeHandle(
       ref,
       () => ({
@@ -237,6 +242,7 @@ export const MockupPreview = forwardRef<
           frozen.set(key, copy);
         }
         output = await composeMockup(current, currentTextures, {
+          backgroundColor: currentProps.backgroundColor,
           signal: controller.signal,
           artworkProvider: (face, mode) =>
             frozen.get(`${face}:${mode}`) || null,

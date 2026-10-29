@@ -47,6 +47,18 @@ export async function loadMockupScene(
   try {
     const base = await assets.image(scene.baseImageUrl);
     assertDimensions(base, scene, "Taban fotoğrafı");
+    if (scene.backgroundControl) {
+      assertDimensions(
+        await assets.image(scene.backgroundControl.blackUrl),
+        scene,
+        "Arka plan tabanı",
+      );
+      assertDimensions(
+        await assets.image(scene.backgroundControl.transmissionUrl),
+        scene,
+        "Arka plan renk eşlemesi",
+      );
+    }
     // Sequential decoding limits peak memory and stops immediately on bad passes.
     for (const surface of scene.surfaces) {
       if (surface.mapping.type === "uv-rg16le")
@@ -184,6 +196,7 @@ export async function composeMockup(
     maxEdge?: number;
     signal?: AbortSignal;
     artworkProvider?: ArtworkProvider;
+    backgroundColor?: string;
   } = {},
 ) {
   const { scene, assets } = loaded;
@@ -206,6 +219,31 @@ export async function composeMockup(
   ctx.imageSmoothingQuality = "high";
   const base = await assets.image(scene.baseImageUrl);
   ctx.drawImage(base, 0, 0, width, height);
+  if (scene.backgroundControl && options.backgroundColor) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(options.backgroundColor))
+      throw new Error("Arka plan rengi geçersiz.");
+    const black = imagePixels(
+      await assets.image(scene.backgroundControl.blackUrl),
+      width,
+      height,
+    );
+    const transmission = imagePixels(
+      await assets.image(scene.backgroundControl.transmissionUrl),
+      width,
+      height,
+    );
+    const mapped = ctx.createImageData(width, height);
+    const color = [1, 3, 5].map((i) =>
+      parseInt(options.backgroundColor!.slice(i, i + 2), 16),
+    );
+    for (let i = 0; i < mapped.data.length; i += 4) {
+      for (let c = 0; c < 3; c++)
+        mapped.data[i + c] =
+          black[i + c] + (transmission[i + c] * color[c]) / 255;
+      mapped.data[i + 3] = black[i + 3];
+    }
+    ctx.putImageData(mapped, 0, 0);
+  }
   const artworkCache = new Map<string, Promise<HTMLCanvasElement | null>>();
   try {
     for (const surface of scene.surfaces) {

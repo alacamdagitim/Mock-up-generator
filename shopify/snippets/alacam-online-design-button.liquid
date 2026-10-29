@@ -25,6 +25,7 @@
     "productTitle": {{ alacam_button_product.title | json }},
     "productModelUrl": {{ alacam_model_url | json }},
     "productDielineUrl": {{ alacam_dieline_url | json }},
+    "mockupApiBase": {{ mockup_api_base | default: shop.metafields.custom.mockup_servis_adresi.value | default: '' | json }},
     "productMockupScenes": {% if alacam_button_product.metafields.custom['mockup_sahneleri'].value != blank %}{{ alacam_button_product.metafields.custom['mockup_sahneleri'].value | json }}{% else %}null{% endif %},
     "productMockupImages": {% if alacam_button_product.metafields.custom['mockup_gorselleri'].value != blank %}[
       {% assign alacam_mockup_separator = '' %}

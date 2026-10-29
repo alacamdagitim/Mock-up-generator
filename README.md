@@ -214,3 +214,7 @@ Matcha bardak dosyası için sabit açılı, tasarım değiştirilebilen yerel b
 ## Teneke kutu mockupı
 
 6000 × 4500 kaynak PSD’den gövde ve kapağı ayrı değiştirilebilen bir sahne hazırlandı. Gerçek maskeler, gölge ve yansıma katmanları korunur; 4K tarayıcı çıktısı ve ayrı 6K örnek dosyası vardır. Kurulum ve testler: [Teneke kutu hazırlığı](docs/TENEKE-KUTU-MOCKUP.md). Kaynak PSD ve hazırlık önbelleği Git dışında kalır; hazırlanmış web varlıkları Vercel’de sunulur. Ürün meta alanına yapıştırılacak dosya: [tin-can-r1.json](shopify/metafields/tin-can-r1.json).
+
+## PSD'leri toplu yükleme
+
+`/mockup-admin.html` panelinden ürüne bir seferde 10 PSD yüklenebilir. Ayrı Node/Python worker, desteklenen katmanları ve eğriliği doğrulayıp kataloğu otomatik oluşturur; ürün başına JSON yazılmaz. Uygun PSD'lerde arka plan rengi düzenlenebilir. Uzak worker ve kalıcı disk ayrıca yapılandırılmalıdır; Vercel ön yüzü tek başına PSD işlemez. [Kurulum, Shopify bağlantısı ve destek sınırları](docs/OTOMATIK-PSD-IMPORT.md).

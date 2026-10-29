@@ -1,7 +1,6 @@
 import { createRoot } from "react-dom/client";
-import { useEffect } from "react";
 import type { EditorConfig } from "./types";
-import App from "./OnlineDesigner";
+import { RemoteMockupEditor } from "./RemoteMockupEditor";
 import { storefrontProducts } from "../shared/storefront.mjs";
 import css from "./styles.css?inline";
 import configureCss from "./configure.css?inline";
@@ -51,12 +50,6 @@ type MountOptions = {
   fullscreen?: boolean;
 };
 const mounts = new WeakMap<HTMLElement, () => void>();
-function Ready({ notify }: { notify?: () => void }) {
-  useEffect(() => {
-    notify?.();
-  }, [notify]);
-  return null;
-}
 export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
   const existing = mounts.get(host);
   if (existing) return existing;
@@ -106,8 +99,11 @@ export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
   host.addEventListener("alacam:unmount", dispose, { once: true });
   reactRoot.render(
     <>
-      <App config={config} onClose={options.onClose} />
-      <Ready notify={options.onReady} />
+      <RemoteMockupEditor
+        config={config}
+        onClose={options.onClose}
+        onReady={options.onReady}
+      />
     </>,
   );
   return dispose;
