@@ -61,6 +61,51 @@ test("launcher rejects executable and credential-bearing URLs in both file field
   }
 });
 
+test("legacy Shopify file references use the storefront CDN root instead of the product directory", () => {
+  const result = validateLaunchConfig(
+    {
+      ...config,
+      productModelUrl: "files/cup.glb?v=7",
+      productDielineUrl: "files/cut.svg?v=8",
+      productMockupImages: [
+        {
+          id: "46582867427634",
+          title: "Mockup 1",
+          imageUrl: "files/base.png",
+          thumbnailUrl:
+            "https://alacamdagitim.com/cdn/shop/files/base.png?v=1793311234&width=480",
+        },
+      ],
+    },
+    "https://alacamdagitim.com",
+  );
+  assert.equal(
+    result.productModelUrl,
+    "https://alacamdagitim.com/cdn/shop/files/cup.glb?v=7",
+  );
+  assert.equal(
+    result.productDielineUrl,
+    "https://alacamdagitim.com/cdn/shop/files/cut.svg?v=8",
+  );
+  assert.equal(
+    result.productMockupImages[0].imageUrl,
+    "/cdn/shop/files/base.png",
+  );
+  for (const value of [
+    "files/../../cut.svg",
+    "files/\\evil.com/cut.svg",
+    "../files/cut.svg",
+  ])
+    assert.throws(
+      () =>
+        validateLaunchConfig(
+          { ...config, productDielineUrl: value },
+          "https://alacamdagitim.com",
+        ),
+      /güvenli bir dosya/,
+    );
+});
+
 test("launcher accepts the public versioned mockup catalog and rejects malformed scene metadata", () => {
   const productMockupScenes = { schemaVersion: 1, scenes: [] };
   assert.deepEqual(

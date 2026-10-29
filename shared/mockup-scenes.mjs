@@ -5,6 +5,21 @@ export const MAX_MOCKUP_SCENES = 64;
 export const MAX_MOCKUP_IMAGES = MAX_MOCKUP_SCENES;
 export const MAX_MOCKUP_PIXELS = 16_777_216;
 
+/** Shopify's image.src may be "files/name.png", not a browser-ready URL. */
+export function normalizeShopifyFileReference(value) {
+  if (typeof value !== "string" || !value.startsWith("files/")) return value;
+  const path = `/cdn/shop/${value}`;
+  try {
+    const url = new URL(path, "https://alacam.invalid");
+    // Do not interpret traversal or another relative path as a Shopify file.
+    return !value.includes("\\") && url.pathname.startsWith("/cdn/shop/files/")
+      ? path
+      : value;
+  } catch {
+    return value;
+  }
+}
+
 /** Browser scenes must contain merchant-authorized public web assets only. */
 function safeAssetUrl(value) {
   if (
@@ -31,10 +46,13 @@ function safeAssetUrl(value) {
     return false;
   }
 }
-const assetUrl = z.string().min(1).max(2048).refine(safeAssetUrl, {
-  message:
-    "Mockup dosyaları HTTPS veya / ile başlayan güvenli adresler olmalı.",
-});
+const assetUrl = z.preprocess(
+  normalizeShopifyFileReference,
+  z.string().min(1).max(2048).refine(safeAssetUrl, {
+    message:
+      "Mockup dosyaları HTTPS veya / ile başlayan güvenli adresler olmalı.",
+  }),
+);
 const rasterUrl = assetUrl.refine((value) => {
   const path = new URL(value, "https://alacam.invalid").pathname;
   return /\.(png|jpe?g|webp)$/i.test(path);

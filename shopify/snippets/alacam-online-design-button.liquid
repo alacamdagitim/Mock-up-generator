@@ -30,7 +30,9 @@
       {% assign alacam_mockup_separator = '' %}
       {% assign alacam_mockup_image_files = alacam_button_product.metafields.custom['mockup_gorselleri'].value | where: 'media_type', 'image' %}
       {% for alacam_mockup_file in alacam_mockup_image_files %}
-        {% assign alacam_mockup_url = alacam_mockup_file.src | default: alacam_mockup_file.preview_image.src | append: '' %}
+        {% assign alacam_mockup_source_image = alacam_mockup_file.preview_image | default: alacam_mockup_file %}
+        {% assign alacam_mockup_native_width = alacam_mockup_source_image.width | default: 5760 | at_most: 5760 %}
+        {% assign alacam_mockup_url = alacam_mockup_source_image | image_url: width: alacam_mockup_native_width %}
         {% assign alacam_mockup_url_prefix = alacam_mockup_url | slice: 0, 2 %}
         {% if alacam_mockup_url_prefix == '//' %}{% assign alacam_mockup_url = alacam_mockup_url | prepend: 'https:' %}{% endif %}
         {% assign alacam_mockup_thumbnail_image = alacam_mockup_file.preview_image | default: alacam_mockup_file %}

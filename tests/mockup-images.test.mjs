@@ -105,6 +105,36 @@ test("merchant image files validate stable Shopify IDs, raster URLs, size and un
     );
 });
 
+test("Shopify files/image.src references resolve at the CDN root without accepting arbitrary relative paths", () => {
+  const original = [
+    {
+      ...image("46582867427634"),
+      imageUrl: "files/base.png?v=1793311234",
+      thumbnailUrl: "files/base.png?v=1793311234&width=480",
+    },
+  ];
+  const parsed = parseMockupImages(original);
+  assert.equal(parsed[0].imageUrl, "/cdn/shop/files/base.png?v=1793311234");
+  assert.equal(
+    parsed[0].thumbnailUrl,
+    "/cdn/shop/files/base.png?v=1793311234&width=480",
+  );
+  assert.equal(original[0].imageUrl, "files/base.png?v=1793311234");
+  for (const imageUrl of [
+    "files/../../base.png",
+    "files/%2e%2e/base.png",
+    "files/\\evil.com/base.png",
+    "../files/base.png",
+    "images/base.png",
+    "files/base.png#fragment",
+    "files/base.svg",
+  ])
+    assert.throws(
+      () => parseMockupImages([{ ...image("123"), imageUrl }]),
+      /mockup görselleri geçersiz/,
+    );
+});
+
 test("product galleries accept 64 bounded prepared scenes without the former eight-scene limit", () => {
   assert.equal(MAX_MOCKUP_SCENES, 64);
   const scenes = Array.from({ length: MAX_MOCKUP_SCENES }, (_, index) =>

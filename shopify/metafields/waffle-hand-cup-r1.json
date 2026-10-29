@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "scenes": [
+    {
+      "id": "hand-cup-r1",
+      "title": "Elde bardak · Turuncu stüdyo",
+      "width": 1448,
+      "height": 1086,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/hand-cup-r1/base.png",
+      "thumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/hand-cup-r1/thumbnail.jpg",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/hand-cup-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı görselden hazırlanmıştır. Mağaza sahibi 30 Ekim 2026 tarihinde web editöründe kullanım izni olduğunu beyan etmiştir. CC0 değildir.",
+      "surfaces": [
+        {
+          "id": "cup-front",
+          "face": "front",
+          "backgroundMode": "design",
+          "sourceRect": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/hand-cup-r1/front.uv.bin"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/hand-cup-r1/front-mask.png",
+          "blend": "multiply"
+        }
+      ],
+      "shopifyImageId": "46582867427634"
+    }
+  ]
+}

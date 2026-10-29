@@ -16,6 +16,8 @@ Bu sahne için ayrıca Shopify'a görsel yüklemek veya **Mockup görselleri** a
 
 Canlı deneme: [Elde bardak mockupı](https://mock-up-generator-y265.vercel.app/hand-cup-demo.html). Kaynak ve indirme boyutu **1448 × 1086 px**'tir. Web editöründe kullanım izni mağaza sahibi tarafından onaylanan bu sahne kamu malı/CC0 olarak sunulmaz. Sahne fotoğrafa göre hazırlanmış yaklaşık görsel eşlemedir; üreticinin onaylı bıçak izi veya baskı dosyası değildir.
 
+**Waffle bardak ürününe görsel zaten yüklendiyse:** Bu üründeki mevcut `base.png` dosyasının kimliğiyle bağlanmış [ürüne özel JSON'u](../shopify/metafields/waffle-hand-cup-r1.json) `custom.mockup_sahneleri` alanına yapıştırın. Bu dosya `46582867427634` görsel kimliğini kullanır; görsel listesi dolu kalabilir. Genel JSON yerine bu bağlantılı dosyayı kullanın. Başka dosya yüklediğinizde kimliği yeniden bağlamak gerekir.
+
 ## Ürünün görsel listesini yönetme — isteğe bağlı
 
 Daha sonra ürün başına sahne kartlarını Shopify'dan sıralamak için ikinci bir ürün alanı oluşturabilirsiniz:
@@ -39,7 +41,7 @@ Görsel listesine **baskısız temel fotoğrafı** ekleyin; son müşterinin tas
 
 Vercel sürümünde tema `assets/` klasörüne editör dosyası yüklemek gerekmez. Vercel güncellemesi, Shopify'a önceden yapıştırılmış Liquid kodunu kendiliğinden değiştirmez; yeni dosyanın tamamını **Özel Liquid** bloğuna yapıştırmalısınız.
 
-Dört Liquid girişi de liste doluysa yalnız görsel dosyalarını `productMockupImages` olarak aktarır; liste boş/tanımsızsa **`null`** göndererek yalnız JSON kullanılan eski ürünlerin sahnelerini korur. Programatik yapılandırmada açık `productMockupImages: []` ise seçenekleri kaldırır. Görsellerin ham kaynak adresi `imageUrl` olarak korunur; kartlarda 480 px genişlikte ayrı `thumbnailUrl` kullanılır. Küçültülmüş kart görseli baskı tabanı veya eşleme kaynağı yerine geçirilmez. PDF/video önizlemeleri mockup görseli sayılmaz.
+Dört Liquid girişi de liste doluysa yalnız görsel dosyalarını `productMockupImages` olarak aktarır; liste boş/tanımsızsa **`null`** göndererek yalnız JSON kullanılan eski ürünlerin sahnelerini korur. Programatik yapılandırmada açık `productMockupImages: []` ise seçenekleri kaldırır. Kaynak adresi Shopify `image_url` filtresiyle, görselin kendi genişliğinde (Shopify üst sınırı 5760) üretilir; kartlarda 480 px genişlikte ayrı `thumbnailUrl` kullanılır. Önceden yapıştırılmış Liquid'in ürettiği `files/base.png` biçimi de editörde `/cdn/shop/files/base.png` olarak çözümlenir; ürün dizinine göre açılmaz. Küçültülmüş kart görseli baskı tabanı veya eşleme kaynağı yerine geçirilmez. PDF/video önizlemeleri mockup görseli sayılmaz.
 
 Mevcut **`custom.3b_glb_dosyasi`** ve **`custom.bicak_i_zi`** alanları korunur. Mockup alanları boşsa mevcut 2B/3B akış devam eder. GLB bulunmuyorsa 3B sekmesi bağlı model olmadığını açıkça belirtir; ürününüz yerine örnek doypack gösterilmez.
 

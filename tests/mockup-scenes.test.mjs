@@ -187,6 +187,11 @@ test("all Shopify entry points read the JSON mockup metafield and escape embedde
     const source = await readFile(new URL(path, import.meta.url), "utf8");
     assert.match(
       source,
+      /alacam_mockup_source_image \| image_url: width: alacam_mockup_native_width/,
+    );
+    assert.doesNotMatch(source, /alacam_mockup_url = alacam_mockup_file\.src/);
+    assert.match(
+      source,
       /"productMockupScenes":\s*\{% if .*metafields\.custom\['mockup_sahneleri'\]\.value != blank/,
     );
     assert.match(

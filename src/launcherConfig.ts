@@ -2,6 +2,7 @@ import type { EditorConfig } from "./types";
 import {
   parseMockupImages,
   parseMockupScenes,
+  normalizeShopifyFileReference,
 } from "../shared/mockup-scenes.mjs";
 
 type Variant = NonNullable<EditorConfig["variants"]>[number];
@@ -60,11 +61,22 @@ function publicUrl(value: unknown, name: string): string | undefined {
   }
 }
 
-function assetUrl(value: unknown, name: string): string | undefined {
-  const text = optionalString(value, name, 2048);
+function assetUrl(
+  value: unknown,
+  name: string,
+  storefrontOrigin?: string,
+): string | undefined {
+  const raw = optionalString(value, name, 2048);
+  const text = normalizeShopifyFileReference(raw) as string | undefined;
   if (!text) return undefined;
-  if (text.startsWith("/") && !text.startsWith("//") && !text.includes("\\"))
+  if (text.startsWith("/") && !text.startsWith("//") && !text.includes("\\")) {
+    if (raw !== text && storefrontOrigin) {
+      const origin = new URL(storefrontOrigin);
+      if (origin.protocol === "https:" && !origin.username && !origin.password)
+        return new URL(text, origin.origin).href;
+    }
     return text;
+  }
   try {
     const url = new URL(text.startsWith("//") ? `https:${text}` : text);
     const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
@@ -91,7 +103,10 @@ function selectedVariant(variants: Variant[], value: unknown): number {
 }
 
 /** Public merchant configuration only; unknown properties never enter the editor. */
-export function validateLaunchConfig(value: unknown): EditorConfig {
+export function validateLaunchConfig(
+  value: unknown,
+  storefrontOrigin?: string,
+): EditorConfig {
   const input = record(value);
   const rawProductId =
     typeof input.productId === "number" && Number.isSafeInteger(input.productId)
@@ -131,9 +146,21 @@ export function validateLaunchConfig(value: unknown): EditorConfig {
   return {
     productId,
     productTitle: optionalString(input.productTitle, "Ürün adı", 300),
-    productImage: assetUrl(input.productImage, "Ürün görseli"),
-    productModelUrl: assetUrl(input.productModelUrl, "3B model dosyası"),
-    productDielineUrl: assetUrl(input.productDielineUrl, "Bıçak izi dosyası"),
+    productImage: assetUrl(
+      input.productImage,
+      "Ürün görseli",
+      storefrontOrigin,
+    ),
+    productModelUrl: assetUrl(
+      input.productModelUrl,
+      "3B model dosyası",
+      storefrontOrigin,
+    ),
+    productDielineUrl: assetUrl(
+      input.productDielineUrl,
+      "Bıçak izi dosyası",
+      storefrontOrigin,
+    ),
     productMockupScenes: parseMockupScenes(input.productMockupScenes),
     productMockupImages: parseMockupImages(input.productMockupImages),
     apiBase: publicUrl(input.apiBase, "Tasarım API adresi"),
@@ -211,10 +238,13 @@ export function configFromButton(button: HTMLElement): EditorConfig {
   const rawConfig = record(input);
   // Liquid is rendered once; an available live form choice can replace its stale variant.
   // The imperative validator stays strict because it has no live product form.
-  const config = validateLaunchConfig({
-    ...rawConfig,
-    initialVariantId: undefined,
-  });
+  const config = validateLaunchConfig(
+    {
+      ...rawConfig,
+      initialVariantId: undefined,
+    },
+    document.location.origin,
+  );
   const variants = config.variants!;
   const explicit = button.dataset.alacamProductForm;
   let form: HTMLFormElement | null = null;
