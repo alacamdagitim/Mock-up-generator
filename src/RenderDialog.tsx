@@ -8,6 +8,9 @@ type RenderDialogProps = {
   source: (options: RenderOptions) => RenderSnapshot | Promise<RenderSnapshot>;
   /** Captured from the current product, camera, layout and artwork. */
   previewUrl?: string | null;
+  /** Prepared photo mockups export directly without a separate 3D render. */
+  allowStudio?: boolean;
+  imageLabel?: string;
   /** Each panel supplies its own preview section and settings aside. */
   panels?: { dieline?: ReactNode; share?: ReactNode };
 };
@@ -76,6 +79,8 @@ function RenderDialogContent({
   source,
   previewUrl,
   panels,
+  allowStudio = true,
+  imageLabel = "Canlı görünüm",
 }: Omit<RenderDialogProps, "open">) {
   const [options, setOptions] = useState<RenderOptions>(initialOptions);
   const [imageMode, setImageMode] = useState<ImageMode>("live");
@@ -109,7 +114,7 @@ function RenderDialogContent({
   const noteId = useId();
   const statusId = useId();
   const tabsId = useId();
-  const isLive = imageMode === "live";
+  const isLive = !allowStudio || imageMode === "live";
 
   useEffect(() => {
     let current = true;
@@ -136,13 +141,13 @@ function RenderDialogContent({
       .catch(() => {
         if (current)
           setLiveError(
-            "Canlı görünüm okunamadı. Pencereyi kapatıp tekrar deneyin.",
+            `${imageLabel} okunamadı. Pencereyi kapatıp tekrar deneyin.`,
           );
       });
     return () => {
       current = false;
     };
-  }, [previewUrl]);
+  }, [previewUrl, imageLabel]);
 
   useEffect(() => {
     mounted.current = true;
@@ -191,7 +196,7 @@ function RenderDialogContent({
     setLiveNotice("");
     try {
       const response = await fetch(previewUrl, { signal: active.signal });
-      if (!response.ok) throw new Error("Canlı görünüm okunamadı.");
+      if (!response.ok) throw new Error(`${imageLabel} okunamadı.`);
       let blob = await response.blob();
       if (liveFormat === "jpeg" || blob.type !== "image/png") {
         const image = new Image();
@@ -232,7 +237,7 @@ function RenderDialogContent({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `alacam-canli-gorunum.${liveFormat === "jpeg" ? "jpg" : "png"}`;
+      link.download = `alacam-${allowStudio ? "canli-gorunum" : "mockup"}.${liveFormat === "jpeg" ? "jpg" : "png"}`;
       document.body.append(link);
       link.click();
       link.remove();
@@ -258,7 +263,7 @@ function RenderDialogContent({
   }
 
   async function startRender() {
-    if (running || !canvas.current) return;
+    if (!allowStudio || running || !canvas.current) return;
     dialog.current
       ?.querySelector<HTMLButtonElement>(".studio-render-close")
       ?.focus({ preventScroll: true });
@@ -427,7 +432,7 @@ function RenderDialogContent({
     >
       <div
         className="studio-render-dialog"
-        data-image-mode={imageMode}
+        data-image-mode={isLive ? "live" : "studio"}
         ref={dialog}
         role="dialog"
         aria-modal="true"
@@ -437,7 +442,7 @@ function RenderDialogContent({
       >
         <header className="studio-render-header">
           <h2 className="studio-render-visually-hidden" id={titleId}>
-            Stüdyo render
+            {allowStudio ? "Stüdyo render" : "Görsel indir"}
           </h2>
           <nav
             className="studio-render-tabs"
@@ -488,7 +493,11 @@ function RenderDialogContent({
           <button
             type="button"
             className="studio-render-close"
-            aria-label="Render penceresini kapat"
+            aria-label={
+              allowStudio
+                ? "Render penceresini kapat"
+                : "Görsel penceresini kapat"
+            }
             onClick={close}
           >
             <svg
@@ -516,7 +525,11 @@ function RenderDialogContent({
           <section
             className="studio-render-preview-column"
             aria-label={
-              isLive ? "Canlı görsel önizlemesi" : "Stüdyo render önizlemesi"
+              isLive
+                ? allowStudio
+                  ? "Canlı görsel önizlemesi"
+                  : `${imageLabel} önizlemesi`
+                : "Stüdyo render önizlemesi"
             }
           >
             <div
@@ -591,7 +604,7 @@ function RenderDialogContent({
               )}
               {(isLive || !completed) && (
                 <span className="studio-render-preview-label">
-                  {isLive ? "Canlı görünüm" : "Canlı sahne önizlemesi"}
+                  {isLive ? imageLabel : "Canlı sahne önizlemesi"}
                 </span>
               )}
               {!isLive && (
@@ -666,39 +679,46 @@ function RenderDialogContent({
             className="studio-render-settings"
             aria-label={isLive ? "Görsel ayarları" : "Render ayarları"}
           >
-            <div
-              className="studio-render-mode-switch"
-              role="group"
-              aria-label="Görsel oluşturma yöntemi"
-            >
-              {(
-                [
-                  { value: "live", label: "Canlı görünüm" },
-                  { value: "studio", label: "Stüdyo render" },
-                ] as const
-              ).map((mode) => (
-                <button
-                  type="button"
-                  key={mode.value}
-                  aria-pressed={imageMode === mode.value}
-                  disabled={running || liveDownloading}
-                  onClick={() => setImageMode(mode.value)}
-                >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
+            {allowStudio && (
+              <div
+                className="studio-render-mode-switch"
+                role="group"
+                aria-label="Görsel oluşturma yöntemi"
+              >
+                {(
+                  [
+                    { value: "live", label: imageLabel },
+                    { value: "studio", label: "Stüdyo render" },
+                  ] as const
+                ).map((mode) => (
+                  <button
+                    type="button"
+                    key={mode.value}
+                    aria-pressed={imageMode === mode.value}
+                    disabled={running || liveDownloading}
+                    onClick={() => setImageMode(mode.value)}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {isLive ? (
               <>
                 <div className="studio-render-live-content">
                   <div className="studio-render-intro studio-render-live-intro">
                     <span className="studio-render-live-ready">
-                      {liveSize ? "Anında hazır" : "Canlı görünüm"}
+                      {liveSize ? "Anında hazır" : imageLabel}
                     </span>
-                    <h3>Gördüğünüz görseli indirin</h3>
+                    <h3>
+                      {allowStudio
+                        ? "Gördüğünüz görseli indirin"
+                        : "Görsel indir"}
+                    </h3>
                     <p>
-                      Ürününüzün tasarımı, yerleşimi, kamera açısı ve ışığı
-                      ekranda gördüğünüz haliyle korunur.
+                      {allowStudio
+                        ? "Ürününüzün tasarımı, yerleşimi, kamera açısı ve ışığı ekranda gördüğünüz haliyle korunur."
+                        : "Hazır sahnenin ışığı, gölgeleri ve tasarımınız ekranda gördüğünüz haliyle korunur."}
                     </p>
                   </div>
                   <div className="studio-render-live-size">
@@ -748,7 +768,9 @@ function RenderDialogContent({
                 <div className="studio-render-actions studio-render-live-actions">
                   <p className="studio-render-live-status" role="status">
                     {liveNotice ||
-                      "Yeniden render hesaplaması beklemeden indirin."}
+                      (allowStudio
+                        ? "Yeniden render hesaplaması beklemeden indirin."
+                        : "Hazır mockup’ı kaynak boyutunda indirin.")}
                   </p>
                   {liveError && (
                     <div className="studio-render-error" role="alert">
@@ -777,10 +799,12 @@ function RenderDialogContent({
                       <path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4" />
                     </svg>
                   </button>
-                  <p className="studio-render-setting-note">
-                    Daha yüksek çözünürlük ve ayrı ışık hesaplaması için Stüdyo
-                    render seçebilirsiniz.
-                  </p>
+                  {allowStudio && (
+                    <p className="studio-render-setting-note">
+                      Daha yüksek çözünürlük ve ayrı ışık hesaplaması için
+                      Stüdyo render seçebilirsiniz.
+                    </p>
+                  )}
                 </div>
               </>
             ) : (

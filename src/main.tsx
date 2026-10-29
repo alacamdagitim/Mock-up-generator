@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import { useEffect } from "react";
 import type { EditorConfig } from "./types";
 import App from "./OnlineDesigner";
+import { storefrontProducts } from "../shared/storefront.mjs";
 import css from "./styles.css?inline";
 import configureCss from "./configure.css?inline";
 import modeSwitchCss from "./mode-switch.css?inline";
@@ -11,6 +12,9 @@ import canvasToolsCss from "./canvas-tools.css?inline";
 import renderDialogCss from "./render-dialog.css?inline";
 import exportPanelsCss from "./export-panels.css?inline";
 import surfaceColorCss from "./surface-color.css?inline";
+import mockupCss from "./mockups/mockups.css?inline";
+import mockupLayoutCss from "./mockup-layout.css?inline";
+import mockupWorkflowCss from "./mockup-workflow.css?inline";
 import modelMappingCss from "./model-mapping.css?inline";
 import latinFont from "@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2?url";
 import extendedFont from "@fontsource-variable/dm-sans/files/dm-sans-latin-ext-wght-normal.woff2?url";
@@ -56,6 +60,15 @@ function Ready({ notify }: { notify?: () => void }) {
 export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
   const existing = mounts.get(host);
   if (existing) return existing;
+  let config = options.config || window.AlacamEditorConfig || {};
+  try {
+    if (!options.config)
+      config = { ...config, ...JSON.parse(host.dataset.config || "{}") };
+  } catch {
+    throw new Error("Editör ayarları okunamadı.");
+  }
+  // Validate merchant scene data before mounting React or attaching Shadow DOM.
+  storefrontProducts(config);
   const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
   style.textContent = [
@@ -69,6 +82,9 @@ export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
     exportPanelsCss,
     surfaceColorCss,
     modelMappingCss,
+    mockupCss,
+    mockupLayoutCss,
+    mockupWorkflowCss,
     options.fullscreen
       ? ".alacam-app,.online-app{height:100%;min-height:0;}"
       : "",
@@ -77,13 +93,6 @@ export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
   const root = document.createElement("div");
   root.className = "alacam-app";
   shadow.append(root);
-  let config = options.config || window.AlacamEditorConfig || {};
-  try {
-    if (!options.config)
-      config = { ...config, ...JSON.parse(host.dataset.config || "{}") };
-  } catch {
-    throw new Error("Editör ayarları okunamadı.");
-  }
   const reactRoot = createRoot(root);
   let disposed = false;
   const dispose = () => {

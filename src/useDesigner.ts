@@ -95,6 +95,12 @@ export function useDesigner(config: EditorConfig) {
     future = useRef<Design[]>([]);
   const editor = useRef<EditorHandle>(null),
     preview = useRef<PreviewHandle>(null);
+  const captureOverride = useRef<null | (() => string | Promise<string>)>(null);
+  const capturePreview = useCallback(async (scale = 1) => {
+    if (captureOverride.current) return await captureOverride.current();
+    if (!preview.current) throw new Error("Önizleme henüz hazır değil.");
+    return preview.current.png(scale);
+  }, []);
   const upload = useRef<HTMLInputElement>(null),
     importer = useRef<HTMLInputElement>(null);
   const projectId = useRef<string | null>(null);
@@ -548,19 +554,28 @@ export function useDesigner(config: EditorConfig) {
       if (importer.current) importer.current.value = "";
     }
   };
-  const persist = async () => {
+  const persist = async (capture?: {
+    snapshot: Design;
+    snapshotVariant: string;
+    png: string;
+  }) => {
     if (!storage)
       throw new Error(
         "Sunucu depolaması bağlı değil. Bu cihazda kaydetme ve JSON indirme kullanılabilir.",
       );
-    const snapshot = state.current,
-      snapshotVariant = variantRef.current;
+    const snapshot = capture?.snapshot || state.current,
+      snapshotVariant = capture?.snapshotVariant ?? variantRef.current;
+    const png = capture?.png || (await capturePreview());
+    if (state.current !== snapshot || variantRef.current !== snapshotVariant)
+      throw new Error(
+        "Kayıt sırasında tasarım değişti. Son halini yeniden kaydedin.",
+      );
     const response = await fetch(`${api}/designs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         design: snapshot,
-        preview: preview.current!.png(),
+        preview: png,
         productId: product.id,
         variantId: snapshotVariant || null,
       }),
@@ -580,22 +595,27 @@ export function useDesigner(config: EditorConfig) {
     if (busy) return null;
     setBusy(true);
     try {
-      const snapshot = state.current;
+      const snapshot = state.current,
+        snapshotVariant = variantRef.current;
+      const captureWasMockup = Boolean(captureOverride.current);
+      let png: string;
+      try {
+        png = await capturePreview();
+      } catch (error) {
+        // A failed prepared scene must never be saved as a different 3D/2D image.
+        if (captureWasMockup) throw error;
+        png = (
+          await renderFace(
+            snapshot.faces.front,
+            faceBackground(snapshot, "front"),
+            1,
+            snapshot.artboard,
+          )
+        ).toDataURL("image/png");
+      }
+      // The local thumbnail and server record share one frozen presentation.
       let localError = "";
       try {
-        let png: string;
-        try {
-          png = preview.current!.png();
-        } catch {
-          png = (
-            await renderFace(
-              snapshot.faces.front,
-              faceBackground(snapshot, "front"),
-              1,
-              snapshot.artboard,
-            )
-          ).toDataURL("image/png");
-        }
         const thumbnail = await projectThumbnail(png);
         if (state.current !== snapshot)
           throw new Error("Tasarım değişti. Son halini yeniden kaydedin.");
@@ -611,6 +631,8 @@ export function useDesigner(config: EditorConfig) {
           updatedAt: new Date().toISOString(),
           archived: false,
         });
+        if (state.current !== snapshot)
+          throw new Error("Tasarım değişti. Son halini yeniden kaydedin.");
         projectId.current = id;
         localStorage.setItem(key, JSON.stringify(snapshot));
         localStorage.setItem(`${key}:project`, id);
@@ -619,7 +641,7 @@ export function useDesigner(config: EditorConfig) {
       }
       if (storage) {
         try {
-          const record = await persist();
+          const record = await persist({ snapshot, snapshotVariant, png });
           notify(
             localError
               ? `Sunucuya kaydedildi. Cihaz kaydı başarısız: ${localError}`
@@ -712,6 +734,8 @@ export function useDesigner(config: EditorConfig) {
     onTexture,
     editor,
     preview,
+    captureOverride,
+    capturePreview,
     upload,
     importer,
     add,

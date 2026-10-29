@@ -31,7 +31,8 @@
     "test:live-preview": "node tests/live-preview.browser.mjs",
     "mockup:preview": "node scripts/private-mockup-preview.mjs",
     "test:private-mockup": "node tests/private-mockup-preview.browser.mjs && node tests/private-mockup-compositor.browser.mjs",
-    "test:private-mockup:fixture": "node tests/private-mockup-fixture.browser.mjs"
+    "test:private-mockup:fixture": "node tests/private-mockup-fixture.browser.mjs",
+    "test:mockup": "node tests/mockup-engine.browser.mjs && node tests/mockup-preview-component.browser.mjs && node tests/mockup-workflow.browser.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",

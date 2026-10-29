@@ -19,6 +19,7 @@
   "productTitle": {{ editor_product.title | default: 'Beyaz Doypack' | json }},
   "productModelUrl": {{ alacam_model_url | json }},
   "productDielineUrl": {{ alacam_dieline_url | json }},
+    "productMockupScenes": {% if editor_product.metafields.custom['mockup_sahneleri'].value != blank %}{{ editor_product.metafields.custom['mockup_sahneleri'].value | json }}{% else %}null{% endif %},
   "productImage": {% if editor_product.featured_image %}{{ editor_product.featured_image | image_url: width: 400 | json }}{% else %}null{% endif %},
   "libraryKey": {{ 'alacam:library:v1:' | append: section.id | json }},
   "storageKey": {{ 'alacam:v1:' | append: section.id | append: ':' | append: editor_product.id | json }},

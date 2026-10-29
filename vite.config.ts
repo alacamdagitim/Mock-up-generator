@@ -9,6 +9,7 @@ export default defineConfig({
       input: {
         page: "index.html",
         demo: "launcher-demo.html",
+        mockupDemo: "mockup-demo.html",
         editor: "src/main.tsx",
         launcher: "src/launcher.ts",
       },

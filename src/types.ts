@@ -5,6 +5,12 @@ export type Element = z.infer<typeof elementSchema>;
 export type ArtboardSpec = NonNullable<Design["artboard"]>;
 export type Face = "front" | "back";
 export type ModelBinding = NonNullable<Design["modelBinding"]>;
+export type MockupScene = z.infer<
+  typeof import("../shared/mockup-scenes.mjs").mockupSceneSchema
+>;
+export type MockupScenes = z.infer<
+  typeof import("../shared/mockup-scenes.mjs").mockupScenesSchema
+>;
 export type SavedDesign = { id: string; designUrl: string; previewUrl: string };
 export type EditorConfig = {
   apiBase?: string;
@@ -13,6 +19,7 @@ export type EditorConfig = {
   productImage?: string;
   productModelUrl?: string;
   productDielineUrl?: string;
+  productMockupScenes?: MockupScenes;
   products?: StoreProduct[];
   variants?: { id: number; title: string; available: boolean }[];
   initialVariantId?: string | number;
@@ -39,5 +46,6 @@ export type StoreProduct = {
   image?: string;
   modelUrl?: string;
   dielineUrl?: string;
+  mockupScenes?: MockupScenes;
   variants: { id: number; title: string; available: boolean }[];
 };

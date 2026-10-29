@@ -85,3 +85,38 @@ test("product file references survive launch mapping for new and existing catalo
     assert.equal(product.modelId, "doypack-v1");
   }
 });
+
+test("product mockup scenes follow the current Shopify product without leaking to another catalog product", () => {
+  const productMockupScenes = { schemaVersion: 1, scenes: [] };
+  for (const supplied of [
+    undefined,
+    [
+      { id: "100", title: "Ürün" },
+      { id: "101", title: "Diğer ürün" },
+    ],
+  ]) {
+    const products = storefrontProducts({
+      productId: "100",
+      productTitle: "Ürün",
+      productMockupScenes,
+      products: supplied,
+    });
+    assert.deepEqual(products[0].mockupScenes, productMockupScenes);
+    if (products[1]) assert.equal(products[1].mockupScenes, undefined);
+  }
+  const scenes = { schemaVersion: 1, scenes: [] };
+  const supplied = [{ id: "100", title: "Ürün", mockupScenes: scenes }];
+  assert.deepEqual(
+    storefrontProducts({ productId: "100", products: supplied })[0]
+      .mockupScenes,
+    scenes,
+  );
+  assert.throws(
+    () =>
+      storefrontProducts({
+        productId: "100",
+        productMockupScenes: { schemaVersion: 2, scenes: [] },
+      }),
+    /mockup sahneleri geçersiz/,
+  );
+});

@@ -23,6 +23,7 @@
     "productTitle": {{ alacam_button_product.title | json }},
     "productModelUrl": {{ alacam_model_url | json }},
     "productDielineUrl": {{ alacam_dieline_url | json }},
+    "productMockupScenes": {% if alacam_button_product.metafields.custom['mockup_sahneleri'].value != blank %}{{ alacam_button_product.metafields.custom['mockup_sahneleri'].value | json }}{% else %}null{% endif %},
     "productImage": {% if alacam_button_product.featured_image %}{{ alacam_button_product.featured_image | image_url: width: 400 | json }}{% else %}null{% endif %},
     "initialVariantId": {{ alacam_button_product.selected_or_first_available_variant.id | json }},
     "libraryKey": {{ 'alacam:library:v1:product:' | append: alacam_button_product.id | json }},

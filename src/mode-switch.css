@@ -118,3 +118,42 @@
     transition: none;
   }
 }
+
+/* Product mockup scenes add a third view without changing the legacy switch. */
+.online-mode-switch.with-mockup-mode {
+  --mode-cell: 58px;
+  flex-basis: calc(var(--mode-cell) * 3 + 6px);
+  width: calc(var(--mode-cell) * 3 + 6px);
+}
+
+.online-mode-switch.with-mockup-mode .online-mode-indicator {
+  width: var(--mode-cell);
+  transform: translateX(0);
+}
+
+.online-mode-switch.with-mockup-mode[data-mode="mockup"]
+  .online-mode-indicator {
+  transform: translateX(100%);
+}
+
+.online-mode-switch.with-mockup-mode[data-mode="3d"] .online-mode-indicator {
+  transform: translateX(200%);
+}
+
+.online-mode-switch.with-mockup-mode button {
+  flex-basis: var(--mode-cell);
+  width: var(--mode-cell);
+  min-width: var(--mode-cell);
+}
+
+@media (min-width: 1280px) {
+  .online-mode-switch.with-mockup-mode {
+    --mode-cell: 66px;
+  }
+}
+
+@media (min-width: 1680px) {
+  .online-mode-switch.with-mockup-mode {
+    --mode-cell: 74px;
+  }
+}

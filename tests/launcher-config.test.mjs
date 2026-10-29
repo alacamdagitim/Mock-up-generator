@@ -7,12 +7,18 @@ const source = await readFile(
   new URL("../src/launcherConfig.ts", import.meta.url),
   "utf8",
 );
-const { outputText } = ts.transpileModule(source, {
-  compilerOptions: {
-    module: ts.ModuleKind.ESNext,
-    target: ts.ScriptTarget.ES2022,
+const { outputText } = ts.transpileModule(
+  source.replace(
+    "../shared/mockup-scenes.mjs",
+    new URL("../shared/mockup-scenes.mjs", import.meta.url).href,
+  ),
+  {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2022,
+    },
   },
-});
+);
 const { validateLaunchConfig } = await import(
   `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`
 );
@@ -53,4 +59,23 @@ test("launcher rejects executable and credential-bearing URLs in both file field
       );
     }
   }
+});
+
+test("launcher accepts the public versioned mockup catalog and rejects malformed scene metadata", () => {
+  const productMockupScenes = { schemaVersion: 1, scenes: [] };
+  assert.deepEqual(
+    validateLaunchConfig({ ...config, productMockupScenes })
+      .productMockupScenes,
+    productMockupScenes,
+  );
+  assert.equal(validateLaunchConfig(config).productMockupScenes, undefined);
+  for (const value of [
+    { scenes: [] },
+    { schemaVersion: 2, scenes: [] },
+    ["photo.jpg"],
+  ])
+    assert.throws(
+      () => validateLaunchConfig({ ...config, productMockupScenes: value }),
+      /mockup sahneleri geçersiz/,
+    );
 });

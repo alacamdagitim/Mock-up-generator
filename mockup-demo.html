@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Alaçam · Hazır Mockup Denemesi</title>
+  </head>
+  <body style="margin: 0">
+    <div id="mockup-demo"></div>
+    <script type="module">
+      import { mountEditor } from "/src/main.tsx";
+      import { blankDesign } from "/shared/schema.mjs";
+      import { DEMO_MOCKUP_SCENES } from "/src/mockups/demo.ts";
+      if (!localStorage.getItem("alacam:mockup-demo:v1")) {
+        const design = blankDesign();
+        design.name = "Bardak tasarımım";
+        design.artboard = { canvasWidth: 600, canvasHeight: 900 };
+        localStorage.setItem("alacam:mockup-demo:v1", JSON.stringify(design));
+      }
+      mountEditor(document.getElementById("mockup-demo"), {
+        config: {
+          productId: "mockup-demo-cup",
+          productTitle: "Özgün örnek bardak · Mockup denemesi",
+          storageKey: "alacam:mockup-demo:v1",
+          productMockupScenes: { schemaVersion: 1, scenes: DEMO_MOCKUP_SCENES },
+        },
+      });
+    </script>
+  </body>
+</html>

@@ -95,6 +95,12 @@ export const presentationSchema = z
       ])
       .optional(),
     spacing: finite.min(0.8).max(1.6).optional(),
+    mockupSceneId: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/)
+      .optional(),
     lighting: z.enum(["softbox", "daylight", "dramatic"]).optional(),
     quality: z.enum(["balanced", "detail"]).optional(),
   })

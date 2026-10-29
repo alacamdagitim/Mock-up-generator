@@ -1,0 +1,128 @@
+.mockup-preview {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: #eff0f2;
+  min-width: 0;
+  min-height: 0;
+}
+.mockup-preview-canvas {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mockup-preview-canvas canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  box-shadow: 0 2px 18px #00000006;
+}
+.mockup-preview-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px;
+  text-align: center;
+  font-size: 14px;
+  color: #181818;
+  background: #f4f5f7;
+}
+.mockup-preview-state p {
+  max-width: 400px;
+  margin: 0;
+  line-height: 1.5;
+}
+.mockup-preview-state button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d5d5d9;
+  border-radius: 8px;
+  padding: 10px 15px;
+  background: #fff;
+  color: #171717;
+  cursor: pointer;
+}
+.mockup-preview-state button:hover {
+  background: #f5f1ff;
+  border-color: #8e45ff;
+}
+.mockup-updating {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #ffffffed;
+  color: #222;
+  box-shadow: 0 3px 12px #0001;
+  border-radius: 22px;
+  padding: 8px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.mockup-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid #d6c7ec;
+  border-top-color: #8d40ff;
+  border-radius: 50%;
+  animation: mockup-spin 0.8s linear infinite;
+}
+.mockup-preview-caption {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: #ffffffd9;
+  color: #202020;
+  font-size: 12px;
+  pointer-events: none;
+}
+.mockup-preview-caption small {
+  font-size: 10px;
+  color: #515158;
+}
+@keyframes mockup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 760px) {
+  .mockup-preview-caption {
+    bottom: 12px;
+    left: 12px;
+    max-width: calc(100% - 24px);
+    font-size: 11px;
+  }
+  .mockup-preview-caption small {
+    font-size: 9px;
+  }
+  .mockup-preview-state {
+    padding: 20px;
+    font-size: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mockup-spinner {
+    animation: none;
+  }
+}

@@ -1,12 +1,15 @@
 # Alaçam · Online Tasarım Editörü
 
-Bu sürüm yalnızca ürünün **Online Design / Online tasarla** eyleminden sonra açılan editörü uygular. Ürün kataloğu, ayrı mockup stüdyosu ve Kütüphane arayüzü yoktur. **Yerleşim**, bu editörün içinde 3D sunum düzenlerini açar. Eski sürüm kopyaları ve yinelenen arşivler temizlenmiştir. Referans: kullanıcının gösterdiği Pacdora API demosunun Online Design ekranının genel düzeni ve akışı. Pacdora SDK/API, kaynak kodu, marka, hazır tasarım veya lisanslı model kullanılmaz.
+Bu sürüm yalnızca ürünün **Online Design / Online tasarla** eyleminden sonra açılan editörü uygular. Ürün kataloğu, ayrı mockup stüdyosu ve Kütüphane arayüzü yoktur. **Yerleşim**, ürünün hazır mockup sahnelerini ve isteğe bağlı 3D sunum düzenlerini açar. Eski sürüm kopyaları ve yinelenen arşivler temizlenmiştir. Referans: kullanıcının gösterdiği Pacdora API demosunun Online Design ekranının genel düzeni ve akışı. Pacdora SDK/API, kaynak kodu, marka, hazır tasarım veya lisanslı model kullanılmaz.
 
 React + TypeScript, Fabric.js ve Three.js ile çalışır. İlk ürün özgün, yaklaşık beyaz doypack'tir. Referansta görülen kutu modeli, açma/kapama animasyonu ve gerçek kutu bıçak izi bu projeye alınmadı. Doypack ölçüsü 140 × 210 mm örnektir.
 
+
+Ürün için `custom.mockup_sahneleri` JSON meta alanı tanımlandığında ana sunum **hazır mockup** olur: bıçak izi üzerinde düzenleme → anlık mockup → kaynak piksel boyutunda PNG/JPG. Ayrı stüdyo render işlemi gerekmez. Özgün örneği `http://127.0.0.1:5184/mockup-demo.html` adresinde deneyin. Bu demo fotoğraf veya üretici modeli değildir ve mağaza ürünlerine otomatik atanmaz. Shopify kurulumu, sahne hazırlığı ve örnek JSON: [Hazır mockup sahneleri](docs/SHOPIFY-MOCKUP-SAHNELERI.md).
+
 ## Kurulum
 
-Node 20.11+ ve WebGL destekli tarayıcı gerekir.
+Node 20.11+ gerekir. 2D ve hazır mockup Canvas ile çalışır; 3D görünüm için WebGL destekli tarayıcı gerekir.
 
 ```sh
 npm ci
@@ -32,6 +35,7 @@ npm run test:workspace
 npm run test:preview
 npm run test:render
 npm run test:exports
+npm run test:mockup
 npm run test:high-resolution
 npm run test:render-snapshot
 npm run test:denoise
@@ -41,8 +45,10 @@ npm run test:denoise
 
 ## Editör akışı
 
-- Üstte tasarım adı, **3D / 2D**, **Görsel indir**, **Şablonu indir**, **Görsel yükle**, PNG/JSON menüsü ve kapatma düğmesi bulunur.
-- **Görsel indir**, büyük önizleme ve sağ ayarlar sütunuyla açılır. Varsayılan **Canlı görünüm**, mevcut kamera, ışık ve yerleşimi doğrudan PNG/JPG indirir; gerçek piksel boyutu gösterilir. Görüntü masaüstünde en çok 2560, mobilde 1536 px uzun kenarda yeniden çizilir. **Stüdyo render** seçilirse ayrı WebGL2 path tracing motoru 1K/2K/4K/8K, 64/256 ışık örneği, üç ışık düzeni, gölge ve en/boy oranı sunar. Mobilde bu hesaplamanın sınırı 1K'dır. Bıçak izi sekmesi SVG/PNG/RGB PDF ve düzenlenebilir JSON indirir. Paylaşım, yapılandırılmış sunucudan gelen gerçek dosya bağlantılarını kullanır. Ayrıntılar: [Görsel ve stüdyo render](docs/RENDER.md).
+- Hazır mockup bağlı ürünlerde **2D / Mockup / 3D**, diğer ürünlerde **3D / 2D** geçişi bulunur. Mockup sahneleri sabit kamera, hazırlanmış baskı eşlemesi ve ışık katmanlarıyla çalışır; 3B görünüm isteğe bağlıdır. Ham PNG/JPG veya PSD tek başına değiştirilebilir bir sahne sayılmaz.
+- Üstte tasarım adı, **görünüm geçişi**, **Görsel indir**, **Şablonu indir**, **Görsel yükle**, PNG/JSON menüsü ve kapatma düğmesi bulunur.
+- Mockup bağlı ürünlerde **Görsel indir** yalnız hazır sahnenin gerçek ölçüsünü koruyan PNG/JPG sunar; 2K/4K/8K büyütme veya stüdyo hesaplaması göstermez. Seçili sahne kimliği JSON, yerel taslak ve kayıt akışında korunur. Kaynak sahne yüklenemediğinde başka bir ürün görseliyle başarı taklit edilmez.
+- Mockup bağlı olmayan ürünlerde **Görsel indir**, büyük önizleme ve sağ ayarlar sütunuyla açılır. Varsayılan **Canlı görünüm**, mevcut kamera, ışık ve yerleşimi doğrudan PNG/JPG indirir; gerçek piksel boyutu gösterilir. Görüntü masaüstünde en çok 2560, mobilde 1536 px uzun kenarda yeniden çizilir. **Stüdyo render** seçilirse ayrı WebGL2 path tracing motoru 1K/2K/4K/8K, 64/256 ışık örneği, üç ışık düzeni, gölge ve en/boy oranı sunar. Mobilde bu hesaplamanın sınırı 1K'dır. Bıçak izi sekmesi SVG/PNG/RGB PDF ve düzenlenebilir JSON indirir. Paylaşım, yapılandırılmış sunucudan gelen gerçek dosya bağlantılarını kullanır. Ayrıntılar: [Görsel ve stüdyo render](docs/RENDER.md).
 - Solda API demosundaki İngilizce görünür etiketlerle **Inspirations / Uploads / Text / Background / Shapes / Layout** vardır. 16 örnek bu proje için özgün hazırlanmıştır; seçili yüzü değiştirir, geri alınabilir. Erişilebilirlik ve entegrasyon etiketleri Türkçe tutulur.
 - 2D modunda merkezde ölçülü yüz, sağ üstte canlı 3D, altında ürün ayarları vardır. 3D modunda model ana alanı kaplar; sol içerik paneli kapanır, araçlardan tekrar açılabilir.
 - **Yerleşim** panelinde Tek ürün, Ön ve yan, Ön ve arka, Eğik ikili, İkili, Üçlü seri, Yelpaze, Kademeli, Vitrin, Beşli seri ve Katalog vardır. Seçim gerçek 3D sahnesini değiştirir; mesafe ayarlanabilir. 2D modunda tek yüz gösterilir, seçili yerleşim korunur. Yerleşim ve mesafe JSON/yerel taslakta saklanır; geri alınabilir ve PNG önizlemeye yansır. Kompozisyondaki ürün kopyaları sipariş adedini değiştirmez.
@@ -78,7 +84,7 @@ Taslak 650 ms gecikmeyle localStorage'a yazılır; yenilemede desteklenen v1 JSO
 1. Shopify'da bir sayfa oluşturup `page.alacam-editor` şablonunu seçin veya uyumlu sayfa/ürün şablonuna **Alaçam Tasarım Editörü** section'ını ekleyin.
 2. Section ayarında baskısız doypack ürününü seçin. Ürün şablonunda seçim yapılmazsa mevcut `product` kullanılır. Yalnızca seçili ürünün adı, kimliği ve varyantları editöre aktarılır; ürün listesi/katalog ayarı yoktur.
 3. Herkese erişilebilir HTTPS API adresini section ayarına girin, örneğin `https://design-api.magazaniz.com/api`.
-4. Gerçek üretici şablonunu bağlamak için ürün meta alanı `custom.alacam_dieline`, tür **Dosya**, tanımlayın. Üreticinin orijinal dosyasını seçin. Editör HTTPS dosya bağlantısını açar; PDF/SVG içeriğini otomatik olarak baskı alanına veya UV eşlemesine dönüştürmez.
+4. Ürün GLB dosyasını `custom.3b_glb_dosyasi`, bıçak izini `custom.bicak_i_zi` tür **Dosya** alanlarına bağlayın. SVG bıçak izi düzenleyicide gösterilir; diğer dosyalar indirilebilir. Hazır sahneler için ayrıca `custom.mockup_sahneleri`, tür **JSON**, kullanın. [Sahne hazırlığı ve kurulum](docs/SHOPIFY-MOCKUP-SAHNELERI.md).
 5. Gerçek mağazada varyant, yerelleştirilmiş sepet kökü, API origin/CORS, kayıt ve sepet özelliklerini test edin. Bu teslimatta gerçek mağazaya dağıtım yapılmadı.
 
 Sepet akışı önce tasarım JSON'unu ve PNG'yi sunucuda kaydeder, sonra Shopify Ajax Cart API üzerinden seçili varyantı ekler. Line item properties yalnızca `_alacam_design_id`, `_alacam_design_url`, `_alacam_preview_url` ve görünür `Tasarım` referansını içerir. Artwork/JSON/base64 sepete yazılmaz. Fiyat veya teslim süresi uydurulmaz; mevcut kart bu değerleri göstermez. Tarayıcıda Admin API anahtarı veya depolama sırrı bulunmaz.
