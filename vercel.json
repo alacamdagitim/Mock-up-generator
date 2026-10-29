@@ -1,0 +1,38 @@
+{
+  "headers": [
+    {
+      "source": "/product-assets/mockup-scenes/tin-can-r1/body.uv.bin.br",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "br"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/octet-stream"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/product-assets/mockup-scenes/tin-can-r1/lid.uv.bin.br",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "br"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/octet-stream"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ]
+}

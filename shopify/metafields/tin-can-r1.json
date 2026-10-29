@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "scenes": [
+    {
+      "id": "tin-can-r1",
+      "title": "Teneke kutu · Elde kapaklı",
+      "width": 4096,
+      "height": 3072,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/tin-can-r1/base.webp",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/tin-can-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı Tin Can Mockup.psd kaynağından hazırlandı. Kaynak hakları sahibine aittir; web editörü kullanımı mağaza sahibinin bildirdiği izin kapsamında sunulur. CC0 değildir. PSD eğrilik ağı ve orijinal maskeler aktarılmıştır; üretim/baskı dosyası değildir.",
+      "surfaces": [
+        {
+          "id": "tin-lid",
+          "face": "back",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/tin-can-r1/lid.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/tin-can-r1/lid-mask.png",
+          "blend": "source-over",
+          "title": "Kapak"
+        },
+        {
+          "id": "tin-body",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/tin-can-r1/body.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/tin-can-r1/body-mask.png",
+          "blend": "source-over",
+          "title": "Gövde"
+        }
+      ],
+      "layers": [
+        {
+          "imageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/tin-can-r1/shadow.png",
+          "blend": "multiply"
+        },
+        {
+          "imageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/tin-can-r1/reflection.png",
+          "blend": "screen"
+        }
+      ],
+      "artboard": {
+        "canvasWidth": 1472,
+        "canvasHeight": 1179
+      }
+    }
+  ]
+}

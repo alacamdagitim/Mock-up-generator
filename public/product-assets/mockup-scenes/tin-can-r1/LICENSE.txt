@@ -1,0 +1,5 @@
+TIN CAN — KULLANICI TARAFINDAN SAĞLANAN MOCKUP
+
+Kaynak: kullanıcının sağladığı Tin Can Mockup.psd; klasöründeki kaynak bağlantısı LS.graphics. Kaynak hakları ilgili hak sahibine aittir; CC0 veya açık kaynak görsel lisansı iddia edilmez. Kullanım, mağaza sahibinin bu editör için bildirdiği web kullanım iznine dayanır. Bağımsız kaynak şablon dağıtım lisansı verilmez.
+
+PSD 6000×4500 RGB/8; web dosyaları 4096×3072. Gövde ve kapak için orijinal maske, Bezier/quilt eğriliği, Multiply gölge ve Screen yansıma kullanılır. Photoshop native renderı yerine bağımsız piksel örnekleme aktarımıdır. Fiziksel kesim ve baskı gereksinimleri onaylanmamıştır; sunum görselidir.

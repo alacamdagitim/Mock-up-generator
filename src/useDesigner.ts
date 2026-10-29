@@ -55,7 +55,10 @@ export function useDesigner(config: EditorConfig) {
     } catch {
       /* Preserve supported drafts; ignore malformed input. */
     }
-    return blankDesign() as Design;
+    const empty = blankDesign() as Design;
+    const mockupArtboard = product.mockupScenes?.scenes[0]?.artboard;
+    if (mockupArtboard) empty.artboard = { ...mockupArtboard };
+    return empty;
   });
   const [templateUrl, setTemplateUrl] = useState<string>();
   const [templateStatus, setTemplateStatus] = useState("");

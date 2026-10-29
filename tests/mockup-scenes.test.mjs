@@ -210,3 +210,24 @@ test("16 bit UV maps require a coverage mask so artwork cannot fill the unprinte
     /maskesi gerekli/,
   );
 });
+
+test("prepared scene artwork dimensions and named surfaces are optional, bounded pixel metadata", () => {
+  const value = scene();
+  value.artboard = { canvasWidth: 1472, canvasHeight: 1179 };
+  value.surfaces[0].title = "Gövde";
+  assert.deepEqual(mockupSceneSchema.parse(value), value);
+  for (const artboard of [
+    { canvasWidth: 0, canvasHeight: 1179 },
+    { canvasWidth: 1472.5, canvasHeight: 1179 },
+    { canvasWidth: 1472, canvasHeight: 2401 },
+    { canvasWidth: 1472, canvasHeight: 1179, widthMm: 200 },
+  ])
+    assert.equal(
+      mockupSceneSchema.safeParse({ ...value, artboard }).success,
+      false,
+    );
+  for (const title of ["", "a".repeat(61)]) {
+    value.surfaces[0].title = title;
+    assert.equal(mockupSceneSchema.safeParse(value).success, false);
+  }
+});

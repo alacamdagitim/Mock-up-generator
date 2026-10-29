@@ -121,6 +121,7 @@ const mapping = z.discriminatedUnion("type", [
 export const mockupSurfaceSchema = z
   .object({
     id,
+    title: z.string().min(1).max(60).optional(),
     face: z.enum(["front", "back"]),
     backgroundMode: z.enum(["design", "transparent"]).optional(),
     sourceRect: sourceRect.optional(),
@@ -136,6 +137,13 @@ export const mockupSceneSchema = z
     id,
     title: z.string().min(1).max(120),
     shopifyImageId: shopifyImageId.optional(),
+    artboard: z
+      .object({
+        canvasWidth: z.number().int().min(60).max(2400),
+        canvasHeight: z.number().int().min(60).max(2400),
+      })
+      .strict()
+      .optional(),
     width: z.number().int().min(1).max(8192),
     height: z.number().int().min(1).max(8192),
     baseImageUrl: rasterUrl,

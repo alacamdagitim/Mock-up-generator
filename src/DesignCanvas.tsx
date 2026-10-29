@@ -28,6 +28,7 @@ export function DesignCanvas({
   open,
   templateUrl,
   singleFace,
+  faceLabels,
   editor,
   design,
   face,
@@ -47,6 +48,7 @@ export function DesignCanvas({
   open: boolean;
   templateUrl?: string;
   singleFace?: boolean;
+  faceLabels?: Partial<Record<Face, string>>;
   editor: RefObject<EditorHandle>;
   design: Design;
   face: Face;
@@ -441,9 +443,11 @@ export function DesignCanvas({
             onChange={(event) => onFace(event.target.value as Face)}
           >
             <option value="front">
-              {singleFace ? "Sarım yüzeyi" : "Front"}
+              {faceLabels?.front || (singleFace ? "Sarım yüzeyi" : "Front")}
             </option>
-            {!singleFace && <option value="back">Back</option>}
+            {!singleFace && (
+              <option value="back">{faceLabels?.back || "Back"}</option>
+            )}
           </select>
         </div>
         <span>
@@ -565,11 +569,12 @@ export function DesignCanvas({
             value={faceBackground(design, face)}
             colors={recommendedSurfaceColors(design, face) as string[]}
             faceLabel={
-              singleFace
+              faceLabels?.[face] ||
+              (singleFace
                 ? "Sarım yüzeyi"
                 : face === "front"
                   ? "Ön yüz"
-                  : "Arka yüz"
+                  : "Arka yüz")
             }
             onChange={onBackground}
             onOpenChange={setSurfaceOpen}

@@ -1130,6 +1130,15 @@ export default function OnlineDesigner({
         </aside>
         <DesignCanvas
           open={mode === "2d"}
+          faceLabels={
+            selectedScene
+              ? Object.fromEntries(
+                  selectedScene.surfaces
+                    .filter((s) => s.title)
+                    .map((s) => [s.face, s.title!]),
+                )
+              : undefined
+          }
           templateUrl={d.templateUrl}
           singleFace={
             !hasMockups && modelFaces.length === 1 && modelFaces[0] === "front"

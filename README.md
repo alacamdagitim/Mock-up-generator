@@ -210,3 +210,7 @@ DM Sans ve Türkçe karakter alt kümesi, Fabric metni ölçmeden önce yükleni
 ## Hazır PSD mockup denemesi
 
 Matcha bardak dosyası için sabit açılı, tasarım değiştirilebilen yerel bir kalite denemesi hazırlandı. `npm run mockup:preview`, özel katman paketinden yalnız birleşik PNG/JPG üretir. Kaynak PSD/katmanlar proje ve herkese açık dağıtım dışında tutulur; Shopify Yerleşimler paneli bu pilotla değişmez. Doğal çıktı 600×800 px; merkez baskı eşlemesi yaklaşık olarak kalibre edilir. Kurulum, lisans sınırları ve testler: [Hazır mockup denemesi](docs/HAZIR-MOCKUP-DENEMESI.md).
+
+## Teneke kutu mockupı
+
+6000 × 4500 kaynak PSD’den gövde ve kapağı ayrı değiştirilebilen bir sahne hazırlandı. Gerçek maskeler, gölge ve yansıma katmanları korunur; 4K tarayıcı çıktısı ve ayrı 6K örnek dosyası vardır. Kurulum ve testler: [Teneke kutu hazırlığı](docs/TENEKE-KUTU-MOCKUP.md). Kaynak PSD ve hazırlık önbelleği Git dışında kalır; hazırlanmış web varlıkları Vercel’de sunulur. Ürün meta alanına yapıştırılacak dosya: [tin-can-r1.json](shopify/metafields/tin-can-r1.json).
