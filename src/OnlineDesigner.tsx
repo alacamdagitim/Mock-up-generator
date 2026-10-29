@@ -26,7 +26,8 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import type { EditorConfig, Element } from "./types";
+import type { EditorConfig, Element, ResolvedProductMockups } from "./types";
+import { resolveProductMockups } from "../shared/mockup-scenes.mjs";
 import { DesignCanvas } from "./DesignCanvas";
 import { MockupPreview } from "./mockups/MockupPreview";
 import type { MockupPreviewHandle } from "./mockups/types";
@@ -113,6 +114,37 @@ export default function OnlineDesigner({
   onClose?: () => void;
 }) {
   const d = useDesigner(config);
+  const resolvedMockups = resolveProductMockups(
+    d.product,
+  ) as ResolvedProductMockups;
+  const mockupScenes = resolvedMockups.scenes;
+  const hasMockups =
+    mockupScenes.length > 0 ||
+    resolvedMockups.cards.length > 0 ||
+    d.product.mockupImages !== undefined;
+  const toolTitles: Record<Tool, string> = {
+    layout: "Yerleşimler",
+    uploads: "Görseller",
+    text: "Yazı",
+    presets: "Örnekler",
+    background: "Renk",
+    shapes: "Şekiller",
+  };
+  const tools = hasMockups
+    ? (
+        [
+          "layout",
+          "uploads",
+          "text",
+          "presets",
+          "background",
+          "shapes",
+        ] as Tool[]
+      ).map((id) => ({
+        ...TOOLS.find((item) => item.id === id)!,
+        title: toolTitles[id],
+      }))
+    : TOOLS;
   const root = useRef<HTMLDivElement>(null);
   const [selectionPosition, setSelectionPosition] = useState({
     left: 490,
@@ -120,12 +152,16 @@ export default function OnlineDesigner({
   });
   const [interaction, setInteraction] = useState<"rotate" | "pan">("rotate");
   const [modelFaces, setModelFaces] = useState<string[]>([]);
-  const [mode, setMode] = useState<"2d" | "mockup" | "3d">("2d");
-  const last2dTool = useRef<Tool>("presets");
+  const [mode, setMode] = useState<"2d" | "mockup" | "3d">(() =>
+    hasMockups ? "mockup" : "2d",
+  );
+  const last2dTool = useRef<Tool>(hasMockups ? "uploads" : "presets");
   const [previewSize, setPreviewSize] = useState(280);
   const [maxPreviewSize, setMaxPreviewSize] = useState(280);
-  const [tool, setTool] = useState<Tool>("presets");
-  const [panel, setPanel] = useState(true);
+  const [tool, setTool] = useState<Tool>(hasMockups ? "layout" : "presets");
+  const [panel, setPanel] = useState(
+    () => !hasMockups || !matchMedia("(max-width:700px)").matches,
+  );
   const [guides, setGuides] = useState(true);
   const [configOpen, setConfigOpen] = useState(true);
   const [configureOpen, setConfigureOpen] = useState(false);
@@ -136,8 +172,6 @@ export default function OnlineDesigner({
   const [renderOpen, setRenderOpen] = useState(false);
   const [renderPreviewUrl, setRenderPreviewUrl] = useState("");
   const [exports, setExports] = useState({ png: "", json: "" });
-  const mockupScenes = d.product.mockupScenes?.scenes || [];
-  const hasMockups = mockupScenes.length > 0;
   const selectedScene =
     mockupScenes.find((scene) => scene.id === d.settings.mockupSceneId) ||
     mockupScenes[0];
@@ -203,6 +237,10 @@ export default function OnlineDesigner({
   d.captureOverride.current = hasMockups
     ? async () => {
         const snapshot = d.state.current;
+        if (!selectedScene)
+          throw new Error(
+            "Mockup baskı eşlemesi bekleniyor. JSON taslağınızı indirebilirsiniz.",
+          );
         if (
           d.settings.mockupSceneId &&
           d.settings.mockupSceneId !== selectedScene?.id
@@ -303,8 +341,15 @@ export default function OnlineDesigner({
           [0, h],
         ].map(([x, y]) => {
           const dx =
-              selected.x + x * Math.cos(angle) - y * Math.sin(angle) - 300,
-            dy = selected.y + x * Math.sin(angle) + y * Math.cos(angle) - 450;
+              selected.x +
+              x * Math.cos(angle) -
+              y * Math.sin(angle) -
+              (d.design.artboard?.canvasWidth || 600) / 2,
+            dy =
+              selected.y +
+              x * Math.sin(angle) +
+              y * Math.cos(angle) -
+              (d.design.artboard?.canvasHeight || 900) / 2;
           return {
             x: p.x + p.width / 2 + transform.a * dx + transform.c * dy,
             y: p.y + p.height / 2 + transform.b * dx + transform.d * dy,
@@ -341,7 +386,7 @@ export default function OnlineDesigner({
       mutation.disconnect();
       resize.disconnect();
     };
-  }, [d.selected, mode, panel]);
+  }, [d.selected, d.design.artboard, mode, panel]);
   const emit = (name: string, detail?: unknown) =>
     root.current?.dispatchEvent(
       new CustomEvent(name, { detail, bubbles: true, composed: true }),
@@ -354,6 +399,8 @@ export default function OnlineDesigner({
     if (value === "layout") {
       d.editor.current?.deselect();
       setMode(hasMockups ? "mockup" : "3d");
+    } else if (hasMockups) {
+      setMode("2d");
     }
   };
   const afterAdd = () => {
@@ -385,7 +432,10 @@ export default function OnlineDesigner({
     setMode(value);
     if (value !== "2d") {
       d.editor.current?.deselect();
-      setPanel(false);
+      if (hasMockups && value === "mockup") {
+        setTool("layout");
+        setPanel(!matchMedia("(max-width:700px)").matches);
+      } else setPanel(false);
     } else {
       if (tool === "layout") setTool(last2dTool.current);
       setInteraction("rotate");
@@ -575,7 +625,7 @@ export default function OnlineDesigner({
             ref={exportTrigger}
             aria-busy={captureBusy}
             aria-label="Görsel indir"
-            disabled={d.busy || captureBusy}
+            disabled={d.busy || captureBusy || (hasMockups && !selectedScene)}
             title={hasMockups ? "Seçili hazır mockupı indir" : undefined}
             onClick={() => void openImageExport()}
           >
@@ -612,9 +662,7 @@ export default function OnlineDesigner({
             }
           >
             <InterfaceIcon name="dieline" size={23} />
-            <span>
-              {manufacturerFile ? "Download dieline" : "Download dieline"}
-            </span>
+            <span>{hasMockups ? "Bıçak izi" : "Download dieline"}</span>
           </a>
           <button
             className="outline-button header-upload"
@@ -625,7 +673,7 @@ export default function OnlineDesigner({
             }}
           >
             <InterfaceIcon name="dieline" size={23} />
-            <span>Upload design</span>
+            <span>{hasMockups ? "Görsel yükle" : "Upload design"}</span>
           </button>
           <div className="online-export">
             <button
@@ -647,7 +695,8 @@ export default function OnlineDesigner({
                     }
                     onClick={() => setExportOpen(false)}
                   >
-                    <ImagePlus size={17} /> Preview PNG
+                    <ImagePlus size={17} />{" "}
+                    {hasMockups ? "Mockup PNG" : "Preview PNG"}
                   </a>
                 )}
                 <a
@@ -656,7 +705,8 @@ export default function OnlineDesigner({
                   download="alacam-tasarim-v1.json"
                   onClick={() => setExportOpen(false)}
                 >
-                  <FileJson size={17} /> Editable JSON
+                  <FileJson size={17} />{" "}
+                  {hasMockups ? "Düzenlenebilir JSON" : "Editable JSON"}
                 </a>
                 <button
                   onClick={() => {
@@ -664,10 +714,13 @@ export default function OnlineDesigner({
                     d.importer.current?.click();
                   }}
                 >
-                  <Upload size={17} /> Import JSON
+                  <Upload size={17} />{" "}
+                  {hasMockups ? "JSON içe aktar" : "Import JSON"}
                 </button>
                 <small>
-                  PNG and sample SVG are previews, not production files.
+                  {hasMockups
+                    ? "Mockup sunum içindir; üretim dosyası değildir."
+                    : "PNG and sample SVG are previews, not production files."}
                 </small>
               </div>
             )}
@@ -684,18 +737,20 @@ export default function OnlineDesigner({
       </header>
       <main className="online-stage">
         <nav className="online-rail" aria-label="Online tasarım araçları">
-          {TOOLS.map((item) => (
+          {tools.map((item) => (
             <button
               key={item.id}
               aria-label={
-                {
-                  presets: "Örnekler",
-                  uploads: "Yüklemeler",
-                  text: "Yazı",
-                  background: "Arka plan",
-                  shapes: "Şekiller",
-                  layout: "Yerleşim",
-                }[item.id]
+                hasMockups
+                  ? item.title
+                  : {
+                      presets: "Örnekler",
+                      uploads: "Yüklemeler",
+                      text: "Yazı",
+                      background: "Arka plan",
+                      shapes: "Şekiller",
+                      layout: "Yerleşim",
+                    }[item.id]
               }
               aria-pressed={panel && tool === item.id}
               className={panel && tool === item.id ? "active" : ""}
@@ -720,7 +775,7 @@ export default function OnlineDesigner({
           hidden={!panel}
         >
           <div className="online-panel-heading">
-            <h2>{TOOLS.find((item) => item.id === tool)?.title}</h2>
+            <h2>{tools.find((item) => item.id === tool)?.title}</h2>
             <button
               className="icon-button"
               aria-label="Düzenleme panelini kapat"
@@ -734,6 +789,8 @@ export default function OnlineDesigner({
               getCovers={getLayoutCovers}
               revision={layoutRevision}
               mockupScenes={mockupScenes}
+              mockupCards={resolvedMockups.cards}
+              hasMockupWorkflow={hasMockups}
               mockupSceneId={selectedScene?.id}
               activeMode={photoActive ? "mockup" : "3d"}
               onMockupSelect={(id) => {
@@ -825,7 +882,9 @@ export default function OnlineDesigner({
                 Add images
               </button>
               <small className="upload-formats">
-                ⓘ Supports JPG, PNG, SVG formats
+                {hasMockups
+                  ? "PNG, JPG ve SVG yükleyebilirsiniz"
+                  : "ⓘ Supports JPG, PNG, SVG formats"}
               </small>
               <div
                 className={`online-dropzone ${d.assets.length ? "has-assets" : ""}`}
@@ -838,9 +897,13 @@ export default function OnlineDesigner({
                 <ImagePlus size={31} />
                 <strong>Drop your images here</strong>
                 <small>
-                  Add JPG, PNG, SVG images
+                  {hasMockups
+                    ? "Logonuzu veya tasarımınızı yükleyin"
+                    : "Add JPG, PNG, SVG images"}
                   <br />
-                  PNG/JPG max 8 MB · SVG max 1 MB
+                  {hasMockups
+                    ? "PNG/JPG en fazla 8 MB · SVG en fazla 1 MB"
+                    : "PNG/JPG max 8 MB · SVG max 1 MB"}
                 </small>
               </div>
               {d.assets.length > 0 ? (
@@ -886,13 +949,13 @@ export default function OnlineDesigner({
                   })
                 }
               >
-                Add text
+                {hasMockups ? "Yazı ekle" : "Add text"}
               </button>
             </div>
           )}
           {tool === "background" && (
             <div className="background-pane">
-              <h3>Color</h3>
+              <h3>{hasMockups ? "Yüzey rengi" : "Color"}</h3>
               <div className="online-swatches">
                 {COLORS.map((color) => (
                   <button
@@ -918,7 +981,7 @@ export default function OnlineDesigner({
                 ))}
               </div>
               <label className="color-field">
-                Custom color
+                {hasMockups ? "Özel renk" : "Custom color"}
                 <input
                   type="color"
                   aria-label="Özel ambalaj rengi"
@@ -931,7 +994,7 @@ export default function OnlineDesigner({
                 Renk seçili baskı yüzeyine uygulanır. Ekran renkleri yaklaşık
                 gösterilir.
               </p>
-              <h3>Patterns</h3>
+              <h3>{hasMockups ? "Desenler" : "Patterns"}</h3>
               <div className="pattern-grid">
                 {PATTERNS.map((pattern) => (
                   <button
@@ -1031,7 +1094,7 @@ export default function OnlineDesigner({
               aria-expanded={layersOpen}
               onClick={() => setLayersOpen(!layersOpen)}
             >
-              <Layers size={16} /> Layers{" "}
+              <Layers size={16} /> {hasMockups ? "Katmanlar" : "Layers"}{" "}
               <span>{d.design.faces[d.face].length}</span>
               {layersOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
@@ -1055,7 +1118,11 @@ export default function OnlineDesigner({
                   </button>
                 ))}
                 {!d.design.faces[d.face].length && (
-                  <p>No layers on this face.</p>
+                  <p>
+                    {hasMockups
+                      ? "Bu yüzde henüz öğe yok."
+                      : "No layers on this face."}
+                  </p>
                 )}
               </div>
             )}
@@ -1130,7 +1197,21 @@ export default function OnlineDesigner({
               />
             </div>
           )}
-          {photoActive ? null : hasMockups && !manufacturerModel ? (
+          {photoActive && !selectedScene ? (
+            <div className="mockup-empty-state" role="status">
+              <ImagePlus size={36} />
+              <h2>
+                {resolvedMockups.cards.length
+                  ? "Mockup baskı eşlemesi bekleniyor"
+                  : "Bu ürüne henüz mockup eklenmedi"}
+              </h2>
+              <p>
+                {resolvedMockups.cards.length
+                  ? "Ürünün görselleri Yerleşimler bölümünde listeleniyor. Tasarımı fotoğrafa uygulamak için hazırlanan sahne bağlantısı gerekli."
+                  : "Ürüne hazır mockup sahneleri eklendiğinde burada tasarımınızı görebilirsiniz."}
+              </p>
+            </div>
+          ) : photoActive ? null : hasMockups && !manufacturerModel ? (
             <div className="mockup-missing-model" role="status">
               <Box size={36} />
               <strong>3B model bağlı değil</strong>
@@ -1162,7 +1243,7 @@ export default function OnlineDesigner({
               ref={d.preview}
               textures={d.textures}
               settings={
-                mode === "2d"
+                mode === "2d" || hasMockups
                   ? { ...d.settings, layout: "single", spacing: 1 }
                   : d.settings
               }
@@ -1211,7 +1292,7 @@ export default function OnlineDesigner({
               }
               onClick={() => setConfigureOpen(true)}
             >
-              Config
+              {hasMockups ? "Ürün bilgisi" : "Config"}
             </button>
           </div>
           {configOpen && (
@@ -1379,21 +1460,29 @@ export default function OnlineDesigner({
                   </>
                 ) : (
                   <p className="integration-note">
-                    Connect a Shopify product and variant to display order
-                    options.
+                    {hasMockups
+                      ? "Sipariş seçenekleri ürün sayfasından açıldığında görünür."
+                      : "Connect a Shopify product and variant to display order options."}
                   </p>
                 )}
                 <button
                   aria-label="Tasarımla sepete ekle"
                   className="black-button order-button"
-                  disabled={d.busy || !d.storage || !d.variant}
+                  disabled={
+                    d.busy ||
+                    !d.storage ||
+                    !d.variant ||
+                    (hasMockups && !selectedScene)
+                  }
                   onClick={() => void d.cart()}
                 >
-                  Buy Now
+                  {hasMockups ? "Tasarımla sepete ekle" : "Buy Now"}
                 </button>
                 {!d.storage && (
                   <small>
-                    Storage is not configured. Checkout is unavailable.
+                    {hasMockups
+                      ? "Sunucu depolaması bağlı değil. Sepete ekleme kullanılamıyor."
+                      : "Storage is not configured. Checkout is unavailable."}
                   </small>
                 )}
               </div>
@@ -1401,24 +1490,44 @@ export default function OnlineDesigner({
           )}
         </aside>
         <div className="online-save">
+          {hasMockups && (
+            <button
+              className="black-button mockup-primary-action"
+              disabled={d.busy}
+              onClick={() => changeMode(mode === "2d" ? "mockup" : "2d")}
+            >
+              {mode === "2d" ? "Mockupı gör" : "Tasarımı düzenle"}
+            </button>
+          )}
           <button
             aria-label="Kaydet"
-            className="black-button"
-            disabled={d.busy}
+            className={
+              hasMockups ? "outline-button mockup-draft-save" : "black-button"
+            }
+            disabled={d.busy || (hasMockups && !selectedScene)}
             onClick={() => void save()}
           >
-            {d.busy && <Loader2 className="spin" size={17} />}Save
+            {d.busy && <Loader2 className="spin" size={17} />}
+            {hasMockups ? "Kaydet" : "Save"}
           </button>
           <span>
-            {d.saved
-              ? "Saved to server"
-              : d.storage
-                ? "Saves to this device and server"
-                : "Saves to this device only"}
+            {hasMockups
+              ? d.saved
+                ? "Sunucuya kaydedildi"
+                : "Taslak bu cihazda otomatik korunur"
+              : d.saved
+                ? "Saved to server"
+                : d.storage
+                  ? "Saves to this device and server"
+                  : "Saves to this device only"}
           </span>
         </div>
         {mode === "3d" && (
-          <div className="online-3d-help">Drag to rotate · Scroll to zoom</div>
+          <div className="online-3d-help">
+            {hasMockups
+              ? "Döndürmek için sürükleyin · Yakınlaştırmak için kaydırın"
+              : "Drag to rotate · Scroll to zoom"}
+          </div>
         )}
       </main>
       <RenderDialog

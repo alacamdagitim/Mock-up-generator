@@ -67,7 +67,7 @@
   position: relative;
   display: block;
   overflow: hidden;
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 3;
   margin-bottom: 3px;
   border-radius: 10px;
   background: #efefef;
@@ -77,7 +77,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .mockup-scene-title {
@@ -90,10 +90,10 @@
   white-space: nowrap;
 }
 
-.mockup-scene-size {
-  color: #555;
+.mockup-scene-pending {
+  color: #6c491f;
   font-size: 10px;
-  line-height: 1.3;
+  line-height: 1.45;
 }
 
 .mockup-scene-selected {
@@ -146,43 +146,32 @@
   text-align: center;
 }
 
-.layout-panel .layout-three-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin: 21px 0 0;
-  padding: 15px 0;
-  border: 0;
-  border-top: 1px solid #e5e5e5;
-  border-radius: 0;
-  background: transparent;
-  color: #222;
-  font-size: 13px;
-  font-weight: 500;
+.mockup-scene-grid .mockup-scene-card:disabled {
+  opacity: 1;
+  cursor: default;
 }
 
-.layout-three-toggle svg {
-  transition: transform 0.15s;
+.mockup-scene-empty {
+  display: grid;
+  min-height: 180px;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #f4f4f4;
+  color: #555;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
-.layout-three-toggle[aria-expanded="true"] svg {
-  transform: rotate(180deg);
+.mockup-scene-empty p {
+  margin: 0;
 }
 
-.has-mockup-scenes .layout-three-content > .panel-note:first-child,
 .layout-three-content > .panel-note:first-child {
   margin-top: 0;
-}
-
-.layout-cover-label {
-  display: grid;
-  height: 100%;
-  padding: 8px;
-  place-items: center;
-  color: #444;
-  font-size: 11px;
-  text-align: center;
 }
 
 @media (max-width: 700px) {
@@ -194,14 +183,13 @@
     font-size: 13px;
   }
 
-  .mockup-scene-size {
+  .mockup-scene-pending {
     font-size: 11px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mockup-scene-apply,
-  .layout-three-toggle svg {
+  .mockup-scene-apply {
     transition: none;
   }
 }

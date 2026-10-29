@@ -1,4 +1,4 @@
-import { parseMockupScenes } from "./mockup-scenes.mjs";
+import { parseMockupImages, parseMockupScenes } from "./mockup-scenes.mjs";
 
 /** Storefront product data comes from the merchant's Liquid section, never a third-party model library. */
 export function storefrontProducts(config) {
@@ -11,6 +11,7 @@ export function storefrontProducts(config) {
   const products = supplied.map((p) => ({
     ...p,
     mockupScenes: parseMockupScenes(p.mockupScenes),
+    mockupImages: parseMockupImages(p.mockupImages),
     id: String(p.id),
     variants: Array.isArray(p.variants) ? p.variants : [],
     category: p.category || "Diğer",
@@ -27,6 +28,7 @@ export function storefrontProducts(config) {
       modelUrl: config.productModelUrl,
       dielineUrl: config.productDielineUrl,
       mockupScenes: parseMockupScenes(config.productMockupScenes),
+      mockupImages: parseMockupImages(config.productMockupImages),
     });
   else {
     if (!found.modelId) found.modelId = "doypack-v1";
@@ -34,6 +36,8 @@ export function storefrontProducts(config) {
     if (config.productDielineUrl) found.dielineUrl = config.productDielineUrl;
     if (config.productMockupScenes !== undefined)
       found.mockupScenes = parseMockupScenes(config.productMockupScenes);
+    if (config.productMockupImages !== undefined)
+      found.mockupImages = parseMockupImages(config.productMockupImages);
   }
   return products.filter(
     (p, i, all) => p.id && p.title && all.findIndex((x) => x.id === p.id) === i,

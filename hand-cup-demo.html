@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Alaçam · Elde Bardak Mockup</title>
+  </head>
+  <body style="margin: 0">
+    <div id="hand-cup-demo">
+      <p role="status" style="padding: 24px; font: 16px sans-serif">
+        Mockup yükleniyor…
+      </p>
+    </div>
+    <script type="module">
+      import { mountEditor } from "/src/main.tsx";
+      import { blankDesign } from "/shared/schema.mjs";
+      import { newElement } from "/src/useDesigner.ts";
+      async function startDemo() {
+        const storageKey = "alacam:hand-cup-demo:v1";
+        const response = await fetch(
+          "/product-assets/mockup-scenes/hand-cup-r1/scene.json",
+        );
+        if (!response.ok) throw new Error("Mockup sahnesi yüklenemedi.");
+        const scene = await response.json();
+        // Same prepared files work on localhost and the deployment's current host.
+        const localAsset = (url) => new URL(url).pathname;
+        scene.baseImageUrl = localAsset(scene.baseImageUrl);
+        scene.thumbnailUrl = localAsset(scene.thumbnailUrl);
+        scene.plainThumbnailUrl = localAsset(scene.plainThumbnailUrl);
+        for (const surface of scene.surfaces) {
+          surface.mapping.url = localAsset(surface.mapping.url);
+          surface.maskUrl = localAsset(surface.maskUrl);
+        }
+        if (!localStorage.getItem(storageKey)) {
+          const design = blankDesign();
+          design.name = "Alaçam · Elde bardak";
+          // Demonstration wrap, not an approved manufacturer's production dieline.
+          design.artboard = { canvasWidth: 1800, canvasHeight: 900 };
+          design.background = "#f5eddd";
+          design.faces.front = [
+            {
+              ...newElement("rect", "Yeşil şerit"),
+              x: 0,
+              y: 640,
+              width: 1800,
+              height: 260,
+              fill: "#244c39",
+            },
+            {
+              ...newElement("text", "ALAÇAM"),
+              x: 550,
+              y: 260,
+              width: 700,
+              height: 130,
+              text: "ALAÇAM",
+              fontFamily: "DM Sans",
+              fontSize: 135,
+              fontWeight: "bold",
+              textAlign: "center",
+              fill: "#244c39",
+            },
+            {
+              ...newElement("text", "DAĞITIM"),
+              x: 550,
+              y: 410,
+              width: 700,
+              height: 65,
+              text: "DAĞITIM",
+              fontFamily: "DM Sans",
+              fontSize: 55,
+              textAlign: "center",
+              fill: "#244c39",
+            },
+            {
+              ...newElement("text", "Gününüze eşlik eder."),
+              x: 550,
+              y: 735,
+              width: 700,
+              height: 50,
+              text: "Gününüze eşlik eder.",
+              fontFamily: "DM Sans",
+              fontSize: 40,
+              textAlign: "center",
+              fill: "#f5eddd",
+            },
+          ];
+          design.presentation = {
+            material: "matte",
+            background: "#dfe8f6",
+            backgroundStyle: "gradient",
+            exposure: 1.1,
+            shadows: true,
+            mockupSceneId: scene.id,
+          };
+          localStorage.setItem(storageKey, JSON.stringify(design));
+        }
+        const host = document.getElementById("hand-cup-demo");
+        host.replaceChildren();
+        mountEditor(host, {
+          config: {
+            productId: "hand-cup-demo",
+            productTitle: "Elde bardak · Hazır fotoğraf mockup",
+            storageKey,
+            productMockupScenes: { schemaVersion: 1, scenes: [scene] },
+          },
+        });
+      }
+      startDemo().catch(() => {
+        const message = document.createElement("p");
+        message.setAttribute("role", "status");
+        message.style.cssText = "padding:24px;font:16px sans-serif";
+        message.textContent = "Mockup yüklenemedi. Sayfayı yenileyin.";
+        document.getElementById("hand-cup-demo").replaceChildren(message);
+      });
+    </script>
+  </body>
+</html>

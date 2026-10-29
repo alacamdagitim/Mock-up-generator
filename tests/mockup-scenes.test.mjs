@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import {
   parseMockupScenes,
   mockupSceneSchema,
+  MAX_MOCKUP_SCENES,
 } from "../shared/mockup-scenes.mjs";
 
 const scene = () => ({
@@ -155,7 +156,7 @@ test("scene pixel budgets, normalized source bounds and surface IDs are validate
   assert.throws(() =>
     parseMockupScenes({
       schemaVersion: 1,
-      scenes: Array.from({ length: 9 }, (_, i) => ({
+      scenes: Array.from({ length: MAX_MOCKUP_SCENES + 1 }, (_, i) => ({
         ...scene(),
         id: `scene-${i}`,
       })),

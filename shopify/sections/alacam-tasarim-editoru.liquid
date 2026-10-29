@@ -20,6 +20,24 @@
   "productModelUrl": {{ alacam_model_url | json }},
   "productDielineUrl": {{ alacam_dieline_url | json }},
     "productMockupScenes": {% if editor_product.metafields.custom['mockup_sahneleri'].value != blank %}{{ editor_product.metafields.custom['mockup_sahneleri'].value | json }}{% else %}null{% endif %},
+    "productMockupImages": {% if editor_product.metafields.custom['mockup_gorselleri'].value != blank %}[
+      {% assign alacam_mockup_separator = '' %}
+      {% assign alacam_mockup_image_files = editor_product.metafields.custom['mockup_gorselleri'].value | where: 'media_type', 'image' %}
+      {% for alacam_mockup_file in alacam_mockup_image_files %}
+        {% assign alacam_mockup_url = alacam_mockup_file.src | default: alacam_mockup_file.preview_image.src | append: '' %}
+        {% assign alacam_mockup_url_prefix = alacam_mockup_url | slice: 0, 2 %}
+        {% if alacam_mockup_url_prefix == '//' %}{% assign alacam_mockup_url = alacam_mockup_url | prepend: 'https:' %}{% endif %}
+        {% assign alacam_mockup_thumbnail_image = alacam_mockup_file.preview_image | default: alacam_mockup_file %}
+        {% assign alacam_mockup_thumbnail_url = alacam_mockup_thumbnail_image | image_url: width: 480 %}
+        {% assign alacam_mockup_thumbnail_prefix = alacam_mockup_thumbnail_url | slice: 0, 2 %}
+        {% if alacam_mockup_thumbnail_prefix == '//' %}{% assign alacam_mockup_thumbnail_url = alacam_mockup_thumbnail_url | prepend: 'https:' %}{% endif %}
+        {% if alacam_mockup_file.id != blank and alacam_mockup_url != blank %}
+          {% assign alacam_mockup_default_title = 'Mockup ' | append: forloop.index %}
+          {{ alacam_mockup_separator }}{"id": {{ alacam_mockup_file.id | append: '' | json }}, "title": {{ alacam_mockup_file.alt | default: alacam_mockup_default_title | truncate: 120, '' | json }}, "imageUrl": {{ alacam_mockup_url | json }}, "thumbnailUrl": {{ alacam_mockup_thumbnail_url | json }}}
+          {% assign alacam_mockup_separator = ',' %}
+        {% endif %}
+      {% endfor %}
+    ]{% else %}null{% endif %},
   "productImage": {% if editor_product.featured_image %}{{ editor_product.featured_image | image_url: width: 400 | json }}{% else %}null{% endif %},
   "libraryKey": {{ 'alacam:library:v1:' | append: section.id | json }},
   "storageKey": {{ 'alacam:v1:' | append: section.id | append: ':' | append: editor_product.id | json }},
@@ -35,7 +53,7 @@
   "tag": "section",
   "class": "alacam-design-section",
   "settings": [
-    { "type": "product", "id": "product", "label": "Doypack ürünü", "info": "Editörde satılacak baskısız doypack ürününü seçin." },
+    { "type": "product", "id": "product", "label": "Ambalaj ürünü", "info": "Mockup, bıçak izi ve isteğe bağlı 3B modeli bağlı ürünü seçin." },
     { "type": "text", "id": "api_base", "label": "Tasarım API adresi", "info": "Örn. https://design-api.magazaniz.com/api. Depolama bağlı değilse sepete ekleme kapalıdır." }
   ],
   "presets": [{ "name": "Alaçam Tasarım Editörü" }]

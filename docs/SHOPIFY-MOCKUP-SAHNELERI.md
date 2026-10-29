@@ -1,22 +1,47 @@
 # Shopify ürününe hazır mockup sahneleri bağlama
 
-Müşteri bıçak izi üzerinde tasarlar. Seçilen hazır mockup sahnesinin fotoğrafı, ışığı ve gölgeleri korunur; tasarım, hazırlanan baskı eşlemesi üzerinden sahneye uygulanır. Yerleşimler bölümünde ürünün sahneleri seçilir. Bu akışta ayrı bir 3B render hesaplaması yapılmaz. Ürünün GLB dosyası varsa 3B görünüm ayrıca kullanılabilir. Mockup bağlı ürünlerde kayıt ve görsel indirme, 3B inceleme açıkken de seçili hazır mockupı kullanır; böylece siparişe bağlanan sunum değişmez.
+Mockup, ürünün ana sunumudur. Müşteri 2B bıçak izi üzerinde tasarlar; Yerleşimler bölümündeki baskısız sahne kartlarından birini seçince aynı tasarım o sahneye uygulanır. Ürüne eklenen görsellerin sırası seçeneklerin sırasını belirler. Fotoğrafın ışığı, gölgeleri ve önde kalan bölgeleri hazırlanan eşleme ve maskelerle korunur. PNG/JPG indirmek için ayrıca 3B render beklenmez. GLB varsa 3B görünüm inceleme için kalır. Kayıt ve görsel indirme, 3B inceleme açıkken de seçili hazır mockupı kullanır.
 
-## Meta alanı oluşturma
+## Son hazırlanan “Elde karton bardak” sahnesini hemen bağlama
 
-Shopify yönetiminde **Ayarlar → Özel veriler → Ürünler → Tanım ekle** yolunu açın:
+1. Shopify yönetiminde **Ayarlar → Özel veriler → Ürünler → Tanım ekle** yolunu açın.
+2. Adı **Mockup sahneleri**, ad alanı ve anahtarı **`custom.mockup_sahneleri`**, türü **JSON** olan ürün meta alanını oluşturun.
+3. [Hazır ürün JSON'unun](../shopify/metafields/hand-cup-r1.json) tamamını kopyalayıp ilgili ürünün **Mockup sahneleri** alanına yapıştırın ve ürünü kaydedin.
+4. Tema düzenleyicisinde ürün şablonunun **Özel Liquid** bloğundaki kodu, [güncel dosyanın](../shopify/custom-liquid/online-design-vercel.liquid) **tamamıyla** değiştirip kaydedin.
+5. Ürün sayfasını yenileyip **Online tasarla** düğmesiyle açın. **Yerleşimler** içinde baskısız elde bardak kartını seçin; tasarımınız bu fotoğrafa uygulanır.
 
-- Ad: **Mockup sahneleri**
-- Ad alanı ve anahtar: **`custom.mockup_sahneleri`**
-- Tür: **JSON**
+Bu sahne için ayrıca Shopify'a görsel yüklemek veya **Mockup görselleri** alanını doldurmak gerekmez. Hazır JSON; taban, maske ve UV eşlemesini Vercel'deki kalıcı HTTPS adreslerinden okur. Örneğin baskısız temel görsel:
 
-Shopify’ın [meta alan veri türleri belgesi](https://shopify.dev/docs/apps/build/metafields/list-of-data-types) JSON ve dosya referanslarını ayrı türler olarak tanımlar.
+`https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/hand-cup-r1/base.png`
 
-Ürünün meta alanına aşağıdaki sözleşmeye uygun JSON kaydedin. Bu bir görsel listesi veya PSD dosya alanı değildir. Görseller Shopify Dosyalar'a veya izinli bir CDN'e yüklenir; JSON bu dosyaların adreslerini ve baskı eşlemelerini birlikte taşır.
+Canlı deneme: [Elde bardak mockupı](https://mock-up-generator-y265.vercel.app/hand-cup-demo.html). Kaynak ve indirme boyutu **1448 × 1086 px**'tir. Web editöründe kullanım izni mağaza sahibi tarafından onaylanan bu sahne kamu malı/CC0 olarak sunulmaz. Sahne fotoğrafa göre hazırlanmış yaklaşık görsel eşlemedir; üreticinin onaylı bıçak izi veya baskı dosyası değildir.
 
-Mevcut **`custom.3b_glb_dosyasi`** ve **`custom.bicak_i_zi`** alanları korunur. Mockup alanı boşsa mevcut 2B/3B akış devam eder. Mockup tanımlı olup GLB bulunmuyorsa 3B sekmesi modelin bağlı olmadığını açıkça belirtir; örnek doypack ürününüz yerine gösterilmez.
+## Ürünün görsel listesini yönetme — isteğe bağlı
 
-**Liquid kodunu güncelleyin.** Daha önce eklediğiniz Özel Liquid bloğu bu yeni alanı otomatik okumaz. Vercel sürümü için `shopify/custom-liquid/online-design-vercel.liquid` dosyasının güncel tamamını kullanın. Tema içinde barındırılan kurulumlarda güncel snippet/section ve aynı derlemenin dosyalarını yükleyin. Dört giriş de `custom.mockup_sahneleri.value` değerini `productMockupScenes` adıyla editöre aktarır.
+Daha sonra ürün başına sahne kartlarını Shopify'dan sıralamak için ikinci bir ürün alanı oluşturabilirsiniz:
+
+| Ad | Ad alanı ve anahtar | Tür | İçerik |
+| --- | --- | --- | --- |
+| **Mockup sahneleri** | **`custom.mockup_sahneleri`** | **JSON** | Hazırlanan baskı eşlemeleri, maskeler, ışık katmanları ve temel görsel adresleri. |
+| **Mockup görselleri** | **`custom.mockup_gorselleri`** | **Dosya → Dosya listesi**, yalnız **Görseller** (`list.file_reference`) | İsteğe bağlı baskısız sahne kartları; dolu olduğunda gösterilecek seçenekleri ve sıralarını belirler. |
+
+Shopify'ın [veri türleri belgesi](https://shopify.dev/docs/apps/build/metafields/list-of-data-types), `list.file_reference` alanında görsel türü doğrulamasını destekler. Dosya başlığı, kimliği ve kaynak adresi [Liquid image nesnesinden](https://shopify.dev/docs/api/liquid/objects/image) okunur.
+
+**Liste boş veya tanımsızsa**, JSON içindeki hazırlanmış sahneler doğrudan görünür. **Listeye görsel eklerseniz**, görünmesini istediğiniz bütün mockup görsellerini bu listede seçin; liste ürünün galerisini belirler. Her dosya aynı fotoğraf için hazırlanmış bir JSON sahnesine bağlanmalıdır. Tercih edilen bağ, sahnenin isteğe bağlı **`shopifyImageId`** alanında dosyanın sabit Shopify medya kimliğini kullanmaktır. Bu alan yoksa tam temel görsel adresiyle eşleme yapılır. Görseli Shopify'a yeniden yüklemek yeni adres/kimlik oluşturur; farklı CDN adresini aynı fotoğraf sanarak otomatik eşleme yapılmaz.
+
+Örneğin Shopify'daki dosya kimliği `123456789` ise, o fotoğrafın hazırlanmış sahnesine `"shopifyImageId": "123456789"` eklenir. Shopify kurulumunda Liquid çıktısındaki sayısal kimliği **aynı metin olarak** kullanın. `123456789` ile `gid://shopify/MediaImage/123456789` otomatik olarak eşit sayılmaz. Başlık, dosya adı veya listedeki konum kimlik yerine kullanılmaz. Sırf listede aynı sıraya denk geldi diye başka bir sahnenin UV eşlemesi uygulanmaz.
+
+Görsel listesine **baskısız temel fotoğrafı** ekleyin; son müşterinin tasarımının basılmış olduğu PNG'yi, kalibrasyon ızgarasını veya UV dosyasını eklemeyin. Alt metin kart başlığı olarak kullanılır, ilk 120 karakteri alınır; boşsa “Mockup 1” gibi bir ad gösterilir. Başlık değişikliği eşlemeyi bozmaz.
+
+**Yeni JPG tek başına baskı şablonu değildir.** Fotoğrafın kıvrımı, baskı bölgesi, maskesi ve gerekiyorsa gölge katmanları bir kez hazırlanıp JSON'a bağlanmalıdır. Eşlemesi olmayan görsel hazırlanması gereken seçenek olarak görünür; tasarım uygulanmış başarılı mockup gibi gösterilmez. Görseli başka açıyla veya başka ölçüde yeniden düzenlerseniz eşlemeyi yeniden hazırlayın.
+
+### Liquid güncellemesi ve mevcut alanlar
+
+Vercel sürümünde tema `assets/` klasörüne editör dosyası yüklemek gerekmez. Vercel güncellemesi, Shopify'a önceden yapıştırılmış Liquid kodunu kendiliğinden değiştirmez; yeni dosyanın tamamını **Özel Liquid** bloğuna yapıştırmalısınız.
+
+Dört Liquid girişi de liste doluysa yalnız görsel dosyalarını `productMockupImages` olarak aktarır; liste boş/tanımsızsa **`null`** göndererek yalnız JSON kullanılan eski ürünlerin sahnelerini korur. Programatik yapılandırmada açık `productMockupImages: []` ise seçenekleri kaldırır. Görsellerin ham kaynak adresi `imageUrl` olarak korunur; kartlarda 480 px genişlikte ayrı `thumbnailUrl` kullanılır. Küçültülmüş kart görseli baskı tabanı veya eşleme kaynağı yerine geçirilmez. PDF/video önizlemeleri mockup görseli sayılmaz.
+
+Mevcut **`custom.3b_glb_dosyasi`** ve **`custom.bicak_i_zi`** alanları korunur. Mockup alanları boşsa mevcut 2B/3B akış devam eder. GLB bulunmuyorsa 3B sekmesi bağlı model olmadığını açıkça belirtir; ürününüz yerine örnek doypack gösterilmez.
 
 ## Hazırlanmış bir sahnede gerekenler
 
@@ -52,7 +77,6 @@ Aşağıdaki JSON bu özgün sahneyi Shopify ürününde denemek içindir. Alan 
       "width": 1024,
       "height": 1365,
       "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/original-cup/base.png",
-      "thumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/original-cup/thumbnail.jpg",
       "distribution": "public-web",
       "license": "Özgün prosedürel örnek · CC0-1.0",
       "surfaces": [
@@ -83,15 +107,17 @@ Aşağıdaki JSON bu özgün sahneyi Shopify ürününde denemek içindir. Alan 
 
 ## Sözleşme ve eşleme
 
-Katalog `schemaVersion: 1` içerir. En fazla **8 sahne**, sahne başına en fazla **8 baskı yüzeyi** ve **16 üst katman** tanımlanır. Her kenar en fazla 8192 px, toplam alan en fazla 16.777.216 pikseldir. Bu üst sınırlar kaynak kalitesini yükseltmez; büyük sahnelerde yükleme ve hafıza maliyeti artar.
+Katalog `schemaVersion: 1` içerir. Ürün başına en fazla **64 sahne** ve isteğe bağlı görsel listesinde **64 görsel**, sahne başına en fazla **8 baskı yüzeyi** ve **16 üst katman** tanımlanır. Her kenar en fazla 8192 px, toplam alan en fazla 16.777.216 pikseldir. Kart görselleri küçük ve tembel yüklenir; yüksek çözünürlüklü temel fotoğraf, UV ve maske yalnız seçilen sahne için yüklenir. Bu üst sınırlar kaynak kalitesini yükseltmez; büyük sahnelerde yükleme ve hafıza maliyeti artar.
 
 | Alan              | Anlamı                                                                                                     |
 | ----------------- | ---------------------------------------------------------------------------------------------------------- |
 | `id`              | Değişmeyen sahne kimliği. Tasarımla birlikte `presentation.mockupSceneId` olarak kaydedilir.               |
+| `shopifyImageId`  | İsteğe bağlı Shopify dosya kimliği; dosya listesiyle sabit bağ kurar. |
 | `title`           | Yerleşimler kartında gösterilen ad.                                                                        |
 | `width`, `height` | Temel görselin gerçek kaynak piksel ölçüsü.                                                                |
 | `baseImageUrl`    | Baskısız temel PNG, JPG veya WebP.                                                                         |
-| `thumbnailUrl`    | İsteğe bağlı hızlı kart görseli; yoksa temel görsel kullanılır.                                            |
+| `plainThumbnailUrl` | İsteğe bağlı küçük **baskısız** kart görseli; yoksa temel görsel kullanılır. |
+| `thumbnailUrl`    | Eski sözleşme uyumluluğu için kabul edilir; baskılı örnek içerebileceğinden Yerleşimler kartında kullanılmaz.                                            |
 | `distribution`    | Bu istemci akışında zorunlu değer: `public-web`.                                                           |
 | `license`         | İsteğe bağlı lisans/kaynak notu; lisansın yerine geçmez.                                                   |
 | `surfaces`        | Baskı yüzleri, kaynak bölgeler, eşleme ve maskeler.                                                        |
@@ -133,9 +159,9 @@ Bıçak izi/üretim çıktısı ile mockup görseli ayrı dosyalardır. Bu sahne
 ## Kontrol adımları
 
 1. Güncel Liquid'i ekleyin ve ürünün JSON meta alanını kaydedin.
-2. Ürün sayfasındaki **Online tasarla** düğmesini açın; 2B bıçak izi ve küçük canlı mockup görünmelidir.
-3. Renk, yazı ve logo değiştirin; baskı alanında anında güncellendiğini kontrol edin.
-4. **Layout / Yerleşimler** içinden sahne seçin ve JSON dışa aktarımında `mockupSceneId` değerini kontrol edin.
+2. Ürün sayfasındaki **Online tasarla** düğmesini açın; ana **Mockup** görünümü ve **Yerleşimler** panelindeki baskısız sahne kartları görünmelidir.
+3. **Görsel yükle** veya **2D** ile bıçak izine geçin. Renk, yazı ve logo değiştirin; küçük canlı mockupın baskı alanında güncellendiğini kontrol edin.
+4. **Mockup / Yerleşimler** içinden sahne seçin; tüm tasarımı tekrar eklemeden uygulandığını ve JSON dışa aktarımında `mockupSceneId` değerini kontrol edin.
 5. PNG/JPG indirin; gerçek piksel ölçülerini ve tasarımın kavis/maske sınırlarını kontrol edin.
 6. Kaydedip sayfayı yenileyin; sahne seçimi ve tasarım korunmalıdır.
 7. Hatalı bir dosya adresiyle açık hata çıktığını, yanlış görselin kaydedilmediğini doğrulayın.

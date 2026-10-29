@@ -2,6 +2,8 @@
   Alaçam · Vercel üzerinden tam ekran tasarım editörü.
   Ürün şablonundaki Özel Liquid bloğuna dosyanın tamamını yapıştırın.
   Tema assets klasörüne editör dosyası yüklemek gerekmez.
+  Mockup görselleri: custom.mockup_gorselleri · Dosya listesi · yalnız Görseller.
+  Hazırlanmış baskı eşlemeleri: custom.mockup_sahneleri · JSON.
   Bu yayında kalıcı kayıt API'si henüz kurulmamıştır; Save cihaz kaydıdır.
 {% endcomment %}
 {% assign alacam_button_product = editor_product | default: product %}
@@ -24,6 +26,24 @@
     "productModelUrl": {{ alacam_model_url | json }},
     "productDielineUrl": {{ alacam_dieline_url | json }},
     "productMockupScenes": {% if alacam_button_product.metafields.custom['mockup_sahneleri'].value != blank %}{{ alacam_button_product.metafields.custom['mockup_sahneleri'].value | json }}{% else %}null{% endif %},
+    "productMockupImages": {% if alacam_button_product.metafields.custom['mockup_gorselleri'].value != blank %}[
+      {% assign alacam_mockup_separator = '' %}
+      {% assign alacam_mockup_image_files = alacam_button_product.metafields.custom['mockup_gorselleri'].value | where: 'media_type', 'image' %}
+      {% for alacam_mockup_file in alacam_mockup_image_files %}
+        {% assign alacam_mockup_url = alacam_mockup_file.src | default: alacam_mockup_file.preview_image.src | append: '' %}
+        {% assign alacam_mockup_url_prefix = alacam_mockup_url | slice: 0, 2 %}
+        {% if alacam_mockup_url_prefix == '//' %}{% assign alacam_mockup_url = alacam_mockup_url | prepend: 'https:' %}{% endif %}
+        {% assign alacam_mockup_thumbnail_image = alacam_mockup_file.preview_image | default: alacam_mockup_file %}
+        {% assign alacam_mockup_thumbnail_url = alacam_mockup_thumbnail_image | image_url: width: 480 %}
+        {% assign alacam_mockup_thumbnail_prefix = alacam_mockup_thumbnail_url | slice: 0, 2 %}
+        {% if alacam_mockup_thumbnail_prefix == '//' %}{% assign alacam_mockup_thumbnail_url = alacam_mockup_thumbnail_url | prepend: 'https:' %}{% endif %}
+        {% if alacam_mockup_file.id != blank and alacam_mockup_url != blank %}
+          {% assign alacam_mockup_default_title = 'Mockup ' | append: forloop.index %}
+          {{ alacam_mockup_separator }}{"id": {{ alacam_mockup_file.id | append: '' | json }}, "title": {{ alacam_mockup_file.alt | default: alacam_mockup_default_title | truncate: 120, '' | json }}, "imageUrl": {{ alacam_mockup_url | json }}, "thumbnailUrl": {{ alacam_mockup_thumbnail_url | json }}}
+          {% assign alacam_mockup_separator = ',' %}
+        {% endif %}
+      {% endfor %}
+    ]{% else %}null{% endif %},
     "productImage": {% if alacam_button_product.featured_image %}{{ alacam_button_product.featured_image | image_url: width: 400 | json }}{% else %}null{% endif %},
     "initialVariantId": {{ alacam_button_product.selected_or_first_available_variant.id | json }},
     "libraryKey": {{ 'alacam:library:v1:product:' | append: alacam_button_product.id | json }},

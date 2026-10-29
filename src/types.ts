@@ -11,6 +11,21 @@ export type MockupScene = z.infer<
 export type MockupScenes = z.infer<
   typeof import("../shared/mockup-scenes.mjs").mockupScenesSchema
 >;
+export type MockupImage = z.infer<
+  typeof import("../shared/mockup-scenes.mjs").mockupImageSchema
+>;
+export type MockupCard = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  sceneId?: string;
+  ready: boolean;
+  pendingReason?: string;
+};
+export type ResolvedProductMockups = {
+  cards: MockupCard[];
+  scenes: MockupScene[];
+};
 export type SavedDesign = { id: string; designUrl: string; previewUrl: string };
 export type EditorConfig = {
   apiBase?: string;
@@ -20,6 +35,7 @@ export type EditorConfig = {
   productModelUrl?: string;
   productDielineUrl?: string;
   productMockupScenes?: MockupScenes;
+  productMockupImages?: MockupImage[];
   products?: StoreProduct[];
   variants?: { id: number; title: string; available: boolean }[];
   initialVariantId?: string | number;
@@ -47,5 +63,6 @@ export type StoreProduct = {
   modelUrl?: string;
   dielineUrl?: string;
   mockupScenes?: MockupScenes;
+  mockupImages?: MockupImage[];
   variants: { id: number; title: string; available: boolean }[];
 };

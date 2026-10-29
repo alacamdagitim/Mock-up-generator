@@ -1,39 +1,52 @@
-import { useEffect, useId, useState } from "react";
-import { Check, ChevronDown, ImageOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, ImageOff } from "lucide-react";
 import { LAYOUTS } from "../shared/layouts.mjs";
 import type { MockupScene } from "./mockups/types";
 import type { Presentation } from "./types";
 
+export type MockupLayoutCard = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  sceneId?: string;
+  pendingReason?: string;
+};
+
 function MockupCard({
-  scene,
+  card,
   selected,
   onSelect,
 }: {
-  scene: MockupScene;
+  card: MockupLayoutCard;
   selected: boolean;
   onSelect?: (id: string) => void;
 }) {
-  const imageUrl = scene.thumbnailUrl || scene.baseImageUrl;
   const [imageFailed, setImageFailed] = useState(false);
-  useEffect(() => setImageFailed(false), [imageUrl]);
+  useEffect(() => setImageFailed(false), [card.imageUrl]);
+  const ready = Boolean(card.sceneId && onSelect);
   return (
     <button
       type="button"
       className="mockup-scene-card"
-      aria-label={`${scene.title} mockup sahnesini seç`}
+      aria-label={`${card.title} mockup sahnesini seç`}
       aria-pressed={selected}
-      disabled={!onSelect}
-      onClick={() => onSelect?.(scene.id)}
+      disabled={!ready}
+      title={
+        card.sceneId
+          ? card.title
+          : card.pendingReason || "Baskı eşlemesi bağlı değil"
+      }
+      onClick={() => card.sceneId && onSelect?.(card.sceneId)}
     >
       <span className="mockup-scene-cover">
         {imageFailed ? (
           <span className="mockup-scene-no-image">
             <ImageOff size={22} aria-hidden="true" />
-            Önizleme açılamadı
+            Görsel açılamadı
           </span>
         ) : (
           <img
-            src={imageUrl}
+            src={card.imageUrl}
             alt=""
             loading="lazy"
             decoding="async"
@@ -46,12 +59,14 @@ function MockupCard({
             <Check size={14} />
           </span>
         )}
-        <span className="mockup-scene-apply">Sahneyi aç</span>
+        {ready && <span className="mockup-scene-apply">Seç</span>}
       </span>
-      <span className="mockup-scene-title">{scene.title}</span>
-      <span className="mockup-scene-size">
-        {scene.width} × {scene.height} px
-      </span>
+      <span className="mockup-scene-title">{card.title}</span>
+      {!card.sceneId && (
+        <span className="mockup-scene-pending">
+          {card.pendingReason || "Baskı eşlemesi bağlı değil"}
+        </span>
+      )}
     </button>
   );
 }
@@ -67,6 +82,8 @@ export function LayoutPanel({
   mockupSceneId,
   onMockupSelect,
   activeMode = "3d",
+  mockupCards,
+  hasMockupWorkflow = false,
 }: {
   layout: NonNullable<Presentation["layout"]>;
   spacing: number;
@@ -78,14 +95,24 @@ export function LayoutPanel({
   mockupSceneId?: string;
   onMockupSelect?: (id: string) => void;
   activeMode?: "3d" | "mockup";
+  mockupCards?: MockupLayoutCard[];
+  hasMockupWorkflow?: boolean;
 }) {
-  const hasMockups = mockupScenes.length > 0;
-  const [threeExpanded, setThreeExpanded] = useState(false);
+  const cards =
+    mockupCards ??
+    mockupScenes.map((scene) => ({
+      id: scene.id,
+      title: scene.title,
+      imageUrl: scene.baseImageUrl,
+      sceneId: scene.id,
+    }));
+  const isMockupWorkflow =
+    hasMockupWorkflow || cards.length > 0 || mockupScenes.length > 0;
   const [covers, setCovers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState("");
-  const threeContentId = useId();
-  const showThreeLayouts = !hasMockups || threeExpanded;
-  const canRenderCovers = showThreeLayouts && activeMode === "3d";
+  // Photo mockups have fixed, prepared views. Never render 3D layout covers for
+  // this workflow, including products whose uploaded photos await mapping.
+  const canRenderCovers = !isMockupWorkflow && activeMode === "3d";
   useEffect(() => {
     if (!canRenderCovers) return;
     const controller = new AbortController();
@@ -142,46 +169,45 @@ export function LayoutPanel({
     };
   }, [revision, spacing, getCovers, canRenderCovers]);
   return (
-    <div className={`layout-panel${hasMockups ? " has-mockup-scenes" : ""}`}>
-      {hasMockups && (
-        <section className="mockup-scene-section" aria-label="Hazır mockuplar">
+    <div
+      className={`layout-panel${isMockupWorkflow ? " has-mockup-scenes" : ""}`}
+    >
+      {isMockupWorkflow ? (
+        <section className="mockup-scene-section" aria-label="Yerleşimler">
           <div className="mockup-scene-heading">
-            <h3>Hazır mockuplar</h3>
-            <span>{mockupScenes.length} sahne</span>
+            <h3>Ürün mockupları</h3>
+            <span>{cards.length} mockup</span>
           </div>
           <p className="mockup-scene-intro">
-            Tasarımınızı hazır ışık ve gölgelerle görün. Ayrı render gerekmez.
+            Bir mockup seçin. Tasarımınız seçtiğiniz görsele otomatik uygulanır.
           </p>
-          <div className="mockup-scene-grid">
-            {mockupScenes.map((scene) => (
-              <MockupCard
-                key={scene.id}
-                scene={scene}
-                selected={activeMode === "mockup" && mockupSceneId === scene.id}
-                onSelect={onMockupSelect}
-              />
-            ))}
-          </div>
-          <p className="mockup-scene-caption">
-            Kartlar sahne örnekleridir. Tasarımınız seçtiğiniz sahneye
-            uygulanır. Kamera açısı sabittir.
-          </p>
+          {cards.length > 0 ? (
+            <div className="mockup-scene-grid">
+              {cards.map((card) => (
+                <MockupCard
+                  key={card.id}
+                  card={card}
+                  selected={Boolean(
+                    card.sceneId && mockupSceneId === card.sceneId,
+                  )}
+                  onSelect={onMockupSelect}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mockup-scene-empty" role="status">
+              <ImageOff size={24} aria-hidden="true" />
+              <p>Bu ürün için henüz mockup eklenmedi.</p>
+            </div>
+          )}
+          {cards.length > 0 && (
+            <p className="mockup-scene-caption">
+              Kartlarda ürünün baskısız görünümü gösterilir.
+            </p>
+          )}
         </section>
-      )}
-      {hasMockups && (
-        <button
-          type="button"
-          className="layout-three-toggle"
-          aria-expanded={threeExpanded}
-          aria-controls={threeContentId}
-          onClick={() => setThreeExpanded((value) => !value)}
-        >
-          <span>3B yerleşimleri</span>
-          <ChevronDown size={16} aria-hidden="true" />
-        </button>
-      )}
-      {showThreeLayouts && (
-        <div id={threeContentId} className="layout-three-content">
+      ) : (
+        <div className="layout-three-content">
           {canRenderCovers && status && (
             <p className="panel-note" role="status">
               {status}
@@ -207,9 +233,6 @@ export function LayoutPanel({
                 <div className="layout-cover">
                   {covers[item.id] && (
                     <img src={covers[item.id]} alt="" draggable={false} />
-                  )}
-                  {hasMockups && !covers[item.id] && (
-                    <span className="layout-cover-label">{item.name}</span>
                   )}
                   <span className="layout-apply">Uygula</span>
                 </div>

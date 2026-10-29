@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 export const MOCKUP_SCENE_VERSION = 1;
-export const MAX_MOCKUP_SCENES = 8;
+export const MAX_MOCKUP_SCENES = 64;
+export const MAX_MOCKUP_IMAGES = MAX_MOCKUP_SCENES;
 export const MAX_MOCKUP_PIXELS = 16_777_216;
 
 /** Browser scenes must contain merchant-authorized public web assets only. */
@@ -43,6 +44,38 @@ const id = z
   .min(1)
   .max(100)
   .regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
+// Liquid image IDs may be numeric or GraphQL IDs. The original file ID stays
+// stable when the merchant changes its title/filename; a URL does not.
+const shopifyImageId = z
+  .string()
+  .min(1)
+  .max(200)
+  .regex(
+    /^(?:[1-9]\d*|gid:\/\/shopify\/(?:Image|MediaImage|GenericFile)\/[1-9]\d*)$/,
+  );
+export const mockupImageSchema = z
+  .object({
+    id: shopifyImageId,
+    title: z.string().trim().min(1).max(120),
+    imageUrl: rasterUrl,
+    thumbnailUrl: rasterUrl.optional(),
+  })
+  .strict();
+export const mockupImagesSchema = z
+  .array(mockupImageSchema)
+  .max(MAX_MOCKUP_IMAGES)
+  .superRefine((images, context) => {
+    const ids = new Set();
+    images.forEach((image, index) => {
+      if (ids.has(image.id))
+        context.addIssue({
+          code: "custom",
+          path: [index, "id"],
+          message: "Mockup görseli kimlikleri benzersiz olmalı.",
+        });
+      ids.add(image.id);
+    });
+  });
 const finite = z.number().finite();
 const point = z.tuple([finite.min(0).max(8192), finite.min(0).max(8192)]);
 const sourceRect = z
@@ -84,10 +117,14 @@ export const mockupSceneSchema = z
   .object({
     id,
     title: z.string().min(1).max(120),
+    shopifyImageId: shopifyImageId.optional(),
     width: z.number().int().min(1).max(8192),
     height: z.number().int().min(1).max(8192),
     baseImageUrl: rasterUrl,
     thumbnailUrl: rasterUrl.optional(),
+    // Explicitly identifies an unprinted resized photograph for Layout cards.
+    // Legacy thumbnailUrl may contain sample artwork and is not used here.
+    plainThumbnailUrl: rasterUrl.optional(),
     // This is an explicit merchant declaration, not an inferred asset license.
     // Restricted PSD/source passes belong on a separate private server pipeline.
     distribution: z.literal("public-web"),
@@ -188,4 +225,86 @@ export function parseMockupScenes(value) {
     throw new Error(`Ürünün mockup sahneleri geçersiz: ${reason}`);
   }
   return result.data;
+}
+
+/** An explicit empty list removes all product mockups; absence keeps legacy JSON. */
+export function parseMockupImages(value) {
+  if (value === undefined || value === null || value === "") return undefined;
+  const result = mockupImagesSchema.safeParse(value);
+  if (!result.success) {
+    const reason =
+      result.error.issues[0]?.message || "Görsel listesi geçersiz.";
+    throw new Error(`Ürünün mockup görselleri geçersiz: ${reason}`);
+  }
+  return result.data;
+}
+
+function canonicalImageUrl(value) {
+  const url = new URL(value, "https://alacam.invalid");
+  return `${url.origin}${url.pathname}`;
+}
+
+/**
+ * Resolve only the current product's prepared scenes. Image list order is the
+ * gallery order; no filename, alt text, list index or other-product guess is used.
+ *
+ * @param {{mockupImages?: import("../src/types").MockupImage[], mockupScenes?: import("../src/types").MockupScenes}} product
+ * @returns {import("../src/types").ResolvedProductMockups}
+ */
+export function resolveProductMockups(product) {
+  const scenes = product.mockupScenes?.scenes || [];
+  if (product.mockupImages === undefined)
+    return {
+      cards: scenes.map((scene) => ({
+        id: scene.id,
+        title: scene.title,
+        imageUrl: scene.plainThumbnailUrl || scene.baseImageUrl,
+        sceneId: scene.id,
+        ready: true,
+      })),
+      scenes,
+    };
+
+  const candidates = product.mockupImages.map((image) => {
+    const byId = scenes.filter((scene) => scene.shopifyImageId === image.id);
+    if (byId.length) return byId;
+    const imageUrl = canonicalImageUrl(image.imageUrl);
+    return scenes.filter(
+      (scene) =>
+        !scene.shopifyImageId &&
+        canonicalImageUrl(scene.baseImageUrl) === imageUrl,
+    );
+  });
+  // A single legacy scene matching several gallery files is ambiguous too.
+  const uses = new Map();
+  candidates.forEach((matches) => {
+    if (matches.length === 1)
+      uses.set(matches[0].id, (uses.get(matches[0].id) || 0) + 1);
+  });
+  const cards = product.mockupImages.map((image, index) => {
+    const matches = candidates[index];
+    // Cards need only the small plain photograph; original imageUrl above is
+    // still the binding source and scene.baseImageUrl stays the export source.
+    const card = {
+      id: image.id,
+      title: image.title,
+      imageUrl: image.thumbnailUrl || image.imageUrl,
+    };
+    if (matches.length === 1 && uses.get(matches[0].id) === 1)
+      return { ...card, sceneId: matches[0].id, ready: true };
+    return {
+      ...card,
+      ready: false,
+      pendingReason: matches.length
+        ? "Bu görsel için birden fazla baskı eşlemesi bulundu. Sahne bağlantısını kontrol edin."
+        : "Bu görsel için baskı eşlemesi henüz hazırlanmadı.",
+    };
+  });
+  const byId = new Map(scenes.map((scene) => [scene.id, scene]));
+  return {
+    cards,
+    scenes: cards.flatMap((card) =>
+      card.sceneId ? [byId.get(card.sceneId)] : [],
+    ),
+  };
 }

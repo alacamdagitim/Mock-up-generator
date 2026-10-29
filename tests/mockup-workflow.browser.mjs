@@ -87,6 +87,7 @@ async function mockContext({
   fail = false,
   stale = false,
   mobile = false,
+  pendingOnly = false,
 } = {}) {
   const context = await browser.newContext({
     viewport: mobile
@@ -151,10 +152,23 @@ async function mockContext({
   await target.route("**/mockup-demo.html*", async (route) => {
     const response = await route.fetch();
     const original = await response.text();
-    const code = original.replace(
-      "scenes: DEMO_MOCKUP_SCENES",
-      `scenes: [...DEMO_MOCKUP_SCENES, { ...DEMO_MOCKUP_SCENES[0], id: '${secondId}', title: 'İkinci özgün sahne' }]`,
-    );
+    const plainUrl = "/product-assets/mockup-scenes/original-cup/base.png";
+    const images = [
+      { id: "101", title: "Örnek bardak · Stüdyo", imageUrl: plainUrl },
+      { id: "102", title: "İkinci özgün sahne", imageUrl: plainUrl },
+      { id: "103", title: "Eşleme bekleyen görsel", imageUrl: plainUrl },
+    ];
+    const code = original
+      .replace(
+        "scenes: DEMO_MOCKUP_SCENES",
+        `scenes: [...DEMO_MOCKUP_SCENES.map(scene => ({ ...scene, shopifyImageId: '101' })), { ...DEMO_MOCKUP_SCENES[0], id: '${secondId}', title: 'İkinci özgün sahne', shopifyImageId: '102' }]`,
+      )
+      .replace(
+        "productMockupScenes:",
+        `productMockupImages: ${JSON.stringify(pendingOnly ? images.slice(2) : images)},
+         products: [{ id: 'qa-other-product', title: 'Diğer ürün', category: 'Bardak', variants: [], mockupImages: [{ id: '901', title: 'Diğer ürüne ait mockup', imageUrl: '${plainUrl}' }], mockupScenes: {schemaVersion: 1, scenes: [{ ...DEMO_MOCKUP_SCENES[0], id: 'other-product-scene', title: 'Diğer ürüne ait mockup', shopifyImageId: '901' }] } }],
+         productMockupScenes:`,
+      );
     await route.fulfill({ response, body: code });
   });
   if (fail)
@@ -209,9 +223,36 @@ try {
   await settled(page);
   await expect(page.locator(".online-mode-switch")).toHaveAttribute(
     "data-mode",
-    "2d",
+    "mockup",
   );
-  await expect(page.locator(".online-canvas .canvas-loading")).toBeHidden();
+  expect(
+    await page.locator(".online-mode-switch button").allTextContents(),
+  ).toEqual(["Mockup", "2D", "3B"]);
+  await expect(page.locator(".mockup-scene-card")).toHaveCount(3);
+  await expect(page.locator(".layout-grid")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", {
+      name: "Eşleme bekleyen görsel mockup sahnesini seç",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await expect(
+    page.getByText("Bu görsel için baskı eşlemesi henüz hazırlanmadı.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Diğer ürüne ait mockup", { exact: true }),
+  ).toHaveCount(0);
+  for (const image of await page.locator(".mockup-scene-cover img").all()) {
+    await expect(image).toHaveAttribute(
+      "src",
+      "/product-assets/mockup-scenes/original-cup/base.png",
+    );
+    expect(
+      await image.evaluate((node) => getComputedStyle(node).objectFit),
+    ).toBe("contain");
+  }
   const initial = sha(
     Buffer.from(
       await page
@@ -221,9 +262,17 @@ try {
   );
   await expect(page.locator(".preview-render canvas")).toHaveCount(0);
   summary.passed.push(
-    "2D editor opens with live prepared mockup and no substituted GLB",
+    "mockup-first workspace opens only current product plain galleries; ready and pending cards are distinct",
   );
 
+  await page
+    .getByRole("button", { name: "Tasarımı düzenle", exact: true })
+    .click();
+  await expect(page.locator(".online-mode-switch")).toHaveAttribute(
+    "data-mode",
+    "2d",
+  );
+  await expect(page.locator(".online-canvas .canvas-loading")).toBeHidden();
   await page.getByRole("button", { name: "Yüzey rengi", exact: true }).click();
   const hex = page.getByRole("textbox", { name: "HEX renk kodu", exact: true });
   await hex.fill("#75bb91");
@@ -256,7 +305,12 @@ try {
         .evaluate((node) => node.toDataURL()),
     ),
   );
+  await page.getByRole("button", { name: "Mockup", exact: true }).click();
   await page.getByRole("button", { name: "Yazı", exact: true }).click();
+  await expect(page.locator(".online-mode-switch")).toHaveAttribute(
+    "data-mode",
+    "2d",
+  );
   await page.getByRole("button", { name: "Yazı ekle", exact: true }).click();
   await page
     .getByRole("button", { name: "More object tools", exact: true })
@@ -284,7 +338,7 @@ try {
     animations: "disabled",
   });
 
-  await page.getByRole("button", { name: "Yerleşim", exact: true }).click();
+  await page.getByRole("button", { name: /^Yerleşim(?:ler)?$/ }).click();
   await page
     .getByRole("button", {
       name: "İkinci özgün sahne mockup sahnesini seç",
@@ -367,7 +421,7 @@ try {
     "native PNG is byte-exact source, JPG keeps dimensions, separate studio render is absent",
   );
 
-  await page.getByRole("button", { name: "3D", exact: true }).click();
+  await page.getByRole("button", { name: "3B", exact: true }).click();
   await expect(
     page.getByText("3B model bağlı değil", { exact: true }),
   ).toBeVisible();
@@ -420,6 +474,50 @@ try {
   await page.goto(`${base}/mockup-demo.html`);
   await settled(page);
   await fits(page, page.locator(".online-mode-switch"));
+  await expect(page.locator(".online-mode-switch")).toHaveAttribute(
+    "data-mode",
+    "mockup",
+  );
+  await fits(page, page.locator(".online-header-actions"));
+  await fits(page, page.locator(".online-save"));
+  await page.getByRole("button", { name: "Yerleşimler", exact: true }).click();
+  await fits(page, page.locator(".mockup-scene-grid"));
+  await expect
+    .poll(() =>
+      page
+        .locator(".mockup-scene-cover img")
+        .evaluateAll((images) =>
+          images.every((image) => image.complete && image.naturalWidth > 0),
+        ),
+    )
+    .toBe(true);
+  await expect(page.locator(".online-panel")).toBeVisible();
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  await page
+    .locator(".online-panel")
+    .screenshot({
+      path: `${output}/mobile-layout-panel.png`,
+      animations: "disabled",
+    });
+  await page.screenshot({
+    path: `${output}/mobile-layout.png`,
+    animations: "disabled",
+  });
+  await page
+    .getByRole("button", { name: "Düzenleme panelini kapat", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Tasarımı düzenle", exact: true })
+    .click();
+  await expect(page.locator(".online-mode-switch")).toHaveAttribute(
+    "data-mode",
+    "2d",
+  );
   await page.getByRole("button", { name: "Mockup", exact: true }).click();
   await settled(page);
   await fits(page, page.locator(".mockup-preview"));
@@ -440,6 +538,38 @@ try {
     "390px mobile mockup and native download dialog fit the viewport",
   );
   await mobile.context.close();
+
+  const pending = await mockContext({ pendingOnly: true, server: true });
+  page = pending.page;
+  await page.goto(`${base}/mockup-demo.html`);
+  await expect(page.locator(".online-mode-switch")).toHaveAttribute(
+    "data-mode",
+    "mockup",
+  );
+  await expect(page.locator(".mockup-scene-card")).toHaveCount(1);
+  await expect(
+    page.getByRole("button", {
+      name: "Eşleme bekleyen görsel mockup sahnesini seç",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await expect(
+    page.getByText("Mockup baskı eşlemesi bekleniyor", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".preview-render canvas")).toHaveCount(0);
+  await expect(page.locator(".layout-grid")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Görsel indir", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("dialog", { name: "Görsel indir", exact: true }),
+  ).toHaveCount(0);
+  expect(await projects(page)).toHaveLength(0);
+  expect(page.__savedBody).toBeUndefined();
+  summary.passed.push(
+    "unmapped product photos show an explicit pending state and cannot substitute GLB, render or saved exports",
+  );
+  await pending.context.close();
 
   const failed = await mockContext({ fail: true, server: true });
   page = failed.page;

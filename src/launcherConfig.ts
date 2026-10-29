@@ -1,5 +1,8 @@
 import type { EditorConfig } from "./types";
-import { parseMockupScenes } from "../shared/mockup-scenes.mjs";
+import {
+  parseMockupImages,
+  parseMockupScenes,
+} from "../shared/mockup-scenes.mjs";
 
 type Variant = NonNullable<EditorConfig["variants"]>[number];
 
@@ -132,6 +135,7 @@ export function validateLaunchConfig(value: unknown): EditorConfig {
     productModelUrl: assetUrl(input.productModelUrl, "3B model dosyası"),
     productDielineUrl: assetUrl(input.productDielineUrl, "Bıçak izi dosyası"),
     productMockupScenes: parseMockupScenes(input.productMockupScenes),
+    productMockupImages: parseMockupImages(input.productMockupImages),
     apiBase: publicUrl(input.apiBase, "Tasarım API adresi"),
     variants,
     initialVariantId:
