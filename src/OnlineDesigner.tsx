@@ -132,7 +132,6 @@ export default function OnlineDesigner({
     () => !hasMockups || !matchMedia("(max-width:700px)").matches,
   );
   const [guides, setGuides] = useState(true);
-  const [configOpen, setConfigOpen] = useState(true);
   const [layersOpen, setLayersOpen] = useState(false);
   const [closed, setClosed] = useState(false);
   const [mobileConfig, setMobileConfig] = useState(false);
@@ -544,7 +543,6 @@ export default function OnlineDesigner({
             aria-expanded={mobileConfig}
             onClick={() => {
               setMobileConfig(!mobileConfig);
-              setConfigOpen(true);
             }}
           >
             <ShoppingBag size={19} />
@@ -554,16 +552,9 @@ export default function OnlineDesigner({
             <a
               className="outline-button template-link"
               href={manufacturerFile}
-              target={manufacturerFile ? "_blank" : undefined}
+              target="_blank"
               rel="noopener noreferrer"
-              download={
-                manufacturerFile ? undefined : "alacam-ornek-olcu-kilavuzu.svg"
-              }
-              title={
-                manufacturerFile
-                  ? "Üretici dosyasını aç"
-                  : "Örnek SVG kılavuzu; üretim dosyası değildir"
-              }
+              title="Bıçak izini aç"
             >
               <InterfaceIcon name="dieline" size={23} />
               <span>Bıçak izi</span>
@@ -621,9 +612,7 @@ export default function OnlineDesigner({
                   <Upload size={17} /> JSON içe aktar
                 </button>
                 <small>
-                  {hasMockups
-                    ? "Mockup sunum içindir; üretim dosyası değildir."
-                    : "PNG ve örnek SVG önizleme içindir; üretim dosyası değildir."}
+                  İndirilen görsel önizlemedir; üretim dosyası değildir.
                 </small>
               </div>
             )}
@@ -975,6 +964,9 @@ export default function OnlineDesigner({
               : undefined
           }
           templateUrl={d.templateUrl}
+          templateNotice={
+            manufacturerFile && !d.templateUrl ? d.templateStatus : undefined
+          }
           singleFace={
             !hasMockups && modelFaces.length === 1 && modelFaces[0] === "front"
           }
@@ -1102,10 +1094,10 @@ export default function OnlineDesigner({
               maxSize={maxPreviewSize}
               onResize={setPreviewSize}
             />
-          ) : !photoActive && (!hasMockups || !!manufacturerModel) ? (
+          ) : !photoActive && !!manufacturerModel ? (
             <PreviewToolbar
               preview={d.preview}
-              allowInflate={!manufacturerModel}
+              allowInflate={false}
               inflate={d.settings.inflate ?? 100}
               onInflate={(inflate) => d.setPresentation({ inflate })}
               interaction={interaction}
@@ -1116,167 +1108,19 @@ export default function OnlineDesigner({
             />
           ) : null}
         </section>
-        <aside
-          className={`online-config ${configOpen ? "expanded" : "collapsed"}`}
-          aria-label="Ürün ayarları"
-        >
-          <div className="config-heading">
-            <button
-              className="config-collapse"
-              aria-label={
-                configOpen
-                  ? "Sipariş seçeneklerini daralt"
-                  : "Sipariş seçeneklerini aç"
-              }
-              aria-expanded={configOpen}
-              onClick={() => setConfigOpen(!configOpen)}
-            >
-              {configOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-            </button>
-            <span className="order-panel-heading">Sipariş</span>
-          </div>
-          {configOpen && (
-            <>
-              <h2 className="config-product-title">{d.product.title}</h2>
-              <OrderPanel
-                product={d.product}
-                variant={d.variant}
-                quantity={d.quantity}
-                busy={d.busy}
-                orderStatus={d.orderStatus}
-                onVariantChange={d.setVariant}
-                onQuantityChange={d.setQuantity}
-                onOrder={() => void d.cart()}
-              />
-              <details
-                className="order-technical-details"
-                open={d.product.variants.length === 0}
-              >
-                <summary>Ürün ve önizleme bilgileri</summary>
-                <div className="config-details">
-                  {photoActive && selectedScene && (
-                    <div className="mockup-config-summary">
-                      <strong>{selectedScene.title}</strong>
-                      <span>
-                        {selectedScene.width} × {selectedScene.height} px
-                      </span>
-                      <p>
-                        Tasarımınız hazır sahneye anlık uygulanır. Ek render
-                        işlemi gerekmez.
-                      </p>
-                      {d.settings.mockupSceneId &&
-                        d.settings.mockupSceneId !== selectedScene.id && (
-                          <p role="alert">
-                            Kaydedilen sahne artık ürün listesinde yok. İlk
-                            sahne gösteriliyor; indirmeden önce Yerleşimler
-                            bölümünden bir sahne seçin.
-                          </p>
-                        )}
-                    </div>
-                  )}
-                  <dl hidden={photoActive}>
-                    <div>
-                      <dt>{d.design.artboard ? "Şablon alanı" : "Ölçü"}</dt>
-                      <dd>
-                        {d.design.artboard
-                          ? d.design.artboard.widthMm &&
-                            d.design.artboard.heightMm
-                            ? `${d.design.artboard.widthMm} × ${d.design.artboard.heightMm} mm`
-                            : "Ölçü tanımlanmadı"
-                          : "140 × 210 mm"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Malzeme</dt>
-                      <dd>
-                        {manufacturerModel
-                          ? "GLB malzemeleri"
-                          : {
-                              white: "Beyaz film",
-                              kraft: "Kraft",
-                              metallic: "Metalik film",
-                            }[d.settings.substrate || "white"]}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Baskı</dt>
-                      <dd>
-                        {
-                          {
-                            color: "Tam renkli",
-                            black: "Siyah",
-                            blank: "Baskısız",
-                          }[d.settings.printMode || "color"]
-                        }
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Baskı yüzleri</dt>
-                      <dd>
-                        {modelFaces.length === 1
-                          ? "Tek sarım yüzeyi"
-                          : "Ön ve arka"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Yüzey kaplaması</dt>
-                      <dd>
-                        {manufacturerModel
-                          ? "Modelde tanımlı"
-                          : {
-                              gloss: "Parlak",
-                              matte: "Mat",
-                              none: "Kaplamasız",
-                            }[
-                              d.settings.finishing ||
-                                (d.settings.material === "glossy"
-                                  ? "gloss"
-                                  : "matte")
-                            ]}
-                      </dd>
-                    </div>
-                  </dl>
-                  {d.templateStatus && (
-                    <p className="config-approximate" role="status">
-                      {d.templateStatus}
-                    </p>
-                  )}
-                  {config.productId &&
-                    !manufacturerModel &&
-                    !photoActive &&
-                    !hasMockups && (
-                      <p className="config-approximate" role="status">
-                        Bu ürüne henüz 3B model eklenmedi.
-                      </p>
-                    )}
-                  {manufacturerModel && !photoActive && (
-                    <p className="config-approximate">
-                      <a
-                        href={manufacturerModel}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Ürünün GLB dosyasını aç
-                      </a>
-                      <br />
-                      Ürünün kendi GLB dosyası önizlemede yüklenir.
-                    </p>
-                  )}
-                  <p className="config-approximate">
-                    {photoActive
-                      ? "Mockup önizlemesi · Üretim dosyası değildir"
-                      : manufacturerModel
-                        ? "Ürün modeli · Baskı ölçüleri henüz onaylanmadı"
-                        : "Ürün dosyalarının tamamlanması bekleniyor"}
-                    <br />
-                    {manufacturerFile
-                      ? "Üretici bıçak izi bağlı; üretim onayı gerekir."
-                      : "Üretici bıçak izi bağlı değil."}
-                  </p>
-                </div>
-              </details>
-            </>
-          )}
+        <aside className="online-config" aria-label="Sipariş seçenekleri">
+          <p className="order-panel-heading">Sipariş</p>
+          <h2 className="config-product-title">{d.product.title}</h2>
+          <OrderPanel
+            product={d.product}
+            variant={d.variant}
+            quantity={d.quantity}
+            busy={d.busy}
+            orderStatus={d.orderStatus}
+            onVariantChange={d.setVariant}
+            onQuantityChange={d.setQuantity}
+            onOrder={() => void d.cart()}
+          />
         </aside>
         <div className="online-save">
           {hasMockups && (

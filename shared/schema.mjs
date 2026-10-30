@@ -197,19 +197,30 @@ export function parseDesign(value) {
  * @param {{ canvasWidth: number, canvasHeight: number, widthMm?: number, heightMm?: number } | undefined} [artboard] */
 export function effectiveDpi(el, artboard = undefined) {
   if (
-    el.kind !== "image" ||
-    (artboard && (!artboard.widthMm || !artboard.heightMm))
+    el?.kind !== "image" ||
+    !artboard ||
+    [
+      artboard.widthMm,
+      artboard.heightMm,
+      artboard.canvasWidth,
+      artboard.canvasHeight,
+      el.pixelWidth,
+      el.pixelHeight,
+      el.width,
+      el.height,
+      el.scaleX,
+      el.scaleY,
+    ].some((value) => !Number.isFinite(value) || value <= 0)
   )
     return null;
   return Math.round(
     Math.min(
       el.pixelWidth /
-        ((((el.width * el.scaleX) / (artboard?.canvasWidth || 600)) *
-          (artboard?.widthMm || PRODUCT.widthMm)) /
+        ((((el.width * el.scaleX) / artboard.canvasWidth) * artboard.widthMm) /
           25.4),
       el.pixelHeight /
-        ((((el.height * el.scaleY) / (artboard?.canvasHeight || 900)) *
-          (artboard?.heightMm || PRODUCT.heightMm)) /
+        ((((el.height * el.scaleY) / artboard.canvasHeight) *
+          artboard.heightMm) /
           25.4),
     ),
   );

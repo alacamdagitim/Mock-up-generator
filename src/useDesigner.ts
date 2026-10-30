@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
+  ArtboardSpec,
   Design,
   EditorConfig,
   Element,
@@ -43,6 +44,70 @@ export const newElement = (kind: Element["kind"], name: string): Element => ({
   fill: "#202020",
 });
 
+// A customer's document supplies pixels, never product measurements. Physical
+// metadata comes from the current product's loaded SVG or configured mockup.
+function withoutTemplateMetadata(document: Design): Design {
+  const artboard = document.artboard;
+  if (
+    !artboard ||
+    (artboard.widthMm === undefined &&
+      artboard.heightMm === undefined &&
+      artboard.sourceUrl === undefined)
+  )
+    return document;
+  return {
+    ...document,
+    artboard: {
+      canvasWidth: artboard.canvasWidth,
+      canvasHeight: artboard.canvasHeight,
+    },
+  };
+}
+
+function sameArtboard(a: ArtboardSpec | undefined, b: ArtboardSpec) {
+  return (
+    a?.canvasWidth === b.canvasWidth &&
+    a?.canvasHeight === b.canvasHeight &&
+    a?.widthMm === b.widthMm &&
+    a?.heightMm === b.heightMm &&
+    a?.sourceUrl === b.sourceUrl
+  );
+}
+
+function withTemplateArtboard(
+  document: Design,
+  artboard: ArtboardSpec,
+): Design {
+  if (sameArtboard(document.artboard, artboard)) return document;
+  const old = document.artboard || { canvasWidth: 600, canvasHeight: 900 };
+  if (
+    old.canvasWidth === artboard.canvasWidth &&
+    old.canvasHeight === artboard.canvasHeight
+  )
+    return { ...document, artboard: { ...artboard } };
+  const scale = Math.min(
+    artboard.canvasWidth / old.canvasWidth,
+    artboard.canvasHeight / old.canvasHeight,
+  );
+  const fit = (elements: Element[]) =>
+    elements.map((element) => ({
+      ...element,
+      x:
+        element.x * scale +
+        (artboard.canvasWidth - old.canvasWidth * scale) / 2,
+      y:
+        element.y * scale +
+        (artboard.canvasHeight - old.canvasHeight * scale) / 2,
+      scaleX: element.scaleX * scale,
+      scaleY: element.scaleY * scale,
+    }));
+  return {
+    ...document,
+    artboard: { ...artboard },
+    faces: { front: fit(document.faces.front), back: fit(document.faces.back) },
+  };
+}
+
 /** The selected Shopify product enters directly into a single online-design session. */
 export function useDesigner(config: EditorConfig) {
   const [keyboardScope] = useState(() => crypto.randomUUID());
@@ -50,6 +115,40 @@ export function useDesigner(config: EditorConfig) {
   const product =
     products.find((p) => p.id === String(config.productId)) || products[0];
   const key = productDraftKey(config, product.id);
+  const dielineUrl = manufacturerDielineUrl(product.dielineUrl);
+  const expectsSvg = Boolean(
+    dielineUrl && /\.svg$/i.test(new URL(dielineUrl).pathname),
+  );
+  const mockupArtboard = product.mockupScenes?.scenes[0]?.artboard as
+    ArtboardSpec | undefined;
+  const merchantArtboard: ArtboardSpec | undefined = mockupArtboard
+    ? {
+        canvasWidth: mockupArtboard.canvasWidth,
+        canvasHeight: mockupArtboard.canvasHeight,
+        ...(mockupArtboard.widthMm !== undefined
+          ? { widthMm: mockupArtboard.widthMm }
+          : {}),
+        ...(mockupArtboard.heightMm !== undefined
+          ? { heightMm: mockupArtboard.heightMm }
+          : {}),
+      }
+    : undefined;
+  const contextKey = JSON.stringify([
+    product.id,
+    key,
+    dielineUrl,
+    merchantArtboard,
+  ]);
+  const currentContext = useRef(contextKey);
+  currentContext.current = contextKey;
+  const activeTemplate = useRef<{
+    context: string;
+    request: symbol;
+    artboard: ArtboardSpec;
+  } | null>(null);
+  const templatePhase = useRef({ context: contextKey, pending: expectsSvg });
+  const documentRevision = useRef(0);
+  const importRequest = useRef(0);
   const scope =
     config.libraryKey || config.storageKey || `alacam:product:${product.id}`;
   const [design, setDesign] = useState<Design>(() => {
@@ -61,15 +160,24 @@ export function useDesigner(config: EditorConfig) {
         if (
           previous.productId === product.id ||
           previous.productId === "doypack-v1"
-        )
-          return {
+        ) {
+          const restored = withoutTemplateMetadata({
             ...previous,
             productId: product.id,
             artboard: previous.artboard || {
               canvasWidth: 600,
               canvasHeight: 900,
             },
-          };
+          });
+          if (expectsSvg || !merchantArtboard) return restored;
+          try {
+            return parseDesign(
+              withTemplateArtboard(restored, merchantArtboard),
+            ) as Design;
+          } catch {
+            return restored;
+          }
+        }
       }
     } catch {
       /* Preserve supported drafts; ignore malformed input. */
@@ -77,8 +185,7 @@ export function useDesigner(config: EditorConfig) {
     const empty = blankDesign(product.id) as Design;
     empty.name = product.title.slice(0, 100) || "Tasarımım";
     empty.artboard = { canvasWidth: 600, canvasHeight: 900 };
-    const mockupArtboard = product.mockupScenes?.scenes[0]?.artboard;
-    if (mockupArtboard) empty.artboard = { ...mockupArtboard };
+    if (merchantArtboard) empty.artboard = { ...merchantArtboard };
     return empty;
   });
   const [templateUrl, setTemplateUrl] = useState<string>();
@@ -143,6 +250,12 @@ export function useDesigner(config: EditorConfig) {
   const upload = useRef<HTMLInputElement>(null),
     importer = useRef<HTMLInputElement>(null);
   const projectId = useRef<string | null>(null);
+  useEffect(
+    () => () => {
+      importRequest.current += 1;
+    },
+    [],
+  );
   useEffect(() => {
     try {
       projectId.current = localStorage.getItem(`${key}:project`);
@@ -159,24 +272,77 @@ export function useDesigner(config: EditorConfig) {
     [],
   );
   const change = useCallback(
-    (next: Design, record = true) => {
+    (next: Design, record = true, templateUpdate = false) => {
+      if (currentContext.current !== contextKey)
+        throw new Error(
+          "Ürünün tasarım oturumu değişti. Son üründen devam edin.",
+        );
       if (next.productId !== product.id)
         throw new Error("Tasarım bu ürüne ait değil.");
-      const valid = parseDesign(next) as Design;
+      const authority = activeTemplate.current;
+      const pending =
+        templatePhase.current.context === contextKey
+          ? templatePhase.current.pending
+          : expectsSvg;
+      const artboard =
+        authority?.context === contextKey
+          ? authority.artboard
+          : pending
+            ? undefined
+            : merchantArtboard;
+      const reauthored = artboard
+        ? withTemplateArtboard(next, artboard)
+        : withoutTemplateMetadata(next);
+      const valid = parseDesign(reauthored) as Design;
       if (record) {
         history.current.push(state.current);
         if (history.current.length > 35) history.current.shift();
         future.current = [];
       }
       state.current = valid;
+      if (!templateUpdate) documentRevision.current += 1;
       setDesign(valid);
       setHistoryCount([history.current.length, future.current.length]);
     },
-    [product.id],
+    [product.id, contextKey],
   );
-  const dielineUrl = manufacturerDielineUrl(product.dielineUrl);
   useEffect(() => {
+    const request = Symbol("product-template");
+    const isCurrent = () => active && currentContext.current === contextKey;
+    let active = true;
+    activeTemplate.current = null;
+    templatePhase.current = { context: contextKey, pending: expectsSvg };
     setTemplateUrl(undefined);
+    const previous = state.current;
+    const fallback =
+      !expectsSvg && merchantArtboard
+        ? withTemplateArtboard(previous, merchantArtboard)
+        : withoutTemplateMetadata(previous);
+    if (fallback !== previous && fallback.productId === product.id) {
+      try {
+        change(fallback, false, true);
+        if (
+          previous.artboard?.canvasWidth !== fallback.artboard?.canvasWidth ||
+          previous.artboard?.canvasHeight !== fallback.artboard?.canvasHeight
+        ) {
+          history.current = [];
+          future.current = [];
+          setHistoryCount([0, 0]);
+          setSelected(null);
+          setLoadKey((value) => value + 1);
+        }
+      } catch {
+        // An extreme old coordinate space can exceed the element limits after
+        // fitting. Preserve its artwork and pixels without retaining stale mm.
+        const clean = withoutTemplateMetadata(previous);
+        state.current = clean;
+        setDesign(clean);
+        notify(
+          "Ürün şablonu mevcut tasarıma uygulanamadı. Tasarımınız korunuyor; dosyanızı JSON olarak indirebilirsiniz.",
+          true,
+        );
+      }
+    }
     if (!dielineUrl) {
       setTemplateStatus(
         config.productId ? "Bıçak izi meta alanında dosya bulunamadı." : "",
@@ -190,40 +356,34 @@ export function useDesigner(config: EditorConfig) {
       return;
     }
     const controller = new AbortController();
-    let active = true,
-      localUrl: string | undefined;
+    let localUrl: string | undefined;
     const timeout = window.setTimeout(() => controller.abort(), 30_000);
     setTemplateStatus("Ürünün bıçak izi yükleniyor…");
     loadProductTemplate(dielineUrl, controller.signal)
       .then(({ artboard, svg }) => {
-        if (!active) return;
+        if (!isCurrent()) return;
+        if (controller.signal.aborted)
+          throw new DOMException(
+            "Bıçak izi işlemi iptal edildi.",
+            "AbortError",
+          );
         localUrl = URL.createObjectURL(
           new Blob([svg], { type: "image/svg+xml" }),
         );
-        setTemplateUrl(localUrl);
         const current = state.current;
-        if (JSON.stringify(current.artboard) !== JSON.stringify(artboard)) {
-          const old = current.artboard || {
-            canvasWidth: 600,
-            canvasHeight: 900,
-          };
-          const scale = Math.min(
-            artboard.canvasWidth / old.canvasWidth,
-            artboard.canvasHeight / old.canvasHeight,
-          );
-          const fit = (elements: Element[]) =>
-            elements.map((element) => ({
-              ...element,
-              x:
-                element.x * scale +
-                (artboard.canvasWidth - old.canvasWidth * scale) / 2,
-              y:
-                element.y * scale +
-                (artboard.canvasHeight - old.canvasHeight * scale) / 2,
-              scaleX: element.scaleX * scale,
-              scaleY: element.scaleY * scale,
-            }));
-          if (current.faces.front.length || current.faces.back.length) {
+        const coordinateChange =
+          (current.artboard?.canvasWidth || 600) !== artboard.canvasWidth ||
+          (current.artboard?.canvasHeight || 900) !== artboard.canvasHeight;
+        activeTemplate.current = {
+          context: contextKey,
+          request,
+          artboard: { ...artboard },
+        };
+        if (!sameArtboard(current.artboard, artboard)) {
+          if (
+            coordinateChange &&
+            (current.faces.front.length || current.faces.back.length)
+          ) {
             try {
               localStorage.setItem(
                 `${key}:before-template`,
@@ -236,41 +396,83 @@ export function useDesigner(config: EditorConfig) {
           change(
             {
               ...current,
-              artboard,
-              faces: {
-                front: fit(current.faces.front),
-                back: fit(current.faces.back),
-              },
               updatedAt: new Date().toISOString(),
             },
             false,
+            true,
           );
-          history.current = [];
-          future.current = [];
-          setHistoryCount([0, 0]);
-          setSelected(null);
-          setLoadKey((value) => value + 1);
+          if (coordinateChange) {
+            history.current = [];
+            future.current = [];
+            setHistoryCount([0, 0]);
+            setSelected(null);
+            setLoadKey((value) => value + 1);
+          }
         }
+        templatePhase.current = { context: contextKey, pending: false };
+        setTemplateUrl(localUrl);
         setTemplateStatus(
           "Ürünün SVG bıçak izi yüklendi · Güvenli alan ve üretim onayı henüz tanımlanmadı.",
         );
       })
       .catch((error) => {
-        if (active)
+        if (isCurrent()) {
+          templatePhase.current = { context: contextKey, pending: false };
+          if (activeTemplate.current?.request === request)
+            activeTemplate.current = null;
+          setTemplateUrl(undefined);
+          if (localUrl) {
+            URL.revokeObjectURL(localUrl);
+            localUrl = undefined;
+          }
+          const current = state.current;
+          const clean = merchantArtboard
+            ? withTemplateArtboard(current, merchantArtboard)
+            : withoutTemplateMetadata(current);
+          if (clean !== current && clean.productId === product.id) {
+            try {
+              change(clean, false, true);
+              if (
+                current.artboard?.canvasWidth !== clean.artboard?.canvasWidth ||
+                current.artboard?.canvasHeight !== clean.artboard?.canvasHeight
+              ) {
+                history.current = [];
+                future.current = [];
+                setHistoryCount([0, 0]);
+                setSelected(null);
+                setLoadKey((value) => value + 1);
+              }
+            } catch {
+              const preserved = withoutTemplateMetadata(current);
+              state.current = preserved;
+              setDesign(preserved);
+            }
+          }
           setTemplateStatus(
             error instanceof Error && error.name !== "AbortError"
               ? error.message
               : "Bıçak izi yükleme süresi doldu.",
           );
+        }
       })
       .finally(() => clearTimeout(timeout));
     return () => {
       active = false;
+      if (activeTemplate.current?.request === request)
+        activeTemplate.current = null;
       controller.abort();
       clearTimeout(timeout);
       if (localUrl) URL.revokeObjectURL(localUrl);
     };
-  }, [dielineUrl, change, key, config.productId]);
+  }, [
+    dielineUrl,
+    change,
+    key,
+    config.productId,
+    contextKey,
+    product.id,
+    notify,
+  ]);
   const edit = useCallback(
     (elements: Element[]) => {
       try {
@@ -566,10 +768,21 @@ export function useDesigner(config: EditorConfig) {
   }, [uploaded, design.faces]);
   const importFile = async (file?: File) => {
     if (!file) return;
+    const request = ++importRequest.current;
+    const revision = documentRevision.current;
     try {
       if (file.size > 20 * 1024 * 1024)
         throw new Error("JSON en fazla 20 MB olabilir.");
       const imported = parseDesign(JSON.parse(await file.text())) as Design;
+      if (
+        request !== importRequest.current ||
+        currentContext.current !== contextKey
+      )
+        return;
+      if (revision !== documentRevision.current)
+        throw new Error(
+          "Dosya okunurken tasarım değişti. Mevcut tasarım korundu; içe aktarmak için dosyayı yeniden seçin.",
+        );
       if (imported.productId !== product.id)
         throw new Error(
           "JSON başka bir ürüne ait. Bu ürünün tasarım dosyasını seçin.",
@@ -585,6 +798,11 @@ export function useDesigner(config: EditorConfig) {
       setSelected(null);
       notify("Düzenlenebilir tasarım içe aktarıldı.");
     } catch (error) {
+      if (
+        request !== importRequest.current ||
+        currentContext.current !== contextKey
+      )
+        return;
       notify(
         error instanceof Error
           ? error.message
@@ -592,7 +810,12 @@ export function useDesigner(config: EditorConfig) {
         true,
       );
     } finally {
-      if (importer.current) importer.current.value = "";
+      if (
+        request === importRequest.current &&
+        currentContext.current === contextKey &&
+        importer.current
+      )
+        importer.current.value = "";
     }
   };
   const save = async () => {
@@ -705,7 +928,8 @@ export function useDesigner(config: EditorConfig) {
   return {
     keyboardScope,
     product,
-    templateUrl,
+    templateUrl:
+      activeTemplate.current?.context === contextKey ? templateUrl : undefined,
     templateStatus,
     design,
     state,

@@ -171,19 +171,26 @@ export function QuantityDropdown({
       const viewport = window.visualViewport;
       const padding = 8;
       let leftBound = (viewport?.offsetLeft || 0) + padding;
-      let topBound = (viewport?.offsetTop || 0) + padding;
+      const topBound = (viewport?.offsetTop || 0) + padding;
       let rightBound =
         leftBound + (viewport?.width || window.innerWidth) - padding * 2;
-      let bottomBound =
+      const bottomBound =
         topBound + (viewport?.height || window.innerHeight) - padding * 2;
-      if (sidebar) {
-        const bounds = sidebar.getBoundingClientRect();
-        leftBound = Math.max(leftBound, bounds.left + padding);
-        rightBound = Math.min(rightBound, bounds.right - padding);
-        topBound = Math.max(topBound, bounds.top + padding);
-        bottomBound = Math.min(bottomBound, bounds.bottom - padding);
-      }
       const bounds = anchor.getBoundingClientRect();
+      if (sidebar) {
+        const sidebarBounds = sidebar.getBoundingClientRect();
+        leftBound = Math.max(leftBound, sidebarBounds.left + padding);
+        rightBound = Math.min(rightBound, sidebarBounds.right - padding);
+        // The popup may extend above or below a short order card. Only the
+        // trigger's visibility is constrained by the card's scrolling area.
+        if (
+          bounds.bottom <= Math.max(topBound, sidebarBounds.top) ||
+          bounds.top >= Math.min(bottomBound, sidebarBounds.bottom)
+        ) {
+          setOpen(false);
+          return;
+        }
+      }
       if (
         bounds.bottom <= topBound ||
         bounds.top >= bottomBound ||

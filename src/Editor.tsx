@@ -17,7 +17,6 @@ import {
   Path,
 } from "fabric";
 import type { ArtboardSpec, Element, Face } from "./types";
-import { PRODUCT } from "../shared/schema.mjs";
 import { DesignFontError, ensureDesignFont } from "./designFonts";
 import { artworkMultiplier } from "../shared/render-quality.mjs";
 type Meta = {
@@ -214,21 +213,12 @@ export const Editor = forwardRef<
     fontRevision.current++;
     pendingFont.current = null;
   };
-  const guideUnderlay = useRef<FabricImage | null>(null);
   const printClip = () => {
-    const p = latest.current.artboard
-      ? {
-          x: 0,
-          y: 0,
-          width: latest.current.artboard.canvasWidth,
-          height: latest.current.artboard.canvasHeight,
-        }
-      : PRODUCT.print;
     return new Rect({
-      left: p.x,
-      top: p.y,
-      width: p.width,
-      height: p.height,
+      left: 0,
+      top: 0,
+      width: latest.current.artboard?.canvasWidth || 600,
+      height: latest.current.artboard?.canvasHeight || 900,
       absolutePositioned: true,
     });
   };
@@ -237,38 +227,7 @@ export const Editor = forwardRef<
     c.backgroundColor =
       current.showMaterial === false ? "" : current.background;
     c.clipPath = current.cutBleedline === false ? undefined : printClip();
-    if (
-      current.guides &&
-      current.guidesTopmost === false &&
-      !current.artboard
-    ) {
-      if (!guideUnderlay.current) {
-        const sheet = document.createElement("canvas");
-        sheet.width = 600;
-        sheet.height = 900;
-        const context = sheet.getContext("2d")!;
-        const p = PRODUCT.print,
-          inset = PRODUCT.safeInset;
-        context.setLineDash([7, 6]);
-        context.lineWidth = 1.5;
-        context.strokeStyle = "#777777";
-        context.strokeRect(p.x, p.y, p.width, p.height);
-        context.strokeStyle = "#a6b09a";
-        context.strokeRect(
-          p.x + inset,
-          p.y + inset,
-          p.width - inset * 2,
-          p.height - inset * 2,
-        );
-        guideUnderlay.current = new FabricImage(sheet, {
-          left: 0,
-          top: 0,
-          selectable: false,
-          evented: false,
-        });
-      }
-      c.backgroundImage = guideUnderlay.current;
-    } else c.backgroundImage = undefined;
+    c.backgroundImage = undefined;
     c.requestRenderAll();
   };
   const exportCanvas = () => {
@@ -292,7 +251,7 @@ export const Editor = forwardRef<
       backgroundImage = c.backgroundImage;
     try {
       // Display toggles are never part of artwork, saved JSON or 3D textures.
-      // Always export the real material color and the approved sample crop.
+      // Preserve the full working canvas when no manufacturer print region exists.
       c.backgroundColor = latest.current.background;
       c.clipPath = printClip();
       c.backgroundImage = undefined;
@@ -373,9 +332,6 @@ export const Editor = forwardRef<
       invalidateFontUpdates();
       generation.current++;
       canvas.current = null;
-      const underlay = guideUnderlay.current;
-      if (underlay && c.backgroundImage !== underlay) underlay.dispose();
-      guideUnderlay.current = null;
       void c.dispose();
     };
   }, []);
@@ -597,12 +553,6 @@ export const Editor = forwardRef<
       }}
     >
       <canvas ref={node} />
-      {props.guides && props.guidesTopmost !== false && !props.artboard && (
-        <div className="guide-overlay">
-          <div className="print-guide" />
-          <div className="safe-guide" />
-        </div>
-      )}
       {props.guides && props.templateUrl && (
         <img
           className="product-template-overlay"
@@ -636,19 +586,11 @@ export async function renderFace(
     backgroundColor: background,
   });
   try {
-    const p = artboard
-      ? {
-          x: 0,
-          y: 0,
-          width: artboard.canvasWidth,
-          height: artboard.canvasHeight,
-        }
-      : PRODUCT.print;
     c.clipPath = new Rect({
-      left: p.x,
-      top: p.y,
-      width: p.width,
-      height: p.height,
+      left: 0,
+      top: 0,
+      width: artboard?.canvasWidth || 600,
+      height: artboard?.canvasHeight || 900,
       absolutePositioned: true,
     });
     for (const e of elements) c.add(await objectFrom(e));

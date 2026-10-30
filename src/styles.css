@@ -782,27 +782,6 @@ strong {
   padding: 14px 0;
   z-index: 1;
 }
-.guide-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.print-guide {
-  position: absolute;
-  left: 5.8333%;
-  top: 11.6667%;
-  width: 88.3333%;
-  height: 81.1111%;
-  border: 1.5px dashed #777;
-}
-.safe-guide {
-  position: absolute;
-  left: 9.8333%;
-  top: 14.3333%;
-  width: 80.3333%;
-  height: 75.7778%;
-  border: 1.5px dashed #a6b09a;
-}
 .snap-x,
 .snap-y {
   position: absolute;
@@ -857,38 +836,20 @@ strong {
   font-size: 24px;
   background: #ffffffe8;
 }
-.design-footnotes {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 4px 0 12px;
-  font-size: 9px;
-}
-.design-footnotes > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-.design-footnotes i {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border: 1px dashed #777;
-}
-.design-footnotes .safe-dot {
-  border-color: #879976;
-}
-.design-footnotes .production-note {
-  color: #555;
-  font-size: 8px;
-}
 .design-dpi-warning {
   font-size: 9px;
   text-align: center;
   margin: 0 0 10px;
   color: #7b5126;
+}
+.design-template-notice {
+  max-width: 520px;
+  margin: 8px auto;
+  padding: 0 14px;
+  color: #555;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
 }
 .design-canvas-dock {
   display: flex;
@@ -1013,7 +974,7 @@ strong {
   right: 20px;
   top: calc(var(--preview-size) + 36px);
   bottom: auto;
-  height: 500px;
+  height: auto;
   max-height: calc(100% - var(--preview-size) - 130px);
   width: var(--right-width);
   padding: 15px;
@@ -1026,69 +987,10 @@ strong {
   z-index: 20;
   scrollbar-width: thin;
 }
-.online-config.collapsed {
-  bottom: auto;
-}
 .mode-3d .online-config {
   top: 20px;
   bottom: auto;
   max-height: calc(100% - 115px);
-}
-.config-heading {
-  display: flex;
-  width: 100%;
-  justify-content: flex-start;
-  padding: 0;
-  min-height: 20px;
-  font-size: 10px;
-  margin-bottom: 13px;
-}
-.config-heading strong {
-  font-size: 11px;
-  font-weight: 500;
-}
-.config-heading > span {
-  margin-left: auto;
-  font-size: 9px;
-  background: #f1f1f1;
-  border-radius: 4px;
-  padding: 2px 5px;
-}
-.config-details h2 {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 16px;
-}
-.config-details dl {
-  margin: 0;
-}
-.config-details dl > div {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  font-size: 14px;
-}
-.config-details dt {
-  font-weight: 600;
-}
-.config-details dd {
-  margin: 0;
-  text-align: right;
-  font-size: 14px;
-}
-.config-details dd select {
-  width: 114px;
-  font-size: 13px;
-  padding: 5px;
-  border-color: #ddd;
-}
-.config-approximate {
-  font-size: 9px;
-  line-height: 1.8;
-  color: #555;
-  margin: 12px 0;
 }
 .config-order {
   margin-top: auto;
@@ -1236,10 +1138,6 @@ strong {
   }
   .design-canvas-dock > i {
     margin: 0 2px;
-  }
-  .design-footnotes .production-note {
-    width: 100%;
-    justify-content: center;
   }
 }
 @media (max-width: 850px) and (min-width: 701px) {
@@ -1393,13 +1291,6 @@ strong {
   }
   .design-viewport {
     margin-top: 3px;
-  }
-  .design-footnotes {
-    font-size: 8px;
-    margin-bottom: 9px;
-  }
-  .design-footnotes .production-note {
-    display: none;
   }
   .design-dpi-warning {
     font-size: 8px;
@@ -1649,18 +1540,6 @@ strong {
   overflow: hidden;
   clip-path: inset(50%);
 }
-.config-heading {
-  justify-content: space-between;
-}
-.config-heading > span {
-  font-size: 12px;
-}
-.config-product-title {
-  display: none;
-}
-.config-approximate {
-  margin-top: 18px;
-}
 .online-save .black-button {
   font-size: 14px;
   background: #000;
@@ -1693,9 +1572,6 @@ strong {
 .face-switch button.active {
   background: #eee;
   color: #000;
-}
-.design-footnotes {
-  opacity: 0.7;
 }
 .paper-width span,
 .paper-height span {
@@ -1785,9 +1661,6 @@ strong {
   .design-face-bar {
     right: 0;
     bottom: 47px;
-  }
-  .design-footnotes {
-    margin-bottom: 40px;
   }
   .online-dropzone {
     min-height: 180px;
@@ -1916,34 +1789,7 @@ strong {
   box-shadow: 0 4px 8px #0000000d;
 }
 .online-config {
-  height: 497px;
   box-shadow: 0 4px 8px #0000000d;
-}
-.config-heading {
-  height: 16px;
-  min-height: 16px;
-  margin-bottom: 15px;
-}
-.config-collapse {
-  padding: 0;
-  width: 16px;
-  height: 16px;
-  color: #525c60;
-}
-.order-panel-heading {
-  font-size: 12px;
-  font-weight: 600;
-  color: #555;
-}
-.config-details dl > div {
-  min-height: 40px;
-  margin-bottom: 4px;
-}
-.config-details dt {
-  font-size: 16px;
-}
-.config-details dd {
-  font-size: 14px;
 }
 .config-order .order-button {
   display: flex;
@@ -2064,9 +1910,6 @@ strong {
   bottom: 0;
   border-radius: 0;
   box-shadow: none;
-}
-.mode-3d .online-config {
-  height: 497px;
 }
 .mode-3d .online-camera-dock {
   position: fixed;

@@ -1,25 +1,6 @@
 .has-mockup-preview .preview-window-indicator {
   display: none;
 }
-.mockup-config-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin: 8px 0 16px;
-  color: #191919;
-  font-size: 13px;
-}
-.mockup-config-summary > span {
-  font-size: 12px;
-  color: #454545;
-}
-.mockup-config-summary p {
-  margin: 0;
-  line-height: 1.5;
-}
-.mockup-config-summary [role="alert"] {
-  color: #9c3218;
-}
 .mockup-missing-model {
   position: absolute;
   inset: 0;

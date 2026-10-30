@@ -27,6 +27,7 @@ import { SurfaceColorPicker } from "./SurfaceColorPicker";
 export function DesignCanvas({
   open,
   templateUrl,
+  templateNotice,
   singleFace,
   faceLabels,
   editor,
@@ -47,6 +48,7 @@ export function DesignCanvas({
 }: {
   open: boolean;
   templateUrl?: string;
+  templateNotice?: string;
   singleFace?: boolean;
   faceLabels?: Partial<Record<Face, string>>;
   editor: RefObject<EditorHandle>;
@@ -110,8 +112,9 @@ export function DesignCanvas({
   >(null);
   const width = design.artboard?.canvasWidth || 600;
   const height = design.artboard?.canvasHeight || 900;
-  const widthMm = design.artboard?.widthMm;
-  const heightMm = design.artboard ? design.artboard.heightMm : undefined;
+  const hasTemplate = Boolean(templateUrl && design.artboard?.sourceUrl);
+  const widthMm = hasTemplate ? design.artboard?.widthMm : undefined;
+  const heightMm = hasTemplate ? design.artboard?.heightMm : undefined;
   useEffect(() => {
     if (singleFace && face !== "front") onFace("front");
   }, [singleFace, face, onFace]);
@@ -383,7 +386,7 @@ export function DesignCanvas({
       event.currentTarget.releasePointerCapture(event.pointerId);
   };
   const warnings = design.faces[face].filter((element) => {
-    const dpi = effectiveDpi(element, design.artboard);
+    const dpi = hasTemplate ? effectiveDpi(element, design.artboard) : null;
     return dpi !== null && dpi < 300;
   });
   const zoomPercent = Math.round((scale / fit) * 100);
@@ -449,9 +452,9 @@ export function DesignCanvas({
           </select>
         </div>
         <span>
-          {design.artboard
-            ? `Ürün bıçak izi · ${widthMm && heightMm ? `${widthMm} × ${heightMm} mm` : "Ölçü tanımlanmadı"}`
-            : "Ürün çalışma alanı · Bıçak izi bekleniyor"}
+          {hasTemplate
+            ? `Bıçak izi${widthMm && heightMm ? ` · ${widthMm} × ${heightMm} mm` : ""}`
+            : "Tasarım alanı"}
         </span>
       </div>
       <div
@@ -621,30 +624,15 @@ export function DesignCanvas({
           />
         </div>
       </div>
-      <div className="design-footnotes">
-        {design.artboard ? (
-          <span>Ürün SVG bıçak izi · Güvenli alan tanımlanmadı</span>
-        ) : (
-          <>
-            <span>
-              <i className="print-dot" /> Baskı alanı
-            </span>
-            <span>
-              <i className="safe-dot" /> Güvenli alan
-            </span>
-          </>
-        )}
-        <span className="production-note">
-          {design.artboard
-            ? "Üretim onayı gerekli"
-            : "Örnek şablon · Üretim için kullanılamaz"}
-        </span>
-      </div>
+      {open && templateNotice && (
+        <div className="design-template-notice" role="status">
+          {templateNotice}
+        </div>
+      )}
       {warnings.length > 0 && (
         <div className="design-dpi-warning" role="status">
-          {warnings.length} görselin çözünürlüğü,{" "}
-          {design.artboard ? "şablon" : "örnek baskı"} ölçüsünde 300 DPI’ın
-          altında.
+          {warnings.length} görselin çözünürlüğü, bıçak izi ölçülerinde 300
+          DPI’ın altında.
         </div>
       )}
       <div
@@ -781,42 +769,50 @@ export function DesignCanvas({
               role="group"
               aria-label="Görünüm seçenekleri"
             >
-              <label>
-                <input
-                  type="checkbox"
-                  checked={showDimensions}
-                  onChange={(event) => setShowDimensions(event.target.checked)}
-                />
-                <span>Ölçüleri göster</span>
-              </label>
+              {widthMm && heightMm && (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={showDimensions}
+                    onChange={(event) =>
+                      setShowDimensions(event.target.checked)
+                    }
+                  />
+                  <span>Ölçüleri göster</span>
+                </label>
+              )}
               <label>
                 <input
                   type="checkbox"
                   checked={showMaterial}
                   onChange={(event) => setShowMaterial(event.target.checked)}
                 />
-                <span>Malzemeyi göster</span>
+                <span>Yüzey rengini göster</span>
               </label>
-              <label>
-                <input type="checkbox" checked={guides} onChange={onGuides} />
-                <span>Taşma çizgisini göster</span>
-              </label>
+              {hasTemplate && (
+                <label>
+                  <input type="checkbox" checked={guides} onChange={onGuides} />
+                  <span>Bıçak izini göster</span>
+                </label>
+              )}
               <label>
                 <input
                   type="checkbox"
                   checked={cutBleedline}
                   onChange={(event) => setCutBleedline(event.target.checked)}
                 />
-                <span>Baskı alanı dışını kırp</span>
+                <span>Çalışma alanı dışını gizle</span>
               </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={guidesTopmost}
-                  onChange={(event) => setGuidesTopmost(event.target.checked)}
-                />
-                <span>Taşma çizgisini en üste taşı</span>
-              </label>
+              {hasTemplate && (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={guidesTopmost}
+                    onChange={(event) => setGuidesTopmost(event.target.checked)}
+                  />
+                  <span>Bıçak izini en üste taşı</span>
+                </label>
+              )}
             </div>
           )}
         </div>
