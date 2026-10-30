@@ -1,6 +1,5 @@
 import type { SVGProps } from "react";
 type Name =
-  | "inspirations"
   | "uploads"
   | "text"
   | "background"
@@ -29,29 +28,6 @@ export function InterfaceIcon({
       aria-hidden="true"
       {...props}
     >
-      {name === "inspirations" && (
-        <>
-          <ellipse
-            cx="12"
-            cy="12"
-            rx="5"
-            ry="11"
-            transform="rotate(45 12 12)"
-            fill={active ? "currentColor" : "none"}
-          />
-          <ellipse
-            cx="12"
-            cy="12"
-            rx="5"
-            ry="11"
-            transform="rotate(-45 12 12)"
-            fill={active ? "currentColor" : "none"}
-          />
-          {active && (
-            <circle cx="12" cy="12" r="3" fill="white" stroke="white" />
-          )}
-        </>
-      )}
       {name === "uploads" && (
         <>
           <path

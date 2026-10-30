@@ -105,7 +105,7 @@ export function PreviewWindowControls({
             fontSize="11"
             fontWeight="700"
           >
-            3D
+            3B
           </text>
           <path
             d="M6.5 14.5C1 17.1 4.2 21.4 13.2 21.4c5.7 0 10.3-1.6 10.3-4.1 0-1.2-1-2.3-2.8-3.1"
@@ -122,18 +122,18 @@ export function PreviewWindowControls({
           />
         </svg>
         <span className="preview-window-indicator-tip" role="tooltip">
-          Drag to view the model
+          Modeli döndürmek için sürükleyin
         </span>
       </div>
       <div
         className="preview-window-resize"
         role="slider"
         tabIndex={0}
-        aria-label="Resize preview window"
+        aria-label="Önizleme penceresini boyutlandır"
         aria-valuemin={lowerBound}
         aria-valuemax={upperBound}
         aria-valuenow={clamp(size)}
-        aria-valuetext={`${clamp(size)} × ${clamp(size)} pixels`}
+        aria-valuetext={`${clamp(size)} × ${clamp(size)} piksel`}
         aria-describedby={resizeTipId}
         aria-keyshortcuts="ArrowLeft ArrowDown ArrowRight ArrowUp Home End"
         data-dragging={dragging || undefined}
@@ -170,8 +170,8 @@ export function PreviewWindowControls({
           role="tooltip"
         >
           {clamp(size) >= upperBound
-            ? "The current window is maximized"
-            : "Drag to resize window"}
+            ? "Önizleme en büyük boyutta"
+            : "Boyutlandırmak için sürükleyin"}
         </span>
       </div>
     </>

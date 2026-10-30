@@ -287,16 +287,16 @@ function RenderDialogContent({
         requestAnimationFrame(() => resolve()),
       );
       if (active.signal.aborted)
-        throw new DOMException("Render cancelled", "AbortError");
+        throw new DOMException("Görsel oluşturma iptal edildi", "AbortError");
       snapshot = await source(effectiveOptions);
       if (active.signal.aborted)
-        throw new DOMException("Render cancelled", "AbortError");
+        throw new DOMException("Görsel oluşturma iptal edildi", "AbortError");
       const { renderStudio } = await import("./render/studioRender");
       if (active.signal.aborted)
-        throw new DOMException("Render cancelled", "AbortError");
+        throw new DOMException("Görsel oluşturma iptal edildi", "AbortError");
       const renderCanvas = canvas.current;
       if (!renderCanvas)
-        throw new Error("Render önizleme alanı hazırlanamadı.");
+        throw new Error("Görsel önizleme alanı hazırlanamadı.");
       const result = await renderStudio(snapshot, effectiveOptions, {
         canvas: renderCanvas,
         signal: active.signal,
@@ -341,7 +341,7 @@ function RenderDialogContent({
         setError(
           cause instanceof Error
             ? cause.message.slice(0, 280)
-            : "Bu cihazda render başlatılamadı. Tekrar deneyin.",
+            : "Bu cihazda görsel oluşturulamadı. Tekrar deneyin.",
         );
       }
     } finally {
@@ -400,11 +400,11 @@ function RenderDialogContent({
   const formatLabel =
     (completed?.format || options.format) === "jpeg" ? "JPG" : "PNG";
   const status = completed
-    ? "Render hazır"
+    ? "Görsel hazır"
     : error
-      ? "Render tamamlanamadı"
+      ? "Görsel oluşturulamadı"
       : cancelled
-        ? "Render iptal edildi"
+        ? "Görsel oluşturma iptal edildi"
         : progress
           ? progress.stage === "preparing"
             ? "Stüdyo hazırlanıyor"
@@ -412,7 +412,7 @@ function RenderDialogContent({
               ? `${options.format === "jpeg" ? "JPG" : "PNG"} hazırlanıyor`
               : "Işık hesaplanıyor"
           : running
-            ? "Render başlatılıyor"
+            ? "Görsel hazırlanıyor"
             : "Mevcut ürün ve yerleşiminiz";
   const availableTabs: { value: ExportTab; label: string }[] = [
     { value: "mockup", label: "Görsel" },
@@ -442,7 +442,7 @@ function RenderDialogContent({
       >
         <header className="studio-render-header">
           <h2 className="studio-render-visually-hidden" id={titleId}>
-            {allowStudio ? "Stüdyo render" : "Görsel indir"}
+            {allowStudio ? "Stüdyo görseli" : "Görsel indir"}
           </h2>
           <nav
             className="studio-render-tabs"
@@ -493,11 +493,7 @@ function RenderDialogContent({
           <button
             type="button"
             className="studio-render-close"
-            aria-label={
-              allowStudio
-                ? "Render penceresini kapat"
-                : "Görsel penceresini kapat"
-            }
+            aria-label="Görsel penceresini kapat"
             onClick={close}
           >
             <svg
@@ -529,7 +525,7 @@ function RenderDialogContent({
                 ? allowStudio
                   ? "Canlı görsel önizlemesi"
                   : `${imageLabel} önizlemesi`
-                : "Stüdyo render önizlemesi"
+                : "Stüdyo görseli önizlemesi"
             }
           >
             <div
@@ -566,13 +562,13 @@ function RenderDialogContent({
                   className="studio-render-canvas"
                   style={isLive ? { display: "none" } : undefined}
                   ref={canvas}
-                  aria-label="Hesaplanan stüdyo render görseli"
+                  aria-label="Hesaplanan stüdyo görseli"
                 />
                 {!isLive && completed && (
                   <img
                     className="studio-render-image"
                     src={completed.url}
-                    alt={`Tamamlanan ürün renderi, ${completed.width} × ${completed.height} piksel`}
+                    alt={`Oluşturulan ürün görseli, ${completed.width} × ${completed.height} piksel`}
                   />
                 )}
                 {(isLive || !completed) && !showingCanvas && !previewUrl && (
@@ -615,7 +611,7 @@ function RenderDialogContent({
                   <label className="studio-render-ratio">
                     <span>Oran</span>
                     <select
-                      aria-label="Render görsel oranı"
+                      aria-label="Görsel oranı"
                       value={options.aspect}
                       onChange={(event) =>
                         setOptions((current) => ({
@@ -632,7 +628,7 @@ function RenderDialogContent({
                   <div
                     className="studio-render-backgrounds"
                     role="group"
-                    aria-label="Render arka planı"
+                    aria-label="Görsel arka planı"
                   >
                     {(
                       [
@@ -677,7 +673,7 @@ function RenderDialogContent({
 
           <aside
             className="studio-render-settings"
-            aria-label={isLive ? "Görsel ayarları" : "Render ayarları"}
+            aria-label="Görsel ayarları"
           >
             {allowStudio && (
               <div
@@ -688,7 +684,7 @@ function RenderDialogContent({
                 {(
                   [
                     { value: "live", label: imageLabel },
-                    { value: "studio", label: "Stüdyo render" },
+                    { value: "studio", label: "Stüdyo görseli" },
                   ] as const
                 ).map((mode) => (
                   <button
@@ -769,8 +765,8 @@ function RenderDialogContent({
                   <p className="studio-render-live-status" role="status">
                     {liveNotice ||
                       (allowStudio
-                        ? "Yeniden render hesaplaması beklemeden indirin."
-                        : "Hazır mockup’ı kaynak boyutunda indirin.")}
+                        ? "Yeniden hesaplama beklemeden indirin."
+                        : "Hazır ürün görselini kaynak boyutunda indirin.")}
                   </p>
                   {liveError && (
                     <div className="studio-render-error" role="alert">
@@ -802,7 +798,7 @@ function RenderDialogContent({
                   {allowStudio && (
                     <p className="studio-render-setting-note">
                       Daha yüksek çözünürlük ve ayrı ışık hesaplaması için
-                      Stüdyo render seçebilirsiniz.
+                      Stüdyo görseli seçebilirsiniz.
                     </p>
                   )}
                 </div>
@@ -849,11 +845,11 @@ function RenderDialogContent({
                     <span>Zemin gölgesini dahil et</span>
                   </label>
                   <div className="studio-render-setting">
-                    <h3>Format ve çözünürlük</h3>
+                    <h3>Dosya biçimi ve çözünürlük</h3>
                     <div
                       className="studio-render-formats"
                       role="group"
-                      aria-label="Görsel formatı"
+                      aria-label="Dosya biçimi"
                     >
                       {(["jpeg", "png"] as const).map((format) => (
                         <button
@@ -879,7 +875,7 @@ function RenderDialogContent({
                     <div
                       className="studio-render-segments"
                       role="group"
-                      aria-label="Render çözünürlüğü"
+                      aria-label="Görsel çözünürlüğü"
                     >
                       {([1024, 2048, 4096, 8192] as const).map((resolution) => (
                         <button
@@ -915,7 +911,7 @@ function RenderDialogContent({
                       {mobile
                         ? "Mobil cihazlarda çözünürlük 1024 px ile sınırlıdır."
                         : options.resolution === 8192
-                          ? "8K gerçek piksel çıktısıdır. Yüksek bellek kullanır; render süresi belirgin biçimde uzar."
+                          ? "8K gerçek piksel çıktısıdır. Yüksek bellek kullanır; oluşturma süresi belirgin biçimde uzar."
                           : options.resolution >= 4096
                             ? "Çok yüksek çözünürlük. Daha fazla bellek ve işlem süresi gerektirir."
                             : options.resolution === 2048
@@ -943,7 +939,7 @@ function RenderDialogContent({
                       <div
                         className="studio-render-quality"
                         role="group"
-                        aria-label="Render kalitesi"
+                        aria-label="Görsel kalitesi"
                       >
                         {(
                           [
@@ -1038,13 +1034,13 @@ function RenderDialogContent({
                           className="studio-render-progress"
                           max={100}
                           value={progress ? percent : undefined}
-                          aria-label="Render ilerlemesi"
+                          aria-label="Görsel oluşturma ilerlemesi"
                         />
                         <div className="studio-render-progress-details">
                           <span>
                             {progress
                               ? `${Number(progress.samples.toFixed(1))} / ${progress.total} ışık örneği`
-                              : "Render motoru yükleniyor"}
+                              : "Görsel oluşturma motoru yükleniyor"}
                           </span>
                           <span>
                             {progress
@@ -1062,13 +1058,13 @@ function RenderDialogContent({
                     )}
                     {optionsChanged && (
                       <p className="studio-render-changed">
-                        Yeni ayarlar için yeniden render oluşturun.
+                        Yeni ayarlarla görseli yeniden oluşturun.
                       </p>
                     )}
                   </div>
                   {error && (
                     <div className="studio-render-error" role="alert">
-                      <strong>Render oluşturulamadı</strong>
+                      <strong>Görsel oluşturulamadı</strong>
                       <p>{error}</p>
                       <span>Ayarları değiştirip tekrar deneyebilirsiniz.</span>
                     </div>
@@ -1088,7 +1084,7 @@ function RenderDialogContent({
                         controller.current?.abort();
                       }}
                     >
-                      {cancelling ? "İptal ediliyor…" : "Renderı iptal et"}
+                      {cancelling ? "İptal ediliyor…" : "Oluşturmayı iptal et"}
                     </button>
                   ) : (
                     <button
@@ -1096,7 +1092,7 @@ function RenderDialogContent({
                       className="studio-render-start"
                       onClick={startRender}
                     >
-                      Render oluştur
+                      Görsel oluştur
                       <svg
                         width="20"
                         height="20"

@@ -25,7 +25,7 @@ function MockupCard({
     <button
       type="button"
       className="mockup-scene-card"
-      aria-label={`${card.title} mockup sahnesini seç`}
+      aria-label={`${card.title} ürün sahnesini seç`}
       aria-pressed={selected}
       disabled={!ready}
       title={
@@ -83,13 +83,13 @@ export function LayoutPanel({
       aria-label="Yerleşimler"
     >
       <div className="mockup-scene-heading">
-        <h3>Ürün mockupları</h3>
-        <span>{mockupCards.length} mockup</span>
+        <h3>Ürün sahneleri</h3>
+        <span>{mockupCards.length} sahne</span>
       </div>
       {mockupCards.length ? (
         <>
           <p className="mockup-scene-intro">
-            Bir mockup seçin. Tasarımınız seçtiğiniz görsele otomatik uygulanır.
+            Bir sahne seçin. Tasarımınız seçtiğiniz görsele otomatik uygulanır.
           </p>
           <div className="mockup-scene-grid">
             {mockupCards.map((card) => (
@@ -110,7 +110,7 @@ export function LayoutPanel({
       ) : (
         <div className="mockup-scene-empty" role="status">
           <ImageOff size={24} />
-          <p>Bu ürünün mockup dosyaları henüz hazırlanmadı.</p>
+          <p>Bu ürünün hazır sahneleri henüz eklenmedi.</p>
         </div>
       )}
     </section>

@@ -19,7 +19,6 @@ import {
   PanelLeftClose,
   Plus,
   Shapes,
-  Sparkles,
   Square,
   ShoppingBag,
   Type,
@@ -37,7 +36,6 @@ import { OrderPanel } from "./OrderPanel";
 import { LayoutPanel } from "./LayoutPanel";
 import { useDesigner, newElement } from "./useDesigner";
 import { SelectionInspector } from "./SelectionInspector";
-import { PRESETS, presetElements } from "./designPresets";
 import { manufacturerDielineUrl } from "../shared/storefront.mjs";
 import { pngBlob } from "./files";
 import { PackagingSymbols } from "./PackagingSymbols";
@@ -62,34 +60,28 @@ import {
   svgUrl,
 } from "./designLibrary";
 
-type Tool = "presets" | "uploads" | "text" | "background" | "shapes" | "layout";
+type Tool = "uploads" | "text" | "background" | "shapes" | "layout";
 const TOOLS = [
-  {
-    id: "presets" as const,
-    title: "Inspirations",
-    symbol: "inspirations" as const,
-    icon: Sparkles,
-  },
+  { id: "layout" as const, title: "Yerleşimler", symbol: null, icon: Boxes },
   {
     id: "uploads" as const,
-    title: "Uploads",
+    title: "Görseller",
     symbol: "uploads" as const,
     icon: Upload,
   },
-  { id: "text" as const, title: "Text", symbol: "text" as const, icon: Type },
+  { id: "text" as const, title: "Yazı", symbol: "text" as const, icon: Type },
   {
     id: "background" as const,
-    title: "Background",
+    title: "Renk",
     symbol: "background" as const,
     icon: Palette,
   },
   {
     id: "shapes" as const,
-    title: "Shapes",
+    title: "Şekiller",
     symbol: "shapes" as const,
     icon: Shapes,
   },
-  { id: "layout" as const, title: "Layout", symbol: null, icon: Boxes },
 ];
 const COLORS = [
   "#ffffff",
@@ -121,29 +113,7 @@ export default function OnlineDesigner({
     mockupScenes.length > 0 ||
     resolvedMockups.cards.length > 0 ||
     d.product.mockupImages !== undefined;
-  const toolTitles: Record<Tool, string> = {
-    layout: "Yerleşimler",
-    uploads: "Görseller",
-    text: "Yazı",
-    presets: "Örnekler",
-    background: "Renk",
-    shapes: "Şekiller",
-  };
-  const tools = hasMockups
-    ? (
-        [
-          "layout",
-          "uploads",
-          "text",
-          "presets",
-          "background",
-          "shapes",
-        ] as Tool[]
-      ).map((id) => ({
-        ...TOOLS.find((item) => item.id === id)!,
-        title: toolTitles[id],
-      }))
-    : TOOLS;
+  const tools = TOOLS;
   const root = useRef<HTMLDivElement>(null);
   const [selectionPosition, setSelectionPosition] = useState({
     left: 490,
@@ -154,10 +124,10 @@ export default function OnlineDesigner({
   const [mode, setMode] = useState<"2d" | "mockup" | "3d">(() =>
     hasMockups ? "mockup" : "2d",
   );
-  const last2dTool = useRef<Tool>(hasMockups ? "uploads" : "presets");
+  const last2dTool = useRef<Tool>("uploads");
   const [previewSize, setPreviewSize] = useState(280);
   const [maxPreviewSize, setMaxPreviewSize] = useState(280);
-  const [tool, setTool] = useState<Tool>(hasMockups ? "layout" : "presets");
+  const [tool, setTool] = useState<Tool>(hasMockups ? "layout" : "uploads");
   const [panel, setPanel] = useState(
     () => !hasMockups || !matchMedia("(max-width:700px)").matches,
   );
@@ -491,42 +461,12 @@ export default function OnlineDesigner({
     ]);
     try {
       if (!d.preview.current)
-        throw new Error("Render için 3D sahne hazır değil.");
+        throw new Error("Görsel oluşturmak için 3B sahne hazır değil.");
       return d.preview.current.snapshot({ front, back });
     } finally {
       front.width = back.width = 1;
       front.height = back.height = 1;
     }
-  };
-  const applyPreset = (preset: (typeof PRESETS)[number]) => {
-    d.change({
-      ...d.state.current,
-      faces: {
-        ...d.state.current.faces,
-        [d.face]: presetElements(preset).map((element) => {
-          const board = d.state.current.artboard;
-          if (!board) return element;
-          const scale = Math.min(
-            board.canvasWidth / 600,
-            board.canvasHeight / 900,
-          );
-          return {
-            ...element,
-            x: element.x * scale + (board.canvasWidth - 600 * scale) / 2,
-            y: element.y * scale + (board.canvasHeight - 900 * scale) / 2,
-            scaleX: element.scaleX * scale,
-            scaleY: element.scaleY * scale,
-          };
-        }),
-      },
-      updatedAt: new Date().toISOString(),
-    });
-    d.reload();
-    d.setSelected(null);
-    afterAdd();
-    d.notify(
-      `${preset.name}, ${d.face === "front" ? "ön" : "arka"} yüze uygulandı. Geri al ile önceki tasarıma dönebilirsiniz.`,
-    );
   };
   if (closed)
     return (
@@ -626,7 +566,7 @@ export default function OnlineDesigner({
               }
             >
               <InterfaceIcon name="dieline" size={23} />
-              <span>{hasMockups ? "Bıçak izi" : "Download dieline"}</span>
+              <span>Bıçak izi</span>
             </a>
           )}
           <button
@@ -638,7 +578,7 @@ export default function OnlineDesigner({
             }}
           >
             <InterfaceIcon name="dieline" size={23} />
-            <span>{hasMockups ? "Görsel yükle" : "Upload design"}</span>
+            <span>Görsel yükle</span>
           </button>
           <div className="online-export">
             <button
@@ -661,7 +601,7 @@ export default function OnlineDesigner({
                     onClick={() => setExportOpen(false)}
                   >
                     <ImagePlus size={17} />{" "}
-                    {hasMockups ? "Mockup PNG" : "Preview PNG"}
+                    {hasMockups ? "Mockup PNG" : "Önizleme PNG"}
                   </a>
                 )}
                 <a
@@ -670,8 +610,7 @@ export default function OnlineDesigner({
                   download="alacam-tasarim-v1.json"
                   onClick={() => setExportOpen(false)}
                 >
-                  <FileJson size={17} />{" "}
-                  {hasMockups ? "Düzenlenebilir JSON" : "Editable JSON"}
+                  <FileJson size={17} /> Düzenlenebilir JSON
                 </a>
                 <button
                   onClick={() => {
@@ -679,13 +618,12 @@ export default function OnlineDesigner({
                     d.importer.current?.click();
                   }}
                 >
-                  <Upload size={17} />{" "}
-                  {hasMockups ? "JSON içe aktar" : "Import JSON"}
+                  <Upload size={17} /> JSON içe aktar
                 </button>
                 <small>
                   {hasMockups
                     ? "Mockup sunum içindir; üretim dosyası değildir."
-                    : "PNG and sample SVG are previews, not production files."}
+                    : "PNG ve örnek SVG önizleme içindir; üretim dosyası değildir."}
                 </small>
               </div>
             )}
@@ -705,18 +643,7 @@ export default function OnlineDesigner({
           {tools.map((item) => (
             <button
               key={item.id}
-              aria-label={
-                hasMockups
-                  ? item.title
-                  : {
-                      presets: "Örnekler",
-                      uploads: "Yüklemeler",
-                      text: "Yazı",
-                      background: "Arka plan",
-                      shapes: "Şekiller",
-                      layout: "Yerleşim",
-                    }[item.id]
-              }
+              aria-label={item.title}
               aria-pressed={panel && tool === item.id}
               className={panel && tool === item.id ? "active" : ""}
               onClick={() => openTool(item.id)}
@@ -783,65 +710,6 @@ export default function OnlineDesigner({
               )}
             </>
           )}
-          {tool === "presets" && (
-            <>
-              <div className="online-preset-grid">
-                {PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    aria-label={`${preset.name} örneğini uygula`}
-                    onClick={() => applyPreset(preset)}
-                  >
-                    <svg
-                      viewBox="0 0 140 210"
-                      role="img"
-                      aria-label={preset.name}
-                    >
-                      <rect width="140" height="210" fill={preset.color} />
-                      <circle cx="70" cy="54" r="19" fill={preset.accent} />
-                      <text
-                        x="70"
-                        y="109"
-                        textAnchor="middle"
-                        fill={preset.ink}
-                        fontSize="15"
-                        fontWeight="bold"
-                        fontFamily="Arial"
-                      >
-                        {preset.title}
-                      </text>
-                      <path d="M58 132h24" stroke={preset.ink} />
-                      <text
-                        x="70"
-                        y="153"
-                        textAnchor="middle"
-                        fill={preset.ink}
-                        fontSize="4.5"
-                        fontFamily="Arial"
-                      >
-                        {preset.detail}
-                      </text>
-                      <text
-                        x="70"
-                        y="187"
-                        textAnchor="middle"
-                        fill={preset.ink}
-                        fontSize="4"
-                        fontFamily="Arial"
-                      >
-                        ALAÇAM · ÖZGÜN TASARIM
-                      </text>
-                    </svg>
-                    <span>{preset.name}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="panel-note">
-                Original templates replace the current face. Undo restores your
-                design.
-              </p>
-            </>
-          )}
           {tool === "uploads" && (
             <div className="upload-pane">
               <button
@@ -854,12 +722,10 @@ export default function OnlineDesigner({
                 ) : (
                   <Upload size={17} />
                 )}{" "}
-                Add images
+                Görsel ekle
               </button>
               <small className="upload-formats">
-                {hasMockups
-                  ? "PNG, JPG ve SVG yükleyebilirsiniz"
-                  : "ⓘ Supports JPG, PNG, SVG formats"}
+                PNG, JPG ve SVG yükleyebilirsiniz
               </small>
               <div
                 className={`online-dropzone ${d.assets.length ? "has-assets" : ""}`}
@@ -870,15 +736,11 @@ export default function OnlineDesigner({
                 }}
               >
                 <ImagePlus size={31} />
-                <strong>Drop your images here</strong>
+                <strong>Görsellerinizi buraya sürükleyin</strong>
                 <small>
-                  {hasMockups
-                    ? "Logonuzu veya tasarımınızı yükleyin"
-                    : "Add JPG, PNG, SVG images"}
+                  Logonuzu veya tasarımınızı yükleyin
                   <br />
-                  {hasMockups
-                    ? "PNG/JPG en fazla 8 MB · SVG en fazla 1 MB"
-                    : "PNG/JPG max 8 MB · SVG max 1 MB"}
+                  PNG/JPG en fazla 8 MB · SVG en fazla 1 MB
                 </small>
               </div>
               {d.assets.length > 0 ? (
@@ -902,10 +764,12 @@ export default function OnlineDesigner({
                   ))}
                 </div>
               ) : (
-                <p className="panel-note">Your uploaded images appear here.</p>
+                <p className="panel-note">
+                  Yüklediğiniz görseller burada görünür.
+                </p>
               )}
               <small className="upload-count">
-                {d.assets.length} uploaded · Current session
+                {d.assets.length} görsel · Bu oturum
               </small>
             </div>
           )}
@@ -917,20 +781,20 @@ export default function OnlineDesigner({
                 onClick={() =>
                   void add({
                     ...newElement("text", "Yeni yazı"),
-                    text: "Your text here",
+                    text: "Yazınızı buraya yazın",
                     fontSize: 40,
                     fontFamily: "DM Sans",
                     textAlign: "center",
                   })
                 }
               >
-                {hasMockups ? "Yazı ekle" : "Add text"}
+                Yazı ekle
               </button>
             </div>
           )}
           {tool === "background" && (
             <div className="background-pane">
-              <h3>{hasMockups ? "Yüzey rengi" : "Color"}</h3>
+              <h3>Yüzey rengi</h3>
               <div className="online-swatches">
                 {COLORS.map((color) => (
                   <button
@@ -956,7 +820,7 @@ export default function OnlineDesigner({
                 ))}
               </div>
               <label className="color-field">
-                {hasMockups ? "Özel renk" : "Custom color"}
+                Özel renk
                 <input
                   type="color"
                   aria-label="Özel ambalaj rengi"
@@ -969,12 +833,12 @@ export default function OnlineDesigner({
                 Renk seçili baskı yüzeyine uygulanır. Ekran renkleri yaklaşık
                 gösterilir.
               </p>
-              <h3>{hasMockups ? "Desenler" : "Patterns"}</h3>
+              <h3>Desenler</h3>
               <div className="pattern-grid">
                 {PATTERNS.map((pattern) => (
                   <button
                     key={pattern.name}
-                    aria-label={`${pattern.name} pattern`}
+                    aria-label={`${pattern.name} desenini ekle`}
                     onClick={() =>
                       void addSvg(pattern.name, patternSvg(pattern), true)
                     }
@@ -1033,9 +897,9 @@ export default function OnlineDesigner({
                   </button>
                 ))}
               </div>
-              <h3 className="symbols-heading">Packaging Symbols</h3>
+              <h3 className="symbols-heading">Ambalaj sembolleri</h3>
               <PackagingSymbols onAdd={(name, svg) => void addSvg(name, svg)} />
-              <h3 className="symbols-heading">Social Media</h3>
+              <h3 className="symbols-heading">Sosyal medya</h3>
               <div className="online-shape-grid symbol-grid">
                 {SOCIAL_SYMBOLS.map((symbol) => (
                   <button
@@ -1069,7 +933,7 @@ export default function OnlineDesigner({
               aria-expanded={layersOpen}
               onClick={() => setLayersOpen(!layersOpen)}
             >
-              <Layers size={16} /> {hasMockups ? "Katmanlar" : "Layers"}{" "}
+              <Layers size={16} /> Katmanlar{" "}
               <span>{d.design.faces[d.face].length}</span>
               {layersOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
@@ -1093,11 +957,7 @@ export default function OnlineDesigner({
                   </button>
                 ))}
                 {!d.design.faces[d.face].length && (
-                  <p>
-                    {hasMockups
-                      ? "Bu yüzde henüz öğe yok."
-                      : "No layers on this face."}
-                  </p>
+                  <p>Bu yüzde henüz öğe yok.</p>
                 )}
               </div>
             )}
@@ -1316,7 +1176,7 @@ export default function OnlineDesigner({
                   )}
                   <dl hidden={photoActive}>
                     <div>
-                      <dt>{d.design.artboard ? "Şablon alanı" : "Size"}</dt>
+                      <dt>{d.design.artboard ? "Şablon alanı" : "Ölçü"}</dt>
                       <dd>
                         {d.design.artboard
                           ? d.design.artboard.widthMm &&
@@ -1327,43 +1187,47 @@ export default function OnlineDesigner({
                       </dd>
                     </div>
                     <div>
-                      <dt>Material</dt>
+                      <dt>Malzeme</dt>
                       <dd>
                         {manufacturerModel
                           ? "GLB malzemeleri"
                           : {
-                              white: "White film",
+                              white: "Beyaz film",
                               kraft: "Kraft",
-                              metallic: "Metallic film",
+                              metallic: "Metalik film",
                             }[d.settings.substrate || "white"]}
                       </dd>
                     </div>
                     <div>
-                      <dt>Print</dt>
+                      <dt>Baskı</dt>
                       <dd>
                         {
                           {
-                            color: "Full Color",
-                            black: "Black",
-                            blank: "Blank",
+                            color: "Tam renkli",
+                            black: "Siyah",
+                            blank: "Baskısız",
                           }[d.settings.printMode || "color"]
                         }
                       </dd>
                     </div>
                     <div>
-                      <dt>Print Sides</dt>
+                      <dt>Baskı yüzleri</dt>
                       <dd>
                         {modelFaces.length === 1
                           ? "Tek sarım yüzeyi"
-                          : "Front and back"}
+                          : "Ön ve arka"}
                       </dd>
                     </div>
                     <div>
-                      <dt>Finishing</dt>
+                      <dt>Yüzey kaplaması</dt>
                       <dd>
                         {manufacturerModel
                           ? "Modelde tanımlı"
-                          : { gloss: "Gloss", matte: "Matte", none: "Blank" }[
+                          : {
+                              gloss: "Parlak",
+                              matte: "Mat",
+                              none: "Kaplamasız",
+                            }[
                               d.settings.finishing ||
                                 (d.settings.material === "glossy"
                                   ? "gloss"
@@ -1405,10 +1269,9 @@ export default function OnlineDesigner({
                         ? "Ürün modeli · Baskı ölçüleri henüz onaylanmadı"
                         : "Ürün dosyalarının tamamlanması bekleniyor"}
                     <br />
-                    Manufacturer dieline{" "}
                     {manufacturerFile
-                      ? "linked; production approval required."
-                      : "not connected."}
+                      ? "Üretici bıçak izi bağlı; üretim onayı gerekir."
+                      : "Üretici bıçak izi bağlı değil."}
                   </p>
                 </div>
               </details>
@@ -1442,9 +1305,7 @@ export default function OnlineDesigner({
         </div>
         {mode === "3d" && (
           <div className="online-3d-help">
-            {hasMockups
-              ? "Döndürmek için sürükleyin · Yakınlaştırmak için kaydırın"
-              : "Drag to rotate · Scroll to zoom"}
+            Döndürmek için sürükleyin · Yakınlaştırmak için kaydırın
           </div>
         )}
       </main>

@@ -615,11 +615,11 @@ export const Editor = forwardRef<
       {snap.y && <div className="snap-y" />}
       {!props.elements.length && !busy && (
         <div className="canvas-empty">
-          <strong>Upload your design</strong>
-          <small>Add images, text or shapes</small>
+          <strong>Tasarımınızı ekleyin</strong>
+          <small>Görsel, yazı veya şekil ekleyin</small>
         </div>
       )}
-      {busy && <div className="canvas-loading">Loading design…</div>}
+      {busy && <div className="canvas-loading">Tasarım yükleniyor…</div>}
     </div>
   );
 });

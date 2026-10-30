@@ -430,7 +430,7 @@ export function DesignCanvas({
     <section
       ref={workbench}
       className={`design-panel design-workbench ${open ? "is-open" : ""}`}
-      aria-label="2D tasarım düzenleyici"
+      aria-label="2B tasarım düzenleyici"
       aria-hidden={!open}
     >
       <div className="design-face-bar">
@@ -441,10 +441,10 @@ export function DesignCanvas({
             onChange={(event) => onFace(event.target.value as Face)}
           >
             <option value="front">
-              {faceLabels?.front || (singleFace ? "Sarım yüzeyi" : "Front")}
+              {faceLabels?.front || (singleFace ? "Sarım yüzeyi" : "Ön yüz")}
             </option>
             {!singleFace && (
-              <option value="back">{faceLabels?.back || "Back"}</option>
+              <option value="back">{faceLabels?.back || "Arka yüz"}</option>
             )}
           </select>
         </div>
@@ -627,23 +627,24 @@ export function DesignCanvas({
         ) : (
           <>
             <span>
-              <i className="print-dot" /> Print area
+              <i className="print-dot" /> Baskı alanı
             </span>
             <span>
-              <i className="safe-dot" /> Safe area
+              <i className="safe-dot" /> Güvenli alan
             </span>
           </>
         )}
         <span className="production-note">
           {design.artboard
             ? "Üretim onayı gerekli"
-            : "Sample template · Not for production"}
+            : "Örnek şablon · Üretim için kullanılamaz"}
         </span>
       </div>
       {warnings.length > 0 && (
         <div className="design-dpi-warning" role="status">
-          {warnings.length} image(s) below 300 DPI at the{" "}
-          {design.artboard ? "template" : "sample print"} size.
+          {warnings.length} görselin çözünürlüğü,{" "}
+          {design.artboard ? "şablon" : "örnek baskı"} ölçüsünde 300 DPI’ın
+          altında.
         </div>
       )}
       <div
@@ -653,7 +654,7 @@ export function DesignCanvas({
       >
         <button
           aria-label="Öğe seç"
-          title="Select (V)"
+          title="Öğe seç (V)"
           aria-pressed={tool === "select" && !spacePan}
           className={tool === "select" && !spacePan ? "active" : ""}
           onClick={() => setTool("select")}
@@ -662,7 +663,7 @@ export function DesignCanvas({
         </button>
         <button
           aria-label="Tuvali kaydır"
-          title="Hand (H)"
+          title="Tuvali kaydır (H)"
           aria-pressed={tool === "pan" || spacePan}
           className={tool === "pan" || spacePan ? "active" : ""}
           onClick={() => setTool("pan")}
@@ -672,7 +673,7 @@ export function DesignCanvas({
         <i />
         <button
           aria-label="Geri al"
-          title="Undo (Ctrl/⌘ + Z)"
+          title="Geri al (Ctrl/⌘ + Z)"
           disabled={!historyCount[0]}
           onClick={() => onUndo()}
         >
@@ -680,7 +681,7 @@ export function DesignCanvas({
         </button>
         <button
           aria-label="Yinele"
-          title="Redo (Ctrl/⌘ + Shift + Z)"
+          title="Yinele (Ctrl/⌘ + Shift + Z)"
           disabled={!historyCount[1]}
           onClick={() => onUndo(true)}
         >
@@ -689,7 +690,7 @@ export function DesignCanvas({
         <i />
         <button
           aria-label="Tuvali uzaklaştır"
-          title="Zoom out"
+          title="Uzaklaştır"
           disabled={zoomPercent <= 25}
           onClick={() => stepZoom(-1)}
         >
@@ -700,7 +701,7 @@ export function DesignCanvas({
             ref={zoomTrigger}
             className="zoom-reset"
             aria-label="Yakınlaştırma seçenekleri"
-            title="Zoom"
+            title="Yakınlaştırma"
             aria-haspopup="menu"
             aria-expanded={popover === "zoom"}
             aria-controls={`${popupId}-zoom`}
@@ -715,7 +716,7 @@ export function DesignCanvas({
               id={`${popupId}-zoom`}
               className="canvas-tools-popover canvas-zoom-menu"
               role="menu"
-              aria-label="Zoom"
+              aria-label="Yakınlaştırma"
               onKeyDown={navigateZoomMenu}
             >
               {[50, 100, 200].map((percent) => (
@@ -740,14 +741,14 @@ export function DesignCanvas({
                   zoomTrigger.current?.focus({ preventScroll: true });
                 }}
               >
-                Fit
+                Ekrana sığdır
               </button>
             </div>
           )}
         </div>
         <button
           aria-label="Tuvali yakınlaştır"
-          title="Zoom in"
+          title="Yakınlaştır"
           disabled={zoomPercent >= 200}
           onClick={() => stepZoom(1)}
         >
@@ -755,8 +756,8 @@ export function DesignCanvas({
         </button>
         <i />
         <button
-          aria-label="Rotate canvas 90 degrees"
-          title="Rotate canvas 90°"
+          aria-label="Tuvali 90 derece döndür"
+          title="Tuvali 90° döndür"
           onClick={() => setRotation((rotation + 90) % 360)}
         >
           <InterfaceIcon name="rotate" size={20} />
@@ -765,7 +766,7 @@ export function DesignCanvas({
           <button
             ref={viewTrigger}
             aria-label="Görünüm seçenekleri"
-            title="View options"
+            title="Görünüm seçenekleri"
             aria-expanded={popover === "view"}
             aria-controls={`${popupId}-view`}
             className={popover === "view" ? "active" : ""}
@@ -778,7 +779,7 @@ export function DesignCanvas({
               id={`${popupId}-view`}
               className="canvas-tools-popover canvas-view-menu"
               role="group"
-              aria-label="View options"
+              aria-label="Görünüm seçenekleri"
             >
               <label>
                 <input
@@ -786,7 +787,7 @@ export function DesignCanvas({
                   checked={showDimensions}
                   onChange={(event) => setShowDimensions(event.target.checked)}
                 />
-                <span>Show Dimension</span>
+                <span>Ölçüleri göster</span>
               </label>
               <label>
                 <input
@@ -794,11 +795,11 @@ export function DesignCanvas({
                   checked={showMaterial}
                   onChange={(event) => setShowMaterial(event.target.checked)}
                 />
-                <span>Show material</span>
+                <span>Malzemeyi göster</span>
               </label>
               <label>
                 <input type="checkbox" checked={guides} onChange={onGuides} />
-                <span>Show bleedline</span>
+                <span>Taşma çizgisini göster</span>
               </label>
               <label>
                 <input
@@ -806,7 +807,7 @@ export function DesignCanvas({
                   checked={cutBleedline}
                   onChange={(event) => setCutBleedline(event.target.checked)}
                 />
-                <span>Cut bleedline</span>
+                <span>Baskı alanı dışını kırp</span>
               </label>
               <label>
                 <input
@@ -814,7 +815,7 @@ export function DesignCanvas({
                   checked={guidesTopmost}
                   onChange={(event) => setGuidesTopmost(event.target.checked)}
                 />
-                <span>Move bleedline to topmost</span>
+                <span>Taşma çizgisini en üste taşı</span>
               </label>
             </div>
           )}

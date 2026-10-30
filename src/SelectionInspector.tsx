@@ -37,7 +37,7 @@ export function SelectionInspector({
         {selected.kind === "text" && (
           <>
             <select
-              aria-label="Font"
+              aria-label="Yazı tipi"
               value={selected.fontFamily}
               onChange={(e) =>
                 update({ fontFamily: e.target.value as Element["fontFamily"] })
@@ -74,7 +74,7 @@ export function SelectionInspector({
         {selected.kind === "text" && (
           <>
             <button
-              aria-label="Bold"
+              aria-label="Kalın"
               aria-pressed={selected.fontWeight === "bold"}
               onClick={() =>
                 update({
@@ -86,7 +86,7 @@ export function SelectionInspector({
               <Bold size={17} />
             </button>
             <button
-              aria-label="Italic"
+              aria-label="Eğik"
               aria-pressed={selected.fontStyle === "italic"}
               onClick={() =>
                 update({
@@ -98,14 +98,14 @@ export function SelectionInspector({
               <Italic size={17} />
             </button>
             <button
-              aria-label="Underline"
+              aria-label="Altı çizili"
               aria-pressed={!!selected.underline}
               onClick={() => update({ underline: !selected.underline })}
             >
               <Underline size={17} />
             </button>
             <button
-              aria-label="Text alignment"
+              aria-label="Yazı hizalaması"
               onClick={() =>
                 update({
                   textAlign:
@@ -128,7 +128,7 @@ export function SelectionInspector({
           </>
         )}
         <button
-          aria-label="More object tools"
+          aria-label="Diğer öğe araçları"
           aria-expanded={more}
           onClick={() => setMore(!more)}
         >
@@ -152,7 +152,7 @@ export function SelectionInspector({
           )}
           <div className="inspector-row">
             <label>
-              Rotation
+              Döndürme
               <input
                 aria-label="Döndürme"
                 type="number"
@@ -168,7 +168,7 @@ export function SelectionInspector({
               />
             </label>
             <label>
-              Scale %
+              Ölçek (%)
               <input
                 aria-label="Ölçek"
                 type="number"
@@ -186,10 +186,10 @@ export function SelectionInspector({
             </label>
           </div>
           <label className="opacity-field">
-            Opacity{" "}
+            Opaklık{" "}
             <output>{Math.round((selected.opacity ?? 1) * 100)}%</output>
             <input
-              aria-label="Opacity"
+              aria-label="Opaklık"
               type="range"
               min={0}
               max={1}
@@ -200,14 +200,14 @@ export function SelectionInspector({
           </label>
           <div className="inspector-layers">
             <button
-              aria-label="Flip horizontally"
+              aria-label="Yatay çevir"
               aria-pressed={!!selected.flipX}
               onClick={() => update({ flipX: !selected.flipX })}
             >
               <FlipHorizontal2 size={17} />
             </button>
             <button
-              aria-label="Flip vertically"
+              aria-label="Dikey çevir"
               aria-pressed={!!selected.flipY}
               onClick={() => update({ flipY: !selected.flipY })}
             >
@@ -216,30 +216,30 @@ export function SelectionInspector({
           </div>
           <div className="object-actions">
             <button onClick={duplicate}>
-              <Copy size={16} /> Duplicate
+              <Copy size={16} /> Çoğalt
             </button>
             <button onClick={remove} disabled={selected.locked}>
-              <Trash2 size={16} /> Delete
+              <Trash2 size={16} /> Sil
             </button>
             <button
               aria-pressed={!!selected.locked}
               onClick={() => update({ locked: !selected.locked })}
             >
               {selected.locked ? <Unlock size={16} /> : <Lock size={16} />}{" "}
-              {selected.locked ? "Unlock" : "Lock"}
+              {selected.locked ? "Kilidi aç" : "Kilitle"}
             </button>
             <hr />
             <button onClick={() => layer("front")}>
-              <ArrowUp size={16} /> Bring to front
+              <ArrowUp size={16} /> En öne getir
             </button>
             <button onClick={() => layer("up")}>
-              <ArrowUp size={16} /> Bring forward
+              <ArrowUp size={16} /> Bir katman öne getir
             </button>
             <button onClick={() => layer("down")}>
-              <ArrowDown size={16} /> Send backward
+              <ArrowDown size={16} /> Bir katman arkaya gönder
             </button>
             <button onClick={() => layer("back")}>
-              <ArrowDown size={16} /> Send to back
+              <ArrowDown size={16} /> En arkaya gönder
             </button>
           </div>
         </div>

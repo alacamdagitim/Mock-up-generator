@@ -82,7 +82,7 @@ export function PreviewToolbar({
     <div
       className="online-camera-dock"
       role="toolbar"
-      aria-label="3D araçları"
+      aria-label="3B araçları"
       ref={host}
       onKeyDown={handleKeys}
       onBlur={(event) => {
@@ -93,7 +93,7 @@ export function PreviewToolbar({
       <button
         type="button"
         aria-label="3B yakınlaştır"
-        title="Zoom in"
+        title="Yakınlaştır"
         onClick={() => preview.current?.zoom(0.9)}
       >
         <Plus size={18} />
@@ -101,7 +101,7 @@ export function PreviewToolbar({
       <button
         type="button"
         aria-label="3B uzaklaştır"
-        title="Zoom out"
+        title="Uzaklaştır"
         onClick={() => preview.current?.zoom(1.1)}
       >
         <Minus size={18} />
@@ -109,7 +109,7 @@ export function PreviewToolbar({
       <i className="preview-toolbar-divider" aria-hidden="true" />
       {allowInflate && (
         <label className="preview-inflate">
-          <span>Inflate</span>
+          <span>Dolgunluk</span>
           <input
             type="range"
             min="0"
@@ -128,10 +128,10 @@ export function PreviewToolbar({
         type="button"
         ref={viewTrigger}
         className="preview-view-trigger"
-        aria-label="3D görünüm seçenekleri"
+        aria-label="3B görünüm seçenekleri"
         aria-expanded={menu}
         aria-controls={menu ? popoverId : undefined}
-        title="View"
+        title="Görünüm"
         onClick={() => setMenu(!menu)}
       >
         <Box size={19} />
@@ -142,24 +142,24 @@ export function PreviewToolbar({
           ref={popover}
           className="preview-view-popover"
           role="group"
-          aria-label="3D görünüm seçenekleri"
+          aria-label="3B görünüm seçenekleri"
         >
           <div className="preview-interaction-options">
             <button
               type="button"
-              aria-label="Rotate 3D"
+              aria-label="3B modeli döndür"
               aria-pressed={interaction === "rotate"}
               onClick={() => onInteraction("rotate")}
             >
-              <MousePointer2 size={18} /> Rotate
+              <MousePointer2 size={18} /> Döndür
             </button>
             <button
               type="button"
-              aria-label="Pan 3D"
+              aria-label="3B görünümü kaydır"
               aria-pressed={interaction === "pan"}
               onClick={() => onInteraction("pan")}
             >
-              <Hand size={18} /> Pan
+              <Hand size={18} /> Kaydır
             </button>
           </div>
           {(["front", "back", "perspective"] as const).map((view) => (
@@ -172,10 +172,10 @@ export function PreviewToolbar({
               }}
             >
               {view === "front"
-                ? "Front"
+                ? "Ön yüz"
                 : view === "back"
-                  ? "Back"
-                  : "Perspective"}
+                  ? "Arka yüz"
+                  : "Perspektif"}
             </button>
           ))}
         </div>

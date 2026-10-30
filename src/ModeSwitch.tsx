@@ -13,13 +13,13 @@ export function ModeSwitch({
 }: ModeSwitchProps) {
   const modes: { id: EditorMode; label: string; title: string }[] = hasMockups
     ? [
-        { id: "mockup", label: "Mockup", title: "Hazır sahnelerde gör" },
-        { id: "2d", label: "2D", title: "Bıçak izini tasarla" },
+        { id: "mockup", label: "Önizleme", title: "Hazır sahnelerde gör" },
+        { id: "2d", label: "2B", title: "Bıçak izini tasarla" },
         { id: "3d", label: "3B", title: "Ürünü döndürerek incele" },
       ]
     : [
-        { id: "3d", label: "3D", title: "Ürünü döndürerek incele" },
-        { id: "2d", label: "2D", title: "Bıçak izi üzerinde tasarla" },
+        { id: "3d", label: "3B", title: "Ürünü döndürerek incele" },
+        { id: "2d", label: "2B", title: "Bıçak izi üzerinde tasarla" },
       ];
   return (
     <div
