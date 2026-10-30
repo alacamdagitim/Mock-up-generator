@@ -1,7 +1,6 @@
 {% comment %}
   Alaçam Tasarım Editörü · React + Fabric.js + Three.js
   npm run build sonrası shopify/assets içeriğini tema assets/ dizinine kopyalayın.
-  Gizli anahtar içermez. API URL'si herkese açık bir adres olmalıdır.
 {% endcomment %}
 {% assign editor_product = section.settings.product | default: product %}
 {% assign alacam_model_file = editor_product.metafields.custom['3b_glb_dosyasi'].value %}
@@ -14,7 +13,6 @@
 {% assign alacam_dieline_url = alacam_dieline_file.url | default: alacam_dieline_file.src | default: '' %}
 {% capture editor_config %}
 {
-  "apiBase": {{ section.settings.api_base | default: 'https://mock-up-generator-y265.vercel.app/api' | json }},
   "productId": {{ editor_product.id | append: '' | json }},
   "productTitle": {{ editor_product.title | json }},
   "productHandle": {{ editor_product.handle | json }},
@@ -85,8 +83,7 @@
   "tag": "section",
   "class": "alacam-design-section",
   "settings": [
-    { "type": "product", "id": "product", "label": "Ambalaj ürünü", "info": "Mockup, bıçak izi ve isteğe bağlı 3B modeli bağlı ürünü seçin." },
-    { "type": "text", "id": "api_base", "label": "Tasarım API adresi", "info": "Örn. https://design-api.magazaniz.com/api. Depolama bağlı değilse sepete ekleme kapalıdır." }
+    { "type": "product", "id": "product", "label": "Ambalaj ürünü", "info": "Mockup, bıçak izi ve isteğe bağlı 3B modeli bağlı ürünü seçin." }
   ],
   "presets": [{ "name": "Alaçam Tasarım Editörü" }]
 }

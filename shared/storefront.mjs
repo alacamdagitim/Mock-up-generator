@@ -4,6 +4,7 @@ import {
   normalizeLocale,
   normalizeProductOptions,
   normalizeStoreVariant,
+  enrichVariantQuantities,
 } from "./commerce.mjs";
 
 /** Storefront product data comes from the merchant's Liquid section, never a third-party model library. */
@@ -66,9 +67,15 @@ export function storefrontProducts(config) {
     if (config.requiresSellingPlan !== undefined)
       found.requiresSellingPlan = config.requiresSellingPlan === true;
   }
-  return products.filter(
-    (p, i, all) => p.id && p.title && all.findIndex((x) => x.id === p.id) === i,
-  );
+  return products
+    .filter(
+      (p, i, all) =>
+        p.id && p.title && all.findIndex((x) => x.id === p.id) === i,
+    )
+    .map((p) => ({
+      ...p,
+      variants: enrichVariantQuantities(p.variants, p.productOptions),
+    }));
 }
 
 export function productDraftKey(config, id) {

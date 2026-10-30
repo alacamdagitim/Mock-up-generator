@@ -1,44 +1,44 @@
-ALAÇAM — ÜRÜN DOSYALARI VE SATIN ALMA KURULUMU
+ALAÇAM — ÜRÜN DOSYALARI VE NORMAL SHOPIFY SATIN ALMA
 
-Ürün meta alanları:
+Ürünün dört mevcut meta alanı:
 custom.mockup_gorselleri → Dosya listesi, yalnız Görseller. Baskısız fotoğraflar.
-custom.mockup_sahneleri → JSON. Tüm mockuplar için tek katalog metni.
+custom.mockup_sahneleri → JSON. Bütün mockuplar için tek katalog metni.
 custom.3b_glb_dosyasi → Dosya. Ürünün isteğe bağlı GLB modeli.
 custom.bicak_i_zi → Dosya. Ölçülü üretici şablonu; 2D gösterim için SVG.
 
+On mockup aynı JSON içindeki scenes listesinde on sahnedir. Maske, UV ve ışık
+HTTPS bağlantıları katalogdan okunur; bunlar için yeni ürün alanı açılmaz.
 JSON dosyasını Dosya alanına yüklemeyin; içeriğini JSON alanına yapıştırın.
-On mockup aynı JSON içindeki scenes listesinde on sahnedir. Ham JPG/PSD
-müşteri tarafında kendiliğinden değiştirilebilir mockup olmaz; hazırlama gerekir.
-Maske, UV ve ışık dosyaları katalogdaki HTTPS adreslerinden okunur.
 
-Görsel listesi doluysa her fotoğrafın sabit Shopify dosya kimliği JSON'daki
-shopifyImageId alanıyla eşleşmelidir. İsim ve sıra kimlik değildir; yeni yükleme
-yeni kimliktir. Liste boşsa hazırlanmış katalog kartları kullanılır.
+Görsel listesi doluysa fotoğrafın sabit Shopify dosya kimliği sahnenin
+shopifyImageId alanıyla eşleşmelidir. İsim/sıra kimlik değildir; yeni yükleme
+yeni kimliktir. Liste boşsa katalogdaki hazırlanmış kartlar kullanılır.
+Ham JPG/PSD kendiliğinden değiştirilebilir mockup olmaz; hazırlama gerekir.
 
-Online tasarla düğmesi:
+Düğme:
 Ürün şablonundaki Özel Liquid bloğuna online-design-vercel.liquid dosyasının
 tamamını yapıştırın. Vercel yayını eski Liquid kodunu kendiliğinden değiştirmez.
-Ürün verileri ve seçili varyant/miktar mevcut Shopify ürününden aktarılır.
+Ürün dosyaları, seçenekler, fiyat, seçili varyant ve miktar Shopify'dan gelir.
 
-Fiyat/adet:
-Fiyat, stok, seçenekler ve miktar kuralları Shopify'dan gelir. Fiziksel parça
-başına fiyat için isteğe bağlı custom.paket_ici_adet (Tam sayı) ürün/varyant
-alanı kullanılabilir. Varyant değeri ürün değerinden önce gelir. Paket içi adet
-bilinmiyorsa paket fiyatı parça fiyatı olarak sunulmaz; başlıktaki sayı tahmin edilmez.
+Fiyat ve adet:
+Varyant fiyatı seçilen adet/paket seçeneğinin TOPLAMIDIR. Adet=1000 ve fiyat
+3000 TL ise adet başı 3 TL olur. Paket sayısı 2 ise 2000 adet ve 6000 TL görünür;
+Shopify'a aynı varyant için sepet miktarı 2 gönderilir, 2000 değil.
 
-Kalıcı kayıt:
-Vercel Storage'da erişimi Private olan Blob store bağlayın; Production ortamında
-BLOB_READ_WRITE_TOKEN sunucu değişkeni bulunmalıdır. Gizli token Liquid'e veya
-VITE_ değişkenine yazılmaz. Bağladıktan sonra yeniden deploy edin.
-/api/health configured:false ise tasarımla sepete ekleme kullanılamaz.
+Adet/Miktar/Quantity/Sipariş adedi gibi miktar seçeneklerinin kesin tam sayı
+değerleri okunur: 1000, 1.000 adet, 1,000 pcs. Boyutlar, ürün adları, aralıklar ve
+belirsiz sayılar adet sayılmaz. İsteğe bağlı custom.paket_ici_adet (Tam sayı)
+veya Shopify count ölçüsü varsa önceliklidir; yeni metafield zorunlu değildir.
 
 Satın alma:
-JSON ve PNG önce kalıcı depolamada doğrulanır. Başarıdan sonra seçili varyant ve
-sepet miktarı Shopify sepetine tasarım kimliği/dosya referanslarıyla eklenir;
-müşteri sepete yönlendirilir. Ödeme Shopify'da yapılır. Yerel taslak sipariş kaydı değildir.
+Sepete ekle gerçek varyantı ve paket sayısını normal Shopify ürünü olarak
+sepete ekler, müşteriyi sepet sayfasına götürür. Ödeme Shopify'da yapılır.
+Tasarım siparişe bağlanmaz ve sunucuya kaydedilmez. Taslak cihazda kalır;
+müşteri PNG/JPG ve düzenlenebilir JSON indirebilir. Ek Blob/depolama veya PSD
+sunucusu kurulmaz. Fiyat ve stok Shopify sepetinde doğrulanır.
 
 SVG düzenleyicide görünür; PDF/AI indirilebilir kaynak olarak kalır.
-Mockup PNG/JPG sunum içindir; onaylı baskıya hazır üretim dosyası sayılmaz.
+Mockup görüntüsü onaylı baskıya hazır üretim dosyası değildir.
 
-Ayrıntılı kurulum: docs/SHOPIFY-KURULUM.md
+Ayrıntılar: docs/SHOPIFY-KURULUM.md
 Sahne hazırlama: docs/MOCKUP-HAZIRLAMA.md

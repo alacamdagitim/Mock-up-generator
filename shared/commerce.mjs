@@ -196,6 +196,79 @@ export function normalizeLocale(value) {
   }
 }
 
+function normalizedOptionName(value) {
+  return typeof value === "string"
+    ? value
+        .trim()
+        .toLocaleLowerCase("tr-TR")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ı/g, "i")
+        .replace(/\s+/g, " ")
+    : "";
+}
+
+/** Only an explicitly named quantity option describes pieces; dimensions and titles do not. */
+export function quantityProductOption(productOptions = []) {
+  const names = new Set([
+    "adet",
+    "miktar",
+    "quantity",
+    "siparis adedi",
+    "siparis miktari",
+    "order quantity",
+    "piece count",
+    "number of pieces",
+    "pieces",
+    "paket ici adet",
+  ]);
+  const matches = productOptions.filter((option) =>
+    names.has(normalizedOptionName(option.name)),
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+
+/** Accept integers or consistently grouped thousands, with an optional count suffix. */
+export function parsePieceCount(value) {
+  if (typeof value !== "string" || value.length > 80) return undefined;
+  const count = value
+    .trim()
+    .replace(/\s+(?:adet|ad|pcs\.?|pieces?|units?)$/i, "")
+    .trim();
+  let digits;
+  if (/^[1-9]\d*$/.test(count)) digits = count;
+  else if (/^[1-9]\d{0,2}(?:\.\d{3})+$/.test(count))
+    digits = count.replace(/\./g, "");
+  else if (/^[1-9]\d{0,2}(?:,\d{3})+$/.test(count))
+    digits = count.replace(/,/g, "");
+  else if (/^[1-9]\d{0,2}(?:[ \u00a0\u202f]\d{3})+$/.test(count))
+    digits = count.replace(/[ \u00a0\u202f]/g, "");
+  else return undefined;
+  const parsed = Number(digits);
+  return integer(parsed, 1, maximumQuantity) ? parsed : undefined;
+}
+
+export function resolveVariantUnits(variant, productOptions = []) {
+  if (integer(variant?.unitsPerItem, 1, maximumQuantity))
+    return variant.unitsPerItem;
+  if (
+    variant?.unitPriceMeasurement?.measuredType === "count" &&
+    integer(variant.unitPriceMeasurement.quantityValue, 1, maximumQuantity)
+  )
+    return variant.unitPriceMeasurement.quantityValue;
+  const option = quantityProductOption(productOptions);
+  return option
+    ? parsePieceCount(variant?.options?.[option.position - 1])
+    : undefined;
+}
+
+export function enrichVariantQuantities(variants, productOptions = []) {
+  return variants.map((variant) => {
+    const units = resolveVariantUnits(variant, productOptions);
+    return units === undefined ? variant : { ...variant, unitsPerItem: units };
+  });
+}
+
 export function variantOptions(variant, productOptions = []) {
   return productOptions.map(
     (option) => variant?.options?.[option.position - 1] ?? "",

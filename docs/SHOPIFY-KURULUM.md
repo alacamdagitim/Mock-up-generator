@@ -1,28 +1,14 @@
 # Shopify’da çalıştırma
 
-## 1. Vercel projesi
+## 1. Vercel yayını
 
-GitHub deposunu Vercel’e bağlayın. Application Preset **Vite**, Root Directory `./`, Build Command `npm run build`, Output Directory `dist`, Node.js **22** seçin. Vercel ön yüzü ve depodaki `api/` sunucu uçlarını aynı projede yayımlar.
+GitHub deposunu Vercel’e bağlayın. Application Preset **Vite**, Root Directory `./`, Build Command `npm run build`, Output Directory `dist`, Node.js **22** seçin.
 
-GitHub’a gönderilen kod Vercel tarafından yeniden derlenir. Shopify temasına daha önce yapıştırılan Liquid kendiliğinden güncellenmez; aşağıdaki dosya ayrıca değiştirilmelidir.
+Bu sürüm Shopify ürün verileriyle tarayıcıda çalışır. Blob, veritabanı, kayıt API’si veya PSD sunucusu kurulmaz; gizli anahtar gerekmez. Taslak müşterinin cihazında kalır ve tasarım dosyası siparişe bağlanmaz.
 
-## 2. Kalıcı tasarım depolaması
+GitHub’a gönderilen kod Vercel tarafından yeniden derlenir. Temaya daha önce yapıştırılan Liquid kendiliğinden güncellenmez; aşağıdaki dosya ayrıca değiştirilmelidir.
 
-Vercel projesinde **Storage → Blob** üzerinden erişimi **Private** olan bir store oluşturup projeye bağlayın. Production ortamına `BLOB_READ_WRITE_TOKEN` eklendiğini kontrol edin ve yeniden dağıtın.
-
-| Sunucu ortam değişkeni | Gerekli mi? | İçerik |
-| --- | --- | --- |
-| `BLOB_READ_WRITE_TOKEN` | Kalıcı kayıt için evet | Vercel Private Blob bağlantısının verdiği gizli token. |
-| `PUBLIC_BASE_URL` | İsteğe bağlı | API’nin HTTPS origin’i; örneğin `https://mock-up-generator-y265.vercel.app`. Sonuna `/api` eklemeyin. Vercel’de varsayılan proje adresi otomatik kullanılır. |
-| `ALLOWED_ORIGINS` | Başka mağaza/domain için | Virgülle ayrılmış tam origin’ler. `https://alacamdagitim.com`, `https://www.alacamdagitim.com` ve mevcut Vercel alan adı varsayılan olarak izinlidir. |
-
-Gizli token `VITE_` değişkenine, Liquid’e, tasarım JSON’una veya tarayıcı koduna yazılmaz.
-
-`GET /api/health`, depolama erişimini kontrol eder. `storageConfigured: false` ise siparişe tasarım bağlanamaz. Kullanıcı düzenleyebilir, görsel/JSON indirebilir ve yerel taslağını tutabilir; sunucuya kaydedildi mesajı verilmez.
-
-Depolama henüz hesaba bağlanmadıysa bu adım tamamlanmış değildir. Kaynak kodun yayına çıkması tek başına Blob store oluşturmaz.
-
-## 3. Ürün meta alanları
+## 2. Ürünün dört meta alanı
 
 Shopify **Ayarlar → Özel veriler → Ürünler** bölümündeki mevcut tanımları kullanın:
 
@@ -33,61 +19,60 @@ Shopify **Ayarlar → Özel veriler → Ürünler** bölümündeki mevcut tanım
 | 3B GLB Dosyası | `custom.3b_glb_dosyasi` | Dosya |
 | Bıçak izi | `custom.bicak_i_zi` | Dosya |
 
-PSD kaynakları hazırlıkta kullanılır. Müşteri tarafına PSD yerine hazırlanmış görseller, maskeler ve eşleme dosyaları gider. On sahne için on farklı ürün JSON’u gerekmez; hepsi tek katalogdadır.
+On sahne için tek JSON katalog kullanılır. `mockup_sahneleri` alanına verilen JSON metninin tamamı yapıştırılır; JSON dosyası bir Dosya alanına yüklenmez. Maske, UV ve ışık dosyalarının katalogdaki URL’leri erişilebilir HTTPS/CDN adresleri olmalıdır. Bunlar için yeni ürün alanları açılmaz.
 
-`mockup_sahneleri` alanına dosya yüklemek yerine verilen JSON metninin tamamını yapıştırın. Teknik dosya URL’leri müşterinin erişebildiği HTTPS/CDN adresleri olmalıdır. Kaynak PSD, çalışma önbelleği veya yerel bilgisayar adresi yazılmaz.
+`mockup_gorselleri` listesini doldurursanız her fotoğraf, katalogdaki sahnenin `shopifyImageId` alanına sabit Shopify dosya kimliğiyle bağlanır. İsim/başlık/sıra kimlik değildir; yeni yükleme yeni kimliktir. Liste boşsa katalogdaki hazırlanmış kartlar kullanılır. Hazırlanmamış veya çelişen görsel kullanılabilir tasarımlı mockup gibi gösterilmez.
 
-`mockup_gorselleri` listesini doldurursanız her fotoğraf, katalogdaki sahnenin `shopifyImageId` alanına sabit Shopify dosya kimliğiyle bağlanır. Dosya adı/başlık/sıra kimlik değildir; yeni yükleme yeni kimliktir. Liste boşsa katalogdaki hazırlanmış kartlar kullanılır. Hazırlanmamış/çelişen görseller açık açıklamayla kullanılamaz olarak görünür.
+GLB isteğe bağlıdır; UV ve baskı yüzü eşlemesi bulunmalıdır. Bıçak izi için SVG kullanın: ölçüsü ve en/boy oranı korunarak 2D kılavuzda görünür. PDF/AI indirilebilir kaynak olarak kalır; SVG’ye dönüştürme ve üretim ölçüsü hazırlık aşamasıdır.
 
-GLB isteğe bağlıdır. Bıçak izi için SVG tercih edin: ölçü ve en/boy oranı okunur, kılavuz editörde gösterilir. PDF/AI dosyası indirilebilir kaynak olarak kalır; SVG’ye dönüştürme ve üretim ölçüsü hazırlık aşamasıdır.
+PSD kaynakları bir kez hazırlanır. Müşteriye PSD yerine hazırlanmış web varlıkları gider. [PSD hazırlama](MOCKUP-HAZIRLAMA.md).
 
-## 4. Ürün fiyatları ve miktarlar
+## 3. Varyant toplamı, fiziksel adet ve paket sayısı
 
-Editör ürünün seçenek adlarını ve her varyantın seçenek değerlerini Shopify’dan alır. Örneğin **Boyut / Baskı / Miktar** Shopify’da nasıl tanımlandıysa aynı seçenekler görünür. Seçim gerçek bir varyant kombinasyonuna çözülür; var olmayan kombinasyon başka varyant diye eklenmez.
+**Shopify varyant fiyatı, seçilen adet/paket seçeneğinin toplam fiyatıdır.** Örneğin:
 
-Fiyatlar mevcut müşterinin Shopify para biriminde gelir. Shopify’ın minimum/artış/maksimum miktar kuralı ve varsa miktara göre fiyat eşikleri kullanılır. Paketler için **sepet miktarı** ile **fiziksel adet** ayrıdır: 1000 parçalık bir paket Shopify’da bir sepet kalemi olabilir.
+| Shopify verisi | Değer |
+| --- | --- |
+| Adet seçeneği | 1000 |
+| Varyant fiyatı | 3000 TL |
+| Paket sayısı | 1 |
+| Gösterilen toplam adet | 1000 |
+| Gösterilen adet başı fiyat | 3 TL |
+| Shopify’a gönderilen sepet miktarı | 1 |
 
-Parça başı fiyat ve toplam fiziksel adet göstermek istiyorsanız isteğe bağlı **Paket içi adet**, `custom.paket_ici_adet`, **Tam sayı** alanını ürün veya varyantta tanımlayın. Varyantta varsa o değer kullanılır. Örneğin 1000 parçalık varyantta `1000`; sepet miktarı `2` ise toplam 2000 parça. Shopify’ın ölçüm türü `count` olan birim ölçüsü de bu bilgiyi verebilir. Bilgi yoksa sistem başlıktaki sayıları tahmin etmez ve parça fiyatı iddiasında bulunmaz.
+Paket sayısı 2 ise 2000 adet ve 6000 TL görünür; Shopify’a aynı varyant için miktar `2` gönderilir. Varyant fiyatı ayrıca 1000 ile çarpılmaz.
 
-Miktar indirimi, compare-at fiyatı veya varyant etiketi üzerinden uydurulmaz. Nihai sepet/ödeme tutarı Shopify’ın stok, indirim, vergi ve kargo kurallarıyla hesaplanır. Zorunlu abonelik planı gerektiren ürünler bu tek seferlik satın alma akışına uygun değildir.
+Adet, yalnız yapısal miktar seçeneklerinden okunur: `Adet`, `Miktar`, `Quantity`, `Sipariş adedi` ve eşdeğer açık isimler. `1000`, `1.000 adet`, `1,000 pcs` gibi tam sayılar ve düzenli binlik grupları kabul edilir. `250 ml`, `5x5`, `1000–2000`, `1,5` veya ürün adındaki sayılar fiziksel adet sayılmaz. Belirsiz değerde parça fiyatı tahmin edilmez.
 
-## 5. Online tasarla düğmesi
+İsteğe bağlı `custom.paket_ici_adet`, **Tam sayı**, ürün veya varyant düzeyinde bu bilgiyi açıkça tanımlayabilir. Varyant değeri ürün değerine üstün gelir. Shopify’ın ölçüm türü `count` olan birim ölçüsü de kullanılır. Bunlar miktar seçeneğinden önce gelir; beşinci bir metafield oluşturmak zorunlu değildir.
 
-Önerilen kurulum:
+Sağdaki seçenekler gerçek varyant kombinasyonlarına çözülür. Diğer seçenekleri aynı olan açık adet varyantları, gerçek toplamları ve adet başı fiyatlarıyla satırlar halinde gösterilir. Adet indirimi uydurulmaz; varsa Shopify’ın mevcut miktar kuralları ve fiyat eşikleri kullanılır.
+
+Minimum, artış ve maksimum kuralları Shopify’dan gelir. Nihai stok, indirim, vergi ve kargo Shopify sepetinde/ödemede belirlenir. Zorunlu abonelik planı gerektiren ürünler bu tek seferlik satın alma akışına uygun değildir.
+
+## 4. Online tasarla düğmesi
 
 1. Shopify **Online Mağaza → Temalar → Özelleştir** bölümünde ürün şablonunu açın.
 2. Ürün bilgisi bölümüne **Özel Liquid** bloğu ekleyin.
 3. `shopify/custom-liquid/online-design-vercel.liquid` dosyasının tamamını yapıştırın ve kaydedin.
 
-Düğme editörü mevcut ürün sayfasında tam ekran açar. Kimlik, başlık, dosyalar, fiyatlar ve varyantlar mevcut `product` üzerinden aktarılır. Ürün formunun o anda seçili varyantı ve miktarı açılışta yeniden okunur. X/Escape ürün sayfasına döndürür; yerel taslak korunur.
+Düğme mevcut ürün sayfasında tam ekran editör açar. Kimlik, başlık, dosyalar, fiyatlar ve varyantlar mevcut `product` üzerinden aktarılır. Ürün formunun o anda seçili varyantı ve paket miktarı açılışta yeniden okunur. X/Escape ürün sayfasına döndürür; yerel taslak korunur.
 
-Aynı sayfada çelişen birden fazla ürün formu varsa düğmenin `data-alacam-product-form` özelliğine ilgili formun CSS seçicisini verin. Kodun başındaki `api_base` ve JavaScript adresleri farklı Vercel alan adı kullanıyorsanız güncellenmelidir.
+Aynı sayfada çelişen birden fazla ürün formu varsa düğmenin `data-alacam-product-form` özelliğine ilgili formun CSS seçicisini verin. Farklı Vercel alan adı kullanılıyorsa dosyanın JavaScript adreslerini güncelleyin.
 
-Tema varlıklarını Shopify’a yüklemeyi tercih ederseniz derlemeden sonra `shopify/assets/` içindeki bütün `alacam-*` dosyalarını tema `assets/` klasörüne kopyalayın; ardından `shopify/custom-liquid/online-design-button.liquid` veya `shopify/snippets/alacam-online-design-button.liquid` kullanın. Gömülü sayfa section’ı: `shopify/sections/alacam-tasarim-editoru.liquid`; section ayarında ürün seçilir. Sadece ana JavaScript dosyasını yüklemek yeterli değildir; parçalar ve fontlar da gereklidir.
+Tema dosyalarını Shopify’da barındırmayı tercih ederseniz derleme sonrası `shopify/assets/` içindeki bütün `alacam-*` dosyalarını tema `assets/` klasörüne kopyalayın. Ardından `shopify/custom-liquid/online-design-button.liquid` veya `shopify/snippets/alacam-online-design-button.liquid` kullanın. Gömülü sayfa section’ı `shopify/sections/alacam-tasarim-editoru.liquid` dosyasıdır; section ayarında ürün seçilir. JavaScript parçaları ve fontlar da yüklenmelidir.
 
-## 6. Tasarımla sepete ekleme
+## 5. Normal Shopify satın alma
 
-1. Müşteri seçenek ve sipariş miktarını seçer, tasarımı düzenler.
-2. Editör JSON ve PNG’yi Private Blob’a gönderir. API şema, dosya boyutu, PNG yapısı ve içerik özetlerini doğrular; tamamlanmış kayıt manifesti oluşturur.
-3. Kaydedilmiş tasarım kimliği ve referanslar alınır.
-4. Shopify’ın yerelleştirilmiş `cart/add.js` ucuna gerçek varyant kimliği, sepet miktarı ve tasarım referansları gönderilir.
-5. Başarılı yanıt sonrası müşteri mağazanın sepet sayfasına yönlendirilir. Ödeme Shopify’da tamamlanır.
+1. Müşteri gerçek ürün seçeneklerini ve paket sayısını belirler.
+2. **Sepete ekle**, seçili varyantı ve sepet miktarını Shopify’ın yerelleştirilmiş Ajax Cart API’sine gönderir.
+3. Shopify eklemeyi kabul ederse müşteri mağazanın sepet sayfasına yönlendirilir.
+4. Ödeme Shopify’da tamamlanır.
 
-Sepet özellikleri: `_alacam_design_id`, `_alacam_design_url`, `_alacam_preview_url` ve görünür tasarım referansı. PSD, görsel/base64, tasarımın tamamı veya tarayıcıdan gönderilen fiyat sepet özelliği olarak tutulmaz. Tasarım kaydı başarısızsa ürün tasarımlı sipariş gibi eklenmez. Shopify sepet eklemeyi reddederse hata gösterilir; kaydedilmiş tasarım sipariş tamamlandı diye sunulmaz.
+Bu normal ürün siparişidir. Tasarım dosyası, tasarım kimliği, JSON/base64 veya önizleme bağlantısı siparişe eklenmez. Tasarım yalnız tarayıcı taslağında kalır; kullanıcı PNG/JPG veya JSON indirebilir. Siparişin tasarım içerdiği veya dosyanın mağazaya teslim edildiği söylenmez.
 
-## Sunucu uçları
-
-| Uç | İşlev |
-| --- | --- |
-| `GET /api/health` | Kalıcı depolama durumu. |
-| `POST /api/designs?action=connect` | İlk bağlantıda küçük, kişisel veri içermeyen bir kayıtla Private depolamayı doğrulama. Editör gerektiğinde otomatik çağırır. |
-| `POST /api/designs?action=prepare` | Süreli ve dosyaya bağlı özel yükleme izinleri. |
-| `POST /api/designs?action=finalize` | Dosyaları doğrulama, kalıcı tasarım kaydını tamamlama. |
-| `GET /api/designs/:id/design.json` | Tamamlanmış tasarım JSON’u. |
-| `GET /api/designs/:id/preview.png` | Tamamlanmış önizleme. |
-
-Dosyalar doğrudan Blob’a gönderilerek Vercel Function istek gövdesi sınırına takılmaz. Bir tasarımda en fazla 20 MB JSON ve 16 MB PNG kabul edilir. Hazırlanıp tamamlanmamış yüklemeler özel kalır; otomatik süreli dosya temizliği henüz yoktur. Tasarım bağlantısını bilen kişiler bu kaydın dosyalarını açabilir; müşteri hesabına bağlı dosya izin sistemi yoktur.
+Ürün eklenemezse Shopify’ın hata mesajı gösterilir. Güncel fiyat ve satışa açıklık mağazadan doğrulanır; müşterinin tarayıcıda gösterilen toplamı değiştirmesi Shopify fiyatını değiştirmez.
 
 ## Üretim dosyası ayrımı
 
-Mockup PNG/JPG ve 3B görüntü sunum içindir. Düzenlenebilir JSON proje verisidir. Üreticinin onaylı ölçüleri, taşma/güvenli alanı ve baskı şartları tanımlanmadan bunlar baskıya hazır dosya değildir. Varyant değiştirmek yeni ambalaj geometrisi ya da bıçak izi üretmez; farklı fiziksel ölçü gerekiyorsa uygun varlık hazırlanıp ürüne bağlanmalıdır.
+Mockup PNG/JPG ve 3B görüntü sunum içindir. Düzenlenebilir JSON proje verisidir. Üreticinin onaylı ölçüleri, taşma/güvenli alanı ve baskı şartları tanımlanmadan baskıya hazır dosya değildir. Farklı fiziksel ölçüdeki varyant uygun GLB/şablon hazırlığı gerektirir; varyant seçmek yeni geometri üretmez.

@@ -4,7 +4,6 @@
   Tema assets klasörüne editör dosyası yüklemek gerekmez.
   Mockup görselleri: custom.mockup_gorselleri · Dosya listesi · yalnız Görseller.
   Hazırlanmış baskı eşlemeleri: custom.mockup_sahneleri · JSON.
-  Siparişe tasarım bağlamak için Vercel kalıcı tasarım depolaması yapılandırılmalıdır.
 {% endcomment %}
 {% assign alacam_button_product = editor_product | default: product %}
 {% if alacam_button_product != blank and alacam_button_product.id != blank %}
@@ -20,7 +19,6 @@
   {% assign alacam_dieline_url = alacam_dieline_file.url | default: alacam_dieline_file.src | default: '' %}
   {% capture alacam_button_config %}
   {
-    "apiBase": {{ api_base | default: 'https://mock-up-generator-y265.vercel.app/api' | json }},
     "productId": {{ alacam_button_product.id | append: '' | json }},
     "productTitle": {{ alacam_button_product.title | json }},
     "productHandle": {{ alacam_button_product.handle | json }},

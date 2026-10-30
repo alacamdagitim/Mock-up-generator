@@ -1,8 +1,7 @@
 {% comment %}
   Alaçam Online tasarım · ürün sayfasında tam ekran editör düğmesi.
   Gerekli: assets/alacam-launcher.js ve aynı derlemenin tüm alacam-* dosyaları.
-  Snippet: render 'alacam-online-design-button', editor_product: product,
-           api_base: 'https://design-api.magazaniz.com/api'
+  Snippet: render 'alacam-online-design-button', editor_product: product
   Bir section içinde aynı ürün için birden fazla düğme varsa benzersiz instance_id verin.
   Custom Liquid bloğunda bu dosyanın tamamı doğrudan kullanılabilir.
 {% endcomment %}
@@ -20,7 +19,6 @@
   {% assign alacam_dieline_url = alacam_dieline_file.url | default: alacam_dieline_file.src | default: '' %}
   {% capture alacam_button_config %}
   {
-    "apiBase": {{ api_base | default: 'https://mock-up-generator-y265.vercel.app/api' | json }},
     "productId": {{ alacam_button_product.id | append: '' | json }},
     "productTitle": {{ alacam_button_product.title | json }},
     "productHandle": {{ alacam_button_product.handle | json }},

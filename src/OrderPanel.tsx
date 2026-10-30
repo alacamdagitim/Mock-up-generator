@@ -5,6 +5,7 @@ import {
   formatMoney,
   quantityChoices,
   quoteVariant,
+  quantityProductOption,
   variantByOptions,
   variantOptions,
 } from "../shared/commerce.mjs";
@@ -14,9 +15,7 @@ type OrderPanelProps = {
   variant: string;
   quantity: number;
   busy: boolean;
-  storage: boolean;
-  previewReady: boolean;
-  orderStatus?: "" | "saving" | "adding" | "redirecting";
+  orderStatus?: "" | "checking" | "adding" | "redirecting";
   onVariantChange: (id: string) => void;
   onQuantityChange: (quantity: number) => void;
   onOrder: () => void;
@@ -28,8 +27,6 @@ export function OrderPanel({
   variant,
   quantity,
   busy,
-  storage,
-  previewReady,
   orderStatus = "",
   onVariantChange,
   onQuantityChange,
@@ -65,6 +62,27 @@ export function OrderPanel({
       options[0].values[0] === "Default Title"
     );
   const choices = selected ? quantityChoices(selected) : [];
+  const quantityOption = quantityProductOption(options);
+  const quantityOptionIndex = options.findIndex(
+    (option) => option.position === quantityOption?.position,
+  );
+  const quantityVariants =
+    hasNamedOptions && quantityOptionIndex >= 0
+      ? product.variants.filter((item) => {
+          const values = variantOptions(item, options);
+          return values.every(
+            (value, index) =>
+              index === quantityOptionIndex || value === currentOptions[index],
+          );
+        })
+      : [];
+  const showQuantityVariants =
+    quantityVariants.length > 1 &&
+    quantityVariants.every(
+      (item) => item.unitsPerItem !== undefined && item.price !== undefined,
+    ) &&
+    new Set(quantityVariants.map((item) => item.unitsPerItem)).size ===
+      quantityVariants.length;
   const counted = selected?.unitsPerItem !== undefined;
   const packed = (selected?.unitsPerItem || 1) > 1;
   const minimum = selected?.quantityRule?.min || 1;
@@ -83,16 +101,12 @@ export function OrderPanel({
             ? quote.error || "Geçerli bir sipariş miktarı girin."
             : noPrice
               ? "Güncel fiyat bilgisi alınamadı. Ürün sayfasından yeniden açın."
-              : !storage
-                ? "Sipariş kaydı henüz bağlanmadı."
-                : !previewReady
-                  ? "Sipariş için ürün önizlemesinin hazır olması gerekiyor."
-                  : "";
+              : "";
   const actionLabel = {
-    saving: "Tasarım kaydediliyor…",
+    checking: "Seçenek kontrol ediliyor…",
     adding: "Sepete ekleniyor…",
     redirecting: "Sepet açılıyor…",
-    "": "Tasarımla sepete ekle",
+    "": "Sepete ekle",
   }[orderStatus];
   const changeOption = (index: number, value: string) => {
     const next = [...currentOptions];
@@ -126,35 +140,38 @@ export function OrderPanel({
 
       {hasNamedOptions ? (
         <div className="order-option-fields">
-          {options.map((option, index) => (
-            <label key={`${option.position}:${option.name}`}>
-              <span>{option.name}</span>
-              <select
-                value={currentOptions[index] || ""}
-                disabled={busy}
-                onChange={(event) => changeOption(index, event.target.value)}
-              >
-                {!currentOptions[index] && <option value="">Seçin</option>}
-                {option.values.map((value) => {
-                  const matches = product.variants.filter(
-                    (item) => variantOptions(item, options)[index] === value,
-                  );
-                  return (
-                    <option
-                      key={value}
-                      value={value}
-                      disabled={!matches.length}
-                    >
-                      {value}
-                      {matches.length && !matches.some((item) => item.available)
-                        ? " · Tükendi"
-                        : ""}
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-          ))}
+          {options.map((option, index) =>
+            showQuantityVariants && index === quantityOptionIndex ? null : (
+              <label key={`${option.position}:${option.name}`}>
+                <span>{option.name}</span>
+                <select
+                  value={currentOptions[index] || ""}
+                  disabled={busy}
+                  onChange={(event) => changeOption(index, event.target.value)}
+                >
+                  {!currentOptions[index] && <option value="">Seçin</option>}
+                  {option.values.map((value) => {
+                    const matches = product.variants.filter(
+                      (item) => variantOptions(item, options)[index] === value,
+                    );
+                    return (
+                      <option
+                        key={value}
+                        value={value}
+                        disabled={!matches.length}
+                      >
+                        {value}
+                        {matches.length &&
+                        !matches.some((item) => item.available)
+                          ? " · Tükendi"
+                          : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+            ),
+          )}
         </div>
       ) : product.variants.length > 1 ||
         (selected && selected.title !== "Default Title") ? (
@@ -184,6 +201,44 @@ export function OrderPanel({
 
       {selected && (
         <>
+          {showQuantityVariants && (
+            <fieldset className="order-quantity-choices" disabled={busy}>
+              <legend>{quantityOption!.name}</legend>
+              <div className="order-tier-head" aria-hidden="true">
+                <span>Adet</span>
+                <span>Toplam</span>
+                <span>Adet başına</span>
+              </div>
+              {[...quantityVariants]
+                .sort((a, b) => a.unitsPerItem! - b.unitsPerItem!)
+                .map((item) => {
+                  const tier = quoteVariant(item, quantity);
+                  return (
+                    <label
+                      key={item.id}
+                      className={`order-tier ${String(item.id) === variant ? "is-selected" : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name={`${radioGroup}-variant`}
+                        value={item.id}
+                        checked={String(item.id) === variant}
+                        disabled={!item.available}
+                        onChange={() => onVariantChange(String(item.id))}
+                      />
+                      <span className="order-tier-quantity">
+                        {tier.totalUnits === null
+                          ? "—"
+                          : number(tier.totalUnits)}
+                        {!item.available && <small>Tükendi</small>}
+                      </span>
+                      <span>{money(tier.total)}</span>
+                      <span>{unitMoney(tier.unitPrice)}</span>
+                    </label>
+                  );
+                })}
+            </fieldset>
+          )}
           {packed && (
             <p className="order-pack-information">
               1 paket = <strong>{number(selected.unitsPerItem!)} adet</strong>
@@ -303,11 +358,12 @@ export function OrderPanel({
         {!busy && <ArrowRight size={17} aria-hidden="true" />}
       </button>
       <p id={messageId} className="order-action-message" role="status">
-        {blocked || "Tasarımınız siparişe bağlanır. Sonraki adım sepet."}
+        {blocked || "Ürün sepete eklenir ve sepet sayfası açılır."}
       </p>
       {!blocked && (
         <p className="order-price-note">
-          Güncel fiyat ve stok sepette doğrulanır.
+          Tasarım siparişe eklenmez. Tasarımınızı PNG veya JSON olarak
+          indirebilirsiniz. Güncel fiyat ve stok sepette doğrulanır.
         </p>
       )}
     </section>

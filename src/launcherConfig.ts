@@ -40,33 +40,6 @@ function positiveId(value: unknown): number | null {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
-function publicUrl(value: unknown, name: string): string | undefined {
-  const text = optionalString(value, name, 2048);
-  if (!text) return undefined;
-  if (text.startsWith("/") && !text.startsWith("//") && !text.includes("\\")) {
-    if (text.includes("?") || text.includes("#"))
-      throw new Error(`${name} sorgu veya sayfa işareti içeremez.`);
-    return text.replace(/\/$/, "") || "/";
-  }
-  try {
-    const url = new URL(text);
-    const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-    if (
-      (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) ||
-      url.username ||
-      url.password ||
-      url.search ||
-      url.hash
-    )
-      throw new Error();
-    return url.href.replace(/\/$/, "");
-  } catch {
-    throw new Error(
-      `${name} HTTPS, yerel geliştirme veya / ile başlayan bir adres olmalı.`,
-    );
-  }
-}
-
 function assetUrl(
   value: unknown,
   name: string,
@@ -179,7 +152,6 @@ export function validateLaunchConfig(
     ),
     productMockupScenes: parseMockupScenes(input.productMockupScenes),
     productMockupImages: parseMockupImages(input.productMockupImages),
-    apiBase: publicUrl(input.apiBase, "Tasarım API adresi"),
     variants,
     initialVariantId:
       input.initialVariantId === undefined

@@ -26,14 +26,6 @@ export type ResolvedProductMockups = {
   cards: MockupCard[];
   scenes: MockupScene[];
 };
-export type SavedDesign = {
-  id: string;
-  designUrl: string;
-  previewUrl: string;
-  productId: string;
-  variantId: string | null;
-  createdAt?: string;
-};
 export type ProductOption = {
   name: string;
   position: number;
@@ -62,7 +54,6 @@ export type StoreVariant = {
   };
 };
 export type EditorConfig = {
-  apiBase?: string;
   productId?: string;
   productTitle?: string;
   productImage?: string;

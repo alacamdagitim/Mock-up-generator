@@ -5,7 +5,6 @@ import type {
   Element,
   Face,
   Presentation,
-  SavedDesign,
   StoreProduct,
 } from "./types";
 import type { EditorHandle } from "./Editor";
@@ -17,7 +16,6 @@ import {
   blankDesign,
   parseDesign,
   DEFAULT_PRESENTATION,
-  lineItemProperties,
 } from "../shared/schema.mjs";
 import { storefrontProducts, productDraftKey } from "../shared/storefront.mjs";
 import { imageFile } from "./files";
@@ -25,7 +23,7 @@ import { loadProductTemplate } from "./productTemplate";
 import { manufacturerDielineUrl } from "../shared/storefront.mjs";
 import { projectThumbnail, storeProject } from "./library";
 import { quoteVariant, quantityRule } from "../shared/commerce.mjs";
-import { saveDesignToServer } from "./designStorage";
+import { addVariantToCart } from "./shopifyCart";
 
 export const newElement = (kind: Element["kind"], name: string): Element => ({
   id: crypto.randomUUID(),
@@ -92,14 +90,10 @@ export function useDesigner(config: EditorConfig) {
     Record<Face, HTMLCanvasElement | null>
   >({ front: null, back: null });
   const [busy, setBusy] = useState(false);
-  const [storage, setStorage] = useState(false);
-  const [uploadMode, setUploadMode] = useState("inline");
   const [orderStatus, setOrderStatus] = useState<
-    "" | "saving" | "adding" | "redirecting"
+    "" | "checking" | "adding" | "redirecting"
   >("");
   const orderLock = useRef(false);
-  const purchaseGuard = useRef("");
-  const [saved, setSaved] = useState<SavedDesign | null>(null);
   const [localStatus, setLocalStatus] = useState("Yerel taslak");
   const [toast, setToast] = useState<{ text: string; error: boolean } | null>(
     null,
@@ -128,12 +122,7 @@ export function useDesigner(config: EditorConfig) {
   });
   const quantityRef = useRef(quantity);
   quantityRef.current = quantity;
-  const savedSnapshot = useRef<{
-    record: SavedDesign;
-    design: Design;
-    variant: string;
-    quantity: number;
-  } | null>(null);
+  const orderAttempt = useRef<{ signature: string; id: string } | null>(null);
   const [uploaded, setUploaded] = useState<Element[]>([]);
   const [historyCount, setHistoryCount] = useState([0, 0]);
   const history = useRef<Design[]>([]),
@@ -156,7 +145,6 @@ export function useDesigner(config: EditorConfig) {
       projectId.current = null;
     }
   }, [key]);
-  const api = (config.apiBase || "/api").replace(/\/$/, "");
   const settings = {
     ...DEFAULT_PRESENTATION,
     ...design.presentation,
@@ -177,7 +165,6 @@ export function useDesigner(config: EditorConfig) {
       }
       state.current = valid;
       setDesign(valid);
-      setSaved(null);
       setHistoryCount([history.current.length, future.current.length]);
     },
     [product.id],
@@ -348,38 +335,6 @@ export function useDesigner(config: EditorConfig) {
       flush();
     };
   }, [key]);
-  useEffect(() => {
-    const abort = new AbortController();
-    void fetch(`${api}/health`, {
-      signal: abort.signal,
-      cache: "no-store",
-      credentials: "omit",
-    })
-      .then((r) =>
-        r.ok
-          ? r.json()
-          : Promise.reject(new Error("Kayıt servisi hazır değil")),
-      )
-      .then(async (value) => {
-        if (value.storageNeedsVerification) {
-          const connected = await fetch(`${api}/designs?action=connect`, {
-            method: "POST",
-            signal: abort.signal,
-            credentials: "omit",
-            headers: { "Content-Type": "application/json" },
-            body: "{}",
-          });
-          if (!connected.ok)
-            throw new Error("Özel depolama bağlantısı doğrulanamadı.");
-          value = await connected.json();
-        }
-        if (abort.signal.aborted) return;
-        setStorage(value.storageConfigured === true);
-        setUploadMode(value.uploadMode || "inline");
-      })
-      .catch(() => setStorage(false));
-    return () => abort.abort();
-  }, [api]);
   const oppositeBackground = faceBackground(
     design,
     face === "front" ? "back" : "front",
@@ -635,74 +590,11 @@ export function useDesigner(config: EditorConfig) {
       if (importer.current) importer.current.value = "";
     }
   };
-  const persist = async (capture?: {
-    snapshot: Design;
-    snapshotVariant: string;
-    snapshotQuantity?: number;
-    png: string;
-  }) => {
-    if (!storage)
-      throw new Error(
-        "Sunucu depolaması bağlı değil. Bu cihazda kaydetme ve JSON indirme kullanılabilir.",
-      );
-    const snapshot = capture?.snapshot || state.current,
-      snapshotVariant = capture?.snapshotVariant ?? variantRef.current,
-      snapshotQuantity = capture?.snapshotQuantity ?? quantityRef.current;
-    const png = capture?.png || (await capturePreview());
-    if (state.current !== snapshot || variantRef.current !== snapshotVariant)
-      throw new Error(
-        "Kayıt sırasında tasarım değişti. Son halini yeniden kaydedin.",
-      );
-    const chosen = product.variants.find(
-      (item) => String(item.id) === snapshotVariant,
-    );
-    const quote = quoteVariant(chosen, snapshotQuantity);
-    const body = await saveDesignToServer({
-      api,
-      uploadMode,
-      design: snapshot,
-      png,
-      productId: product.id,
-      variantId: snapshotVariant || null,
-      commerce:
-        chosen &&
-        product.currency &&
-        quote.valid &&
-        quote.itemPrice !== null &&
-        quote.total !== null
-          ? {
-              quantity: snapshotQuantity,
-              currency: product.currency,
-              unitPrice: quote.itemPrice,
-              totalPrice: quote.total,
-              unitsPerItem: quote.unitsPerItem,
-              variantTitle: chosen.title,
-            }
-          : undefined,
-    });
-    if (
-      state.current !== snapshot ||
-      variantRef.current !== snapshotVariant ||
-      quantityRef.current !== snapshotQuantity
-    )
-      throw new Error(
-        "Kayıt sırasında tasarım değişti. Son halini yeniden kaydedin.",
-      );
-    setSaved(body as SavedDesign);
-    savedSnapshot.current = {
-      record: body,
-      design: snapshot,
-      variant: snapshotVariant,
-      quantity: snapshotQuantity,
-    };
-    return body as SavedDesign;
-  };
   const save = async () => {
     if (busy) return null;
     setBusy(true);
     try {
-      const snapshot = state.current,
-        snapshotVariant = variantRef.current;
+      const snapshot = state.current;
       const captureWasMockup = Boolean(captureOverride.current);
       let png: string;
       try {
@@ -719,7 +611,7 @@ export function useDesigner(config: EditorConfig) {
           )
         ).toDataURL("image/png");
       }
-      // The local thumbnail and server record share one frozen presentation.
+      // The local document and thumbnail share one frozen presentation.
       let localError = "";
       try {
         const thumbnail = await projectThumbnail(png);
@@ -745,27 +637,11 @@ export function useDesigner(config: EditorConfig) {
       } catch (error) {
         localError = (error as Error).message;
       }
-      if (storage) {
-        try {
-          const record = await persist({ snapshot, snapshotVariant, png });
-          notify(
-            localError
-              ? `Sunucuya kaydedildi. Cihaz kaydı başarısız: ${localError}`
-              : "Cihaza ve sunucuya kaydedildi.",
-            Boolean(localError),
-          );
-          return { scope: "server" as const, ...record };
-        } catch (error) {
-          notify(
-            `${localError ? `Cihaz kaydı başarısız: ${localError}. ` : "Bu cihazda kaydedildi. "}Sunucu kaydı başarısız: ${(error as Error).message}`,
-            true,
-          );
-          return null;
-        }
-      }
       if (localError) throw new Error(localError);
       setLocalStatus("Bu cihazda kaydedildi");
-      notify("Bu cihazda kaydedildi. Sunucu depolaması bağlı değil.");
+      notify(
+        "Taslak bu cihazda kaydedildi. Siparişe tasarım dosyası eklenmez.",
+      );
       return { scope: "device" as const, localId: projectId.current };
     } catch (error) {
       notify((error as Error).message, true);
@@ -780,132 +656,32 @@ export function useDesigner(config: EditorConfig) {
     setBusy(true);
     let navigating = false;
     try {
-      if (purchaseGuard.current) throw new Error(purchaseGuard.current);
       if (product.requiresSellingPlan)
         throw new Error(
           "Bu ürün abonelik seçimi gerektiriyor. Ürün sayfasından devam edin.",
         );
-      const snapshot = state.current,
-        snapshotVariant = variantRef.current,
-        snapshotQuantity = quantityRef.current;
       const chosen = product.variants.find(
-        (item) => String(item.id) === snapshotVariant,
+        (item) => String(item.id) === variantRef.current,
       );
-      const quote = quoteVariant(chosen, snapshotQuantity);
-      if (!quote.valid) throw new Error(quote.error);
-      if (quote.itemPrice === null || !product.currency)
-        throw new Error(
-          "Ürünün fiyat bilgisi alınamadı. Ürün sayfasını yenileyin.",
-        );
-      if (!/^\d+$/.test(product.id) || !chosen)
+      const amount = quantityRef.current;
+      const quote = quoteVariant(chosen, amount);
+      if (!quote.valid || !chosen)
+        throw new Error(quote.error || "Satışa açık bir ürün seçin.");
+      if (!/^\d+$/.test(product.id))
         throw new Error("Geçerli Shopify ürünü seçin.");
-      const root = config.cartRoot || "/";
-      if (!/^\/(?:[A-Za-z0-9_-]+\/)*$/.test(root))
-        throw new Error("Shopify sepet kökü geçersiz.");
-      setOrderStatus("saving");
-      const previous = savedSnapshot.current;
-      const record =
-        previous?.design === snapshot &&
-        previous.variant === snapshotVariant &&
-        previous.quantity === snapshotQuantity
-          ? previous.record
-          : await persist();
-      if (
-        state.current !== snapshot ||
-        variantRef.current !== snapshotVariant ||
-        quantityRef.current !== snapshotQuantity
-      )
-        throw new Error(
-          "Sipariş sırasında tasarım veya ürün seçimi değişti. Yeniden deneyin.",
-        );
+      const signature = `${product.id}:${chosen.id}:${amount}`;
+      if (orderAttempt.current?.signature !== signature)
+        orderAttempt.current = { signature, id: crypto.randomUUID() };
       setOrderStatus("adding");
-      const cartResponse = await fetch(`${root.replace(/\/$/, "")}/cart.js`, {
-        credentials: "same-origin",
-        cache: "no-store",
-        headers: { Accept: "application/json" },
+      const result = await addVariantToCart({
+        root: config.cartRoot || "/",
+        variantId: chosen.id,
+        quantity: amount,
+        attemptKey: orderAttempt.current.id,
       });
-      if (!cartResponse.ok)
-        throw new Error(
-          "Shopify sepeti okunamadı. Ürün sayfasını yenileyip yeniden deneyin.",
-        );
-      const currentCart = await cartResponse.json();
-      if (!Array.isArray(currentCart.items))
-        throw new Error("Shopify sepet yanıtı geçersiz.");
-      const existingLine = currentCart.items.find(
-        (item: { variant_id?: number; properties?: Record<string, string> }) =>
-          String(item.variant_id) === snapshotVariant &&
-          item.properties?._alacam_design_id === record.id,
-      );
-      if (existingLine) {
-        // Repeating an interrupted purchase updates its line instead of doubling it.
-        if (existingLine.quantity !== snapshotQuantity) {
-          const changed = await fetch(
-            `${root.replace(/\/$/, "")}/cart/change.js`,
-            {
-              method: "POST",
-              credentials: "same-origin",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-              },
-              body: JSON.stringify({
-                id: existingLine.key,
-                quantity: snapshotQuantity,
-              }),
-            },
-          );
-          if (!changed.ok) {
-            const error = await changed.json().catch(() => ({}));
-            throw new Error(
-              error.description || "Sepetteki sipariş miktarı güncellenemedi.",
-            );
-          }
-        }
-        setOrderStatus("redirecting");
-        navigating = true;
-        window.location.assign(`${root.replace(/\/$/, "")}/cart`);
-        return;
-      }
-      const response = await fetch(`${root.replace(/\/$/, "")}/cart/add.js`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          items: [
-            {
-              id: chosen.id,
-              quantity: snapshotQuantity,
-              properties: lineItemProperties(record),
-            },
-          ],
-        }),
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.description || "Shopify sepetine eklenemedi.");
-      }
-      const added = await response.json();
-      if (
-        !Array.isArray(added.items) ||
-        !added.items.some(
-          (item: {
-            variant_id?: number;
-            id?: number;
-            properties?: Record<string, string>;
-          }) =>
-            String(item.variant_id || item.id) === snapshotVariant &&
-            item.properties?._alacam_design_id === record.id,
-        )
-      )
-        throw new Error(
-          "Shopify tasarımlı sepet satırını doğrulayamadı. Tekrar eklemeden önce sepetinizi kontrol edin.",
-        );
       setOrderStatus("redirecting");
       navigating = true;
-      window.location.assign(`${root.replace(/\/$/, "")}/cart`);
+      window.location.assign(result.cartUrl);
     } catch (error) {
       navigating = false;
       notify((error as Error).message, true);
@@ -956,8 +732,6 @@ export function useDesigner(config: EditorConfig) {
     undo,
     historyCount,
     busy,
-    storage,
-    saved,
     localStatus,
     toast,
     setToast,
@@ -965,10 +739,10 @@ export function useDesigner(config: EditorConfig) {
     save,
     cart,
     orderStatus,
-    purchaseGuard,
     variant,
     setVariant: (value: string) => {
       if (busy || orderLock.current) return;
+      if (value !== variantRef.current) orderAttempt.current = null;
       setVariant(value);
       variantRef.current = value;
       const next = product.variants.find((item) => String(item.id) === value);
@@ -977,14 +751,13 @@ export function useDesigner(config: EditorConfig) {
         setQuantityValue(amount);
         quantityRef.current = amount;
       }
-      setSaved(null);
     },
     quantity,
     setQuantity: (value: number) => {
       if (busy || orderLock.current) return;
+      if (value !== quantityRef.current) orderAttempt.current = null;
       setQuantityValue(value);
       quantityRef.current = value;
-      setSaved(null);
     },
   };
 }

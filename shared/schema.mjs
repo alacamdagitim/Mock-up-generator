@@ -214,11 +214,3 @@ export function effectiveDpi(el, artboard = undefined) {
     ),
   );
 }
-export function lineItemProperties(saved) {
-  return {
-    _alacam_design_id: saved.id,
-    _alacam_design_url: saved.designUrl,
-    _alacam_preview_url: saved.previewUrl,
-    Tasarım: saved.id,
-  };
-}

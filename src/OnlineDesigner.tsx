@@ -7,7 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
   Circle,
-  Cloud,
+  HardDrive,
   Download,
   FileJson,
   ImagePlus,
@@ -47,7 +47,7 @@ import { ModeSwitch } from "./ModeSwitch";
 import { PreviewWindowControls } from "./PreviewWindowControls";
 import { PreviewToolbar } from "./PreviewToolbar";
 import { RenderDialog } from "./RenderDialog";
-import { DielineExportPanel, ShareExportPanel } from "./ExportPanels";
+import { DielineExportPanel } from "./ExportPanels";
 import { faceBackground } from "../shared/surface-colors.mjs";
 import { renderFace } from "./Editor";
 import {
@@ -177,7 +177,6 @@ export default function OnlineDesigner({
     mockupScenes[0];
   const photoActive = hasMockups && mode !== "3d";
   const mockupPreview = useRef<MockupPreviewHandle>(null);
-  const [readyMockupId, setReadyMockupId] = useState("");
   const [captureBusy, setCaptureBusy] = useState(false);
   const exportTrigger = useRef<HTMLButtonElement>(null);
   const artworkProvider = useCallback<ArtworkProvider>(
@@ -293,22 +292,6 @@ export default function OnlineDesigner({
   }, []);
   const manufacturerFile = manufacturerDielineUrl(d.product.dielineUrl);
   const manufacturerModel = manufacturerDielineUrl(d.product.modelUrl);
-  const purchasePreviewReady = hasMockups
-    ? Boolean(
-        selectedScene &&
-        readyMockupId === selectedScene.id &&
-        (!d.settings.mockupSceneId ||
-          d.settings.mockupSceneId === selectedScene.id),
-      )
-    : Boolean(
-        d.textures.front &&
-        d.templateUrl &&
-        manufacturerModel &&
-        modelFaces.includes("front"),
-      );
-  d.purchaseGuard.current = purchasePreviewReady
-    ? ""
-    : "Sipariş için ürünün tasarımlı önizlemesinin hazır olması gerekiyor.";
   useEffect(() => {
     if (
       !photoActive &&
@@ -582,7 +565,7 @@ export default function OnlineDesigner({
           </span>
         </div>
         <div className="online-document">
-          <InterfaceIcon name="cloud" size={22} />
+          <HardDrive size={22} aria-label="Yerel taslak" />
           <input
             aria-label="Tasarım adı"
             maxLength={100}
@@ -590,16 +573,13 @@ export default function OnlineDesigner({
             onChange={(e) =>
               d.change({
                 ...d.state.current,
-                name: e.target.value || "untitled",
+                name: e.target.value || "Tasarımım",
                 updatedAt: new Date().toISOString(),
               })
             }
           />
-          <span
-            title={d.saved ? "Saved to server" : d.localStatus}
-            className="document-status"
-          >
-            {d.saved ? "Sunucuda" : "Taslak"}
+          <span title={d.localStatus} className="document-status">
+            Taslak
           </span>
         </div>
         <ModeSwitch mode={mode} onChange={changeMode} hasMockups={hasMockups} />
@@ -1203,10 +1183,6 @@ export default function OnlineDesigner({
                 textures={d.textures}
                 artworkProvider={artworkProvider}
                 exportArtworkProvider={exportArtworkProvider}
-                onReady={(info) => setReadyMockupId(info.id)}
-                onStatus={(status) => {
-                  if (status !== "ready") setReadyMockupId("");
-                }}
               />
             </div>
           )}
@@ -1316,8 +1292,6 @@ export default function OnlineDesigner({
                 variant={d.variant}
                 quantity={d.quantity}
                 busy={d.busy}
-                storage={d.storage}
-                previewReady={purchasePreviewReady}
                 orderStatus={d.orderStatus}
                 onVariantChange={d.setVariant}
                 onQuantityChange={d.setQuantity}
@@ -1472,15 +1446,7 @@ export default function OnlineDesigner({
             {"Kaydet"}
           </button>
           <span>
-            {hasMockups
-              ? d.saved
-                ? "Sunucuya kaydedildi"
-                : "Taslak bu cihazda otomatik korunur"
-              : d.saved
-                ? "Saved to server"
-                : d.storage
-                  ? "Saves to this device and server"
-                  : "Saves to this device only"}
+            Taslak bu cihazda korunur · Siparişe tasarım dosyası eklenmez
           </span>
         </div>
         {mode === "3d" && (
@@ -1511,16 +1477,6 @@ export default function OnlineDesigner({
               face={d.face}
               templateUrl={d.templateUrl}
               originalUrl={manufacturerFile || undefined}
-            />
-          ),
-          share: (
-            <ShareExportPanel
-              design={d.design}
-              saved={d.saved}
-              storageConfigured={d.storage}
-              onSave={d.save}
-              busy={d.busy}
-              previewUrl={renderPreviewUrl}
             />
           ),
         }}
