@@ -22,7 +22,11 @@ import { imageFile } from "./files";
 import { loadProductTemplate } from "./productTemplate";
 import { manufacturerDielineUrl } from "../shared/storefront.mjs";
 import { projectThumbnail, storeProject } from "./library";
-import { quoteVariant, quantityRule } from "../shared/commerce.mjs";
+import {
+  quoteVariant,
+  quantityRule,
+  orderQuantityChoices,
+} from "../shared/commerce.mjs";
 import { addVariantToCart } from "./shopifyCart";
 
 export const newElement = (kind: Element["kind"], name: string): Element => ({
@@ -116,7 +120,8 @@ export function useDesigner(config: EditorConfig) {
     );
     const rule = quantityRule(initial);
     const requested = config.initialQuantity;
-    return requested && quoteVariant(initial, requested).valid
+    return requested &&
+      orderQuantityChoices(initial, product.productOptions).includes(requested)
       ? requested
       : rule.min;
   });
@@ -667,6 +672,10 @@ export function useDesigner(config: EditorConfig) {
       const quote = quoteVariant(chosen, amount);
       if (!quote.valid || !chosen)
         throw new Error(quote.error || "Satışa açık bir ürün seçin.");
+      if (
+        !orderQuantityChoices(chosen, product.productOptions).includes(amount)
+      )
+        throw new Error("Ürünün tanımlı adet seçeneklerinden birini seçin.");
       if (!/^\d+$/.test(product.id))
         throw new Error("Geçerli Shopify ürünü seçin.");
       const signature = `${product.id}:${chosen.id}:${amount}`;
@@ -746,15 +755,22 @@ export function useDesigner(config: EditorConfig) {
       setVariant(value);
       variantRef.current = value;
       const next = product.variants.find((item) => String(item.id) === value);
-      if (!quoteVariant(next, quantityRef.current).valid) {
-        const amount = quantityRule(next).min;
-        setQuantityValue(amount);
-        quantityRef.current = amount;
-      }
+      const amount =
+        orderQuantityChoices(next, product.productOptions)[0] ??
+        quantityRule(next).min;
+      setQuantityValue(amount);
+      quantityRef.current = amount;
     },
     quantity,
     setQuantity: (value: number) => {
       if (busy || orderLock.current) return;
+      const current = product.variants.find(
+        (item) => String(item.id) === variantRef.current,
+      );
+      if (
+        !orderQuantityChoices(current, product.productOptions).includes(value)
+      )
+        return;
       if (value !== quantityRef.current) orderAttempt.current = null;
       setQuantityValue(value);
       quantityRef.current = value;

@@ -1,11 +1,13 @@
 import { useId } from "react";
-import { ArrowRight, Loader2, ShoppingBag } from "lucide-react";
-import type { StoreProduct } from "./types";
+import { Loader2 } from "lucide-react";
+import type { StoreProduct, StoreVariant } from "./types";
+import { QuantityDropdown } from "./QuantityDropdown";
 import {
   formatMoney,
-  quantityChoices,
-  quoteVariant,
+  orderQuantityChoices,
   quantityProductOption,
+  quantityRule,
+  quoteVariant,
   variantByOptions,
   variantOptions,
 } from "../shared/commerce.mjs";
@@ -21,7 +23,7 @@ type OrderPanelProps = {
   onOrder: () => void;
 };
 
-/** Prices and quantities in this panel come exclusively from the selected Shopify variant. */
+/** Every displayed offer corresponds to a real variant and a permitted Shopify quantity. */
 export function OrderPanel({
   product,
   variant,
@@ -32,18 +34,18 @@ export function OrderPanel({
   onQuantityChange,
   onOrder,
 }: OrderPanelProps) {
-  const radioGroup = useId();
-  const quantityId = useId();
   const messageId = useId();
   const selected = product.variants.find((item) => String(item.id) === variant);
   const quote = quoteVariant(selected, quantity);
-  const currency = product.currency;
   const money = (value: number | null | undefined, precision = 2) =>
-    currency && value !== null && value !== undefined
-      ? formatMoney(value, currency, product.locale || "tr-TR", precision)
-      : "—";
-  const unitMoney = (value: number | null) =>
-    money(value, value !== null && value > 0 && value < 1 ? 6 : 4);
+    value == null
+      ? "—"
+      : formatMoney(
+          value,
+          product.currency,
+          product.locale || "tr-TR",
+          precision,
+        );
   const number = (value: number) =>
     value.toLocaleString(product.locale || "tr-TR");
   const options = [...(product.productOptions || [])].sort(
@@ -55,59 +57,81 @@ export function OrderPanel({
     options.length > 0 &&
     product.variants.every((item) =>
       variantOptions(item, options).every(Boolean),
-    ) &&
-    !(
-      options.length === 1 &&
-      options[0].values.length === 1 &&
-      options[0].values[0] === "Default Title"
     );
-  const choices = selected ? quantityChoices(selected) : [];
   const quantityOption = quantityProductOption(options);
-  const quantityOptionIndex = options.findIndex(
+  const quantityIndex = options.findIndex(
     (option) => option.position === quantityOption?.position,
   );
   const quantityVariants =
-    hasNamedOptions && quantityOptionIndex >= 0
-      ? product.variants.filter((item) => {
-          const values = variantOptions(item, options);
-          return values.every(
+    hasNamedOptions && quantityIndex >= 0
+      ? product.variants.filter((item) =>
+          variantOptions(item, options).every(
             (value, index) =>
-              index === quantityOptionIndex || value === currentOptions[index],
-          );
-        })
+              index === quantityIndex || value === currentOptions[index],
+          ),
+        )
       : [];
-  const showQuantityVariants =
-    quantityVariants.length > 1 &&
-    quantityVariants.every(
-      (item) => item.unitsPerItem !== undefined && item.price !== undefined,
-    ) &&
-    new Set(quantityVariants.map((item) => item.unitsPerItem)).size ===
-      quantityVariants.length;
-  const counted = selected?.unitsPerItem !== undefined;
-  const packed = (selected?.unitsPerItem || 1) > 1;
-  const minimum = selected?.quantityRule?.min || 1;
-  const increment = selected?.quantityRule?.increment || 1;
-  const maximum = selected?.quantityRule?.max || undefined;
-  const noPrice = quote.total === null || !currency;
+  const quantityVariantsActive = quantityVariants.length > 0;
+
+  const offer = (item: StoreVariant, amount: number) => {
+    const price = quoteVariant(item, amount);
+    const hasPieces = item.unitsPerItem !== undefined;
+    const label =
+      hasPieces && price.totalUnits !== null
+        ? `${number(price.totalUnits)} adet`
+        : quantityVariantsActive
+          ? item.options?.[(quantityOption?.position || 1) - 1] || item.title
+          : `${number(amount)} paket`;
+    const precision =
+      price.unitPrice !== null && price.unitPrice > 0 && price.unitPrice < 1
+        ? 6
+        : 4;
+    return {
+      id: `${item.id}:${amount}`,
+      variant: item,
+      quantity: amount,
+      label: `${label}${item.available ? "" : " · Tükendi"}`,
+      priceLabel: hasPieces
+        ? `${money(price.unitPrice, precision)} / adet`
+        : `${money(price.itemPrice)} / seçenek`,
+      disabled: !price.valid || price.itemPrice === null,
+    };
+  };
+  const offers = quantityVariantsActive
+    ? [...quantityVariants]
+        .sort((a, b) => (a.unitsPerItem || 0) - (b.unitsPerItem || 0))
+        .map((item) => offer(item, quantityRule(item).min))
+    : selected
+      ? (orderQuantityChoices(selected, options).length
+          ? orderQuantityChoices(selected, options)
+          : [quantityRule(selected).min]
+        ).map((amount) => offer(selected, amount))
+      : [];
+  const selectedOffer = offers.find(
+    (item) => item.id === `${variant}:${quantity}`,
+  );
   const blocked = !product.variants.length
     ? "Ürünün satış seçenekleri alınamadı. Ürün sayfasından yeniden açın."
     : product.requiresSellingPlan
-      ? "Bu ürün abonelik seçimi gerektiriyor. Siparişi ürün sayfasından tamamlayın."
+      ? "Bu ürün abonelik seçimi gerektiriyor. Ürün sayfasından devam edin."
       : !selected
-        ? "Sipariş için ürün seçeneklerini belirleyin."
+        ? "Ürün seçeneklerini belirleyin."
         : !selected.available
-          ? "Bu seçenek şu anda satışa kapalı. Başka bir seçenek belirleyin."
+          ? "Bu seçenek tükendi. Başka bir seçenek belirleyin."
           : !quote.valid
-            ? quote.error || "Geçerli bir sipariş miktarı girin."
-            : noPrice
-              ? "Güncel fiyat bilgisi alınamadı. Ürün sayfasından yeniden açın."
-              : "";
+            ? quote.error || "Geçerli bir adet seçin."
+            : !selectedOffer
+              ? "Tanımlı adet seçeneklerinden birini seçin."
+              : quote.total === null || !product.currency
+                ? "Güncel fiyat alınamadı. Ürün sayfasını yenileyin."
+                : "";
   const actionLabel = {
-    checking: "Seçenek kontrol ediliyor…",
-    adding: "Sepete ekleniyor…",
+    checking: "Kontrol ediliyor…",
+    adding: "Ekleniyor…",
     redirecting: "Sepet açılıyor…",
     "": "Sepete ekle",
   }[orderStatus];
+
   const changeOption = (index: number, value: string) => {
     const next = [...currentOptions];
     next[index] = value;
@@ -116,14 +140,13 @@ export function OrderPanel({
       onVariantChange(String(exact.id));
       return;
     }
-    // Some products do not have every possible option combination. Keep them reachable.
     const matches = product.variants
       .filter((item) => variantOptions(item, options)[index] === value)
       .sort((a, b) => {
-        const score = (item: typeof a) =>
+        const score = (item: StoreVariant) =>
           variantOptions(item, options).reduce(
-            (sum, option, position) =>
-              sum + (option === currentOptions[position] ? 2 : 0),
+            (sum, itemValue, position) =>
+              sum + (itemValue === currentOptions[position] ? 2 : 0),
             item.available ? 1 : 0,
           );
         return score(b) - score(a);
@@ -133,18 +156,14 @@ export function OrderPanel({
 
   return (
     <section className="product-order-panel" aria-label="Sipariş seçenekleri">
-      <div className="order-panel-heading">
-        <ShoppingBag size={17} aria-hidden="true" />
-        <h2>Siparişiniz</h2>
-      </div>
-
       {hasNamedOptions ? (
         <div className="order-option-fields">
           {options.map((option, index) =>
-            showQuantityVariants && index === quantityOptionIndex ? null : (
-              <label key={`${option.position}:${option.name}`}>
+            quantityVariantsActive && index === quantityIndex ? null : (
+              <label className="order-option-row" key={option.position}>
                 <span>{option.name}</span>
                 <select
+                  title={currentOptions[index]}
                   value={currentOptions[index] || ""}
                   disabled={busy}
                   onChange={(event) => changeOption(index, event.target.value)}
@@ -187,185 +206,62 @@ export function OrderPanel({
             {product.variants.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.title}
-                {!item.available ? " · Tükendi" : ""}
+                {item.available ? "" : " · Tükendi"}
               </option>
             ))}
           </select>
         </label>
       ) : null}
-      {hasNamedOptions && selected && (
-        <p className="order-selected-variant" aria-live="polite">
-          Seçim: {selected.title}
-        </p>
-      )}
 
       {selected && (
-        <>
-          {showQuantityVariants && (
-            <fieldset className="order-quantity-choices" disabled={busy}>
-              <legend>{quantityOption!.name}</legend>
-              <div className="order-tier-head" aria-hidden="true">
-                <span>Adet</span>
-                <span>Toplam</span>
-                <span>Adet başına</span>
-              </div>
-              {[...quantityVariants]
-                .sort((a, b) => a.unitsPerItem! - b.unitsPerItem!)
-                .map((item) => {
-                  const tier = quoteVariant(item, quantity);
-                  return (
-                    <label
-                      key={item.id}
-                      className={`order-tier ${String(item.id) === variant ? "is-selected" : ""}`}
-                    >
-                      <input
-                        type="radio"
-                        name={`${radioGroup}-variant`}
-                        value={item.id}
-                        checked={String(item.id) === variant}
-                        disabled={!item.available}
-                        onChange={() => onVariantChange(String(item.id))}
-                      />
-                      <span className="order-tier-quantity">
-                        {tier.totalUnits === null
-                          ? "—"
-                          : number(tier.totalUnits)}
-                        {!item.available && <small>Tükendi</small>}
-                      </span>
-                      <span>{money(tier.total)}</span>
-                      <span>{unitMoney(tier.unitPrice)}</span>
-                    </label>
-                  );
-                })}
-            </fieldset>
-          )}
-          {packed && (
-            <p className="order-pack-information">
-              1 paket = <strong>{number(selected.unitsPerItem!)} adet</strong>
-            </p>
-          )}
-          {choices.length > 1 && (
-            <fieldset className="order-quantity-choices" disabled={busy}>
-              <legend>
-                {packed
-                  ? "Paket seçenekleri"
-                  : counted
-                    ? "Adet seçenekleri"
-                    : "Miktar seçenekleri"}
-              </legend>
-              <div className="order-tier-head" aria-hidden="true">
-                <span>
-                  {packed ? "Paket / Adet" : counted ? "Adet" : "Miktar"}
-                </span>
-                <span>Toplam</span>
-                <span>{counted ? "Birim" : "Seçenek"}</span>
-              </div>
-              {choices.map((amount: number) => {
-                const tier = quoteVariant(selected, amount);
-                return (
-                  <label
-                    key={amount}
-                    className={`order-tier ${quantity === amount ? "is-selected" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name={radioGroup}
-                      value={amount}
-                      checked={quantity === amount}
-                      onChange={() => onQuantityChange(amount)}
-                    />
-                    <span className="order-tier-quantity">
-                      {number(amount)}
-                      {packed && (
-                        <small>{number(tier.totalUnits || 0)} adet</small>
-                      )}
-                    </span>
-                    <span>{money(tier.total)}</span>
-                    <span>{unitMoney(tier.unitPrice)}</span>
-                  </label>
-                );
-              })}
-            </fieldset>
-          )}
-          <div className="order-quantity-entry">
-            <label htmlFor={quantityId}>
-              {packed ? "Paket sayısı" : counted ? "Adet" : "Sipariş miktarı"}
-            </label>
-            <input
-              id={quantityId}
-              aria-describedby={messageId}
-              type="number"
-              inputMode="numeric"
-              min={minimum}
-              max={maximum}
-              step={increment}
-              value={Number.isFinite(quantity) ? quantity : ""}
-              disabled={busy}
-              onChange={(event) => {
-                const value = event.target.valueAsNumber;
-                onQuantityChange(Number.isFinite(value) ? value : 0);
-              }}
-            />
-          </div>
-          {(minimum > 1 || increment > 1 || maximum) && (
-            <p className="order-quantity-rule">
-              En az {number(minimum)}{" "}
-              {packed ? "paket" : counted ? "adet" : "seçenek"}
-              {increment > 1 ? ` · ${number(increment)} katları` : ""}
-              {maximum ? ` · En fazla ${number(maximum)}` : ""}
-            </p>
-          )}
-          <dl className="order-price-summary" aria-live="polite">
-            {packed && (
-              <div>
-                <dt>Toplam adet</dt>
-                <dd>
-                  {quote.valid && quote.totalUnits !== null
-                    ? number(quote.totalUnits)
-                    : "—"}
-                </dd>
-              </div>
-            )}
-            <div>
-              <dt>
-                {packed
-                  ? "Adet başına"
-                  : counted
-                    ? "Birim fiyat"
-                    : "Seçenek başına"}
-              </dt>
-              <dd>{quote.valid ? unitMoney(quote.unitPrice) : "—"}</dd>
-            </div>
-            <div className="order-total">
-              <dt>Toplam</dt>
-              <dd>{quote.valid ? money(quote.total) : "—"}</dd>
-            </div>
-          </dl>
-        </>
+        <QuantityDropdown
+          label={quantityOption?.name || "Adet"}
+          value={`${variant}:${quantity}`}
+          options={offers}
+          disabled={busy}
+          onChange={(id) => {
+            const chosen = offers.find((item) => item.id === id);
+            if (!chosen || chosen.disabled) return;
+            if (chosen.variant.id !== selected.id)
+              onVariantChange(String(chosen.variant.id));
+            onQuantityChange(chosen.quantity);
+          }}
+        />
       )}
+      {selectedOffer &&
+        selectedOffer.quantity > 1 &&
+        selected?.unitsPerItem &&
+        selected.unitsPerItem > 1 && (
+          <p className="order-quantity-caption">
+            Bu seçim {number(selectedOffer.quantity)} paket içerir.
+          </p>
+        )}
 
-      <button
-        type="button"
-        className="black-button product-order-action"
-        disabled={busy || Boolean(blocked)}
-        aria-describedby={messageId}
-        onClick={onOrder}
-      >
-        {busy ? (
-          <Loader2 size={17} className="spin" aria-hidden="true" />
-        ) : null}
-        <span>{actionLabel}</span>
-        {!busy && <ArrowRight size={17} aria-hidden="true" />}
-      </button>
+      <div className="order-purchase-row">
+        <div className="order-total" aria-live="polite">
+          <span>Toplam</span>
+          <strong>
+            {quote.valid && selectedOffer ? money(quote.total) : "—"}
+          </strong>
+        </div>
+        <button
+          type="button"
+          className="black-button product-order-action"
+          disabled={busy || Boolean(blocked)}
+          aria-describedby={messageId}
+          onClick={onOrder}
+        >
+          {busy && <Loader2 size={16} className="spin" aria-hidden="true" />}
+          <span>{actionLabel}</span>
+        </button>
+      </div>
       <p id={messageId} className="order-action-message" role="status">
-        {blocked || "Ürün sepete eklenir ve sepet sayfası açılır."}
+        {blocked || "Sepete eklenir; ödeme Shopify’da tamamlanır."}
       </p>
-      {!blocked && (
-        <p className="order-price-note">
-          Tasarım siparişe eklenmez. Tasarımınızı PNG veya JSON olarak
-          indirebilirsiniz. Güncel fiyat ve stok sepette doğrulanır.
-        </p>
-      )}
+      <p className="order-price-note">
+        Tasarım dosyası siparişe eklenmez. PNG veya JSON olarak
+        indirebilirsiniz.
+      </p>
     </section>
   );
 }

@@ -349,6 +349,15 @@ export function quantityChoices(variant) {
     .sort((a, b) => a - b);
 }
 
+/** The purchase control offers presets only; quantity variants represent one package choice. */
+export function orderQuantityChoices(variant, productOptions = []) {
+  return quantityProductOption(productOptions)
+    ? [quantityRule(variant).min].filter(
+        (amount) => quoteVariant(variant, amount).valid,
+      )
+    : quantityChoices(variant);
+}
+
 export function formatMoney(value, currency, locale = "tr-TR", precision = 2) {
   if (
     typeof value !== "number" ||
