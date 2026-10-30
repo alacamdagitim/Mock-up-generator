@@ -9,37 +9,11 @@
     "preview": "vite preview --host 127.0.0.1",
     "server": "node --env-file=.env server/index.mjs",
     "server:dev": "node server/index.mjs",
-    "test": "node --test tests/*.test.mjs",
-    "assets:generate": "node scripts/generate-product-assets.mjs",
-    "assets:layouts": "node scripts/generate-layout-covers.mjs",
-    "release": "npm run build && python3 scripts/package-release.py",
-    "test:workspace": "node tests/design-workspace.browser.mjs",
-    "licenses": "node scripts/licenses.mjs",
-    "test:interactions": "node tests/editor-interactions.browser.mjs",
-    "test:shell": "node tests/editor-shell.browser.mjs",
-    "test:render": "node tests/studio-render.browser.mjs",
-    "test:denoise": "node tests/guided-denoise.browser.mjs",
-    "test:launcher": "node tests/shopify-launcher.browser.mjs",
-    "test:launcher:build": "node tests/shopify-build.browser.mjs",
-    "test:preview": "node tests/preview-polish.browser.mjs",
-    "test:product-files": "node tests/product-metafields.browser.mjs",
-    "test:quality": "node tests/render-quality.browser.mjs",
-    "test:high-resolution": "node tests/high-resolution.browser.mjs",
-    "test:exports": "node tests/export-workflow.browser.mjs",
-    "test:render-snapshot": "node tests/render-snapshot.browser.mjs",
-    "test:model-binding": "node tests/model-binding.browser.mjs",
-    "test:live-preview": "node tests/live-preview.browser.mjs",
-    "mockup:preview": "node scripts/private-mockup-preview.mjs",
-    "test:private-mockup": "node tests/private-mockup-preview.browser.mjs && node tests/private-mockup-compositor.browser.mjs",
-    "test:private-mockup:fixture": "node tests/private-mockup-fixture.browser.mjs",
-    "test:mockup": "node tests/mockup-engine.browser.mjs && node tests/mockup-preview-component.browser.mjs && node tests/mockup-workflow.browser.mjs && node tests/hand-cup-mockup.browser.mjs && node tests/shopify-relative-mockup.browser.mjs",
-    "test:tin-can": "node tests/tin-can-prepared.browser.mjs",
-    "test:tin-can:public": "node tests/tin-can-public.browser.mjs",
-    "psd:worker": "node --env-file=worker/.env worker/server.mjs",
-    "test:psd": "node tests/psd-import.browser.mjs"
+    "licenses": "node scripts/licenses.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
+    "@vercel/blob": "^2.8.2",
     "cors": "^2.8.5",
     "dompurify": "^3.2.7",
     "express": "^4.21.2",
@@ -55,7 +29,6 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@playwright/test": "^1.51.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@types/three": "^0.180.0",
@@ -63,5 +36,8 @@
     "prettier": "^3.9.10",
     "typescript": "~5.7.3",
     "vite": "^6.1.0"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
+import { useEffect } from "react";
 import type { EditorConfig } from "./types";
-import { RemoteMockupEditor } from "./RemoteMockupEditor";
+import OnlineDesigner from "./OnlineDesigner";
 import { storefrontProducts } from "../shared/storefront.mjs";
 import css from "./styles.css?inline";
 import configureCss from "./configure.css?inline";
@@ -15,6 +16,7 @@ import mockupCss from "./mockups/mockups.css?inline";
 import mockupLayoutCss from "./mockup-layout.css?inline";
 import mockupWorkflowCss from "./mockup-workflow.css?inline";
 import modelMappingCss from "./model-mapping.css?inline";
+import orderPanelCss from "./order-panel.css?inline";
 import latinFont from "@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2?url";
 import extendedFont from "@fontsource-variable/dm-sans/files/dm-sans-latin-ext-wght-normal.woff2?url";
 // Font faces live in the document font set; editor rules remain inside Shadow DOM.
@@ -49,6 +51,20 @@ type MountOptions = {
   onReady?: () => void;
   fullscreen?: boolean;
 };
+function EditorSession({
+  config,
+  onClose,
+  onReady,
+}: {
+  config: EditorConfig;
+  onClose?: () => void;
+  onReady?: () => void;
+}) {
+  useEffect(() => {
+    onReady?.();
+  }, [onReady]);
+  return <OnlineDesigner config={config} onClose={onClose} />;
+}
 const mounts = new WeakMap<HTMLElement, () => void>();
 export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
   const existing = mounts.get(host);
@@ -61,7 +77,10 @@ export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
     throw new Error("Editör ayarları okunamadı.");
   }
   // Validate merchant scene data before mounting React or attaching Shadow DOM.
-  storefrontProducts(config);
+  if (!storefrontProducts(config).length)
+    throw new Error(
+      "Tasarım editörünü mağazada bir ürünün Online tasarla düğmesinden açın. Ürünün mockup, 3B model ve bıçak izi dosyaları o üründen alınır.",
+    );
   const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
   style.textContent = [
@@ -78,6 +97,7 @@ export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
     mockupCss,
     mockupLayoutCss,
     mockupWorkflowCss,
+    orderPanelCss,
     options.fullscreen
       ? ".alacam-app,.online-app{height:100%;min-height:0;}"
       : "",
@@ -99,7 +119,7 @@ export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
   host.addEventListener("alacam:unmount", dispose, { once: true });
   reactRoot.render(
     <>
-      <RemoteMockupEditor
+      <EditorSession
         config={config}
         onClose={options.onClose}
         onReady={options.onReady}
@@ -112,8 +132,19 @@ function autoMount(host: HTMLElement) {
   try {
     mountEditor(host);
   } catch (error) {
-    host.textContent =
+    const page = document.createElement("main");
+    page.style.cssText =
+      "max-width:620px;margin:12vh auto;padding:32px;font:16px/1.7 Arial,sans-serif;color:#171717";
+    const heading = document.createElement("h1");
+    heading.textContent = "Alaçam · Online tasarım";
+    const note = document.createElement("p");
+    note.textContent =
       error instanceof Error ? error.message : "Editör açılamadı.";
+    const link = document.createElement("a");
+    link.href = "https://alacamdagitim.com";
+    link.textContent = "Mağazaya git";
+    page.append(heading, note, link);
+    host.replaceChildren(page);
   }
 }
 const selector = "[data-alacam-editor],#alacam-editor";

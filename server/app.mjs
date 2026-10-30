@@ -7,6 +7,7 @@ import { randomBytes } from "node:crypto";
 import { mkdir, writeFile, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { designSchema } from "../shared/schema.mjs";
+import { commerceSnapshotSchema } from "./design-contract.mjs";
 const pngSchema = z
   .string()
   .max(6_000_000)
@@ -17,6 +18,7 @@ const bodySchema = z
     preview: pngSchema,
     productId: z.string().min(1).max(100),
     variantId: z.string().regex(/^\d+$/).nullable(),
+    commerce: commerceSnapshotSchema.optional(),
   })
   .strict();
 const PNG = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -72,7 +74,7 @@ export function createApp(options = {}) {
   );
   app.use(express.json({ limit: "24mb" }));
   app.get("/api/health", (_req, res) =>
-    res.json({ ok: true, storageConfigured: configured, schemaVersion: 1 }),
+    res.json({ ok: true, storageConfigured: configured, schemaVersion: 1, uploadMode: "inline" }),
   );
   app.post("/api/designs", async (req, res, next) => {
     if (!configured)
@@ -84,6 +86,8 @@ export function createApp(options = {}) {
       return res
         .status(400)
         .json({ error: "Geçersiz veya desteklenmeyen tasarım." });
+    if (parsed.data.design.productId !== parsed.data.productId)
+      return res.status(400).json({ error: "Tasarım seçilen ürüne ait değil." });
     let tmp;
     try {
       const data = parsed.data,
@@ -91,6 +95,7 @@ export function createApp(options = {}) {
       for (const face of Object.values(data.design.faces))
         for (const el of face) if (el.kind === "image") decodePng(el.src);
       const id = randomBytes(24).toString("hex");
+      const createdAt = new Date().toISOString();
       const root = path.resolve(directory);
       tmp = path.join(root, `.${id}.tmp`);
       await mkdir(root, { recursive: true, mode: 0o700 });
@@ -104,9 +109,10 @@ export function createApp(options = {}) {
       await writeFile(
         path.join(tmp, "metadata.json"),
         JSON.stringify({
-          createdAt: new Date().toISOString(),
+          createdAt,
           productId: data.productId,
           variantId: data.variantId,
+          ...(data.commerce ? { commerce: data.commerce } : {}),
         }),
         { mode: 0o600 },
       );
@@ -117,6 +123,10 @@ export function createApp(options = {}) {
         id,
         designUrl: `${base}/api/designs/${id}/design.json`,
         previewUrl: `${base}/api/designs/${id}/preview.png`,
+        productId: data.productId,
+        variantId: data.variantId,
+        ...(data.commerce ? { commerce: data.commerce } : {}),
+        createdAt,
       });
     } catch (err) {
       if (tmp) await rm(tmp, { recursive: true, force: true });

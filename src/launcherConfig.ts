@@ -4,6 +4,12 @@ import {
   parseMockupScenes,
   normalizeShopifyFileReference,
 } from "../shared/mockup-scenes.mjs";
+import {
+  normalizeStoreVariant,
+  normalizeProductOptions,
+  normalizeCurrency,
+  normalizeLocale,
+} from "../shared/commerce.mjs";
 
 type Variant = NonNullable<EditorConfig["variants"]>[number];
 
@@ -134,7 +140,7 @@ export function validateLaunchConfig(
     )
       throw new Error("Ürün varyantı ayarları geçersiz veya yineleniyor.");
     ids.add(id);
-    return { id, title: item.title, available: item.available };
+    return normalizeStoreVariant({ ...item, id });
   });
   const cartRoot = optionalString(input.cartRoot, "Sepet kökü", 500) || "/";
   if (
@@ -146,6 +152,16 @@ export function validateLaunchConfig(
   return {
     productId,
     productTitle: optionalString(input.productTitle, "Ürün adı", 300),
+    productHandle: optionalString(
+      input.productHandle,
+      "Ürün bağlantı adı",
+      255,
+    ),
+    productUrl: assetUrl(input.productUrl, "Ürün bağlantısı", storefrontOrigin),
+    productOptions: normalizeProductOptions(input.productOptions, variants),
+    currency: normalizeCurrency(input.currency),
+    locale: normalizeLocale(input.locale),
+    requiresSellingPlan: input.requiresSellingPlan === true,
     productImage: assetUrl(
       input.productImage,
       "Ürün görseli",
@@ -164,12 +180,20 @@ export function validateLaunchConfig(
     productMockupScenes: parseMockupScenes(input.productMockupScenes),
     productMockupImages: parseMockupImages(input.productMockupImages),
     apiBase: publicUrl(input.apiBase, "Tasarım API adresi"),
-    mockupApiBase: publicUrl(input.mockupApiBase, "PSD katalog servisi"),
     variants,
     initialVariantId:
       input.initialVariantId === undefined
         ? undefined
         : selectedVariant(variants, input.initialVariantId),
+    initialQuantity:
+      input.initialQuantity === undefined || input.initialQuantity === null
+        ? undefined
+        : (() => {
+            const quantity = positiveId(input.initialQuantity);
+            if (!quantity || quantity > 1_000_000)
+              throw new Error("Başlangıç sipariş adedi geçersiz.");
+            return quantity;
+          })(),
     cartRoot,
     storageKey:
       optionalString(input.storageKey, "Taslak anahtarı", 500) ||
@@ -183,6 +207,17 @@ function formVariant(form: HTMLFormElement): string | null {
     'select[name="id"], input[name="id"]:not([type="radio"]), input[name="id"][type="radio"]:checked',
   );
   return field ? field.value : null;
+}
+
+function formQuantity(form: HTMLFormElement): number | undefined {
+  const field = form.querySelector<HTMLInputElement | HTMLSelectElement>(
+    'input[name="quantity"], select[name="quantity"]',
+  );
+  if (!field) return undefined;
+  const quantity = positiveId(field.value);
+  if (!quantity || quantity > 1_000_000)
+    throw new Error("Ürün formundaki sipariş adedi geçersiz.");
+  return quantity;
 }
 
 function cartForms(container: ParentNode): HTMLFormElement[] {
@@ -278,6 +313,7 @@ export function configFromButton(button: HTMLElement): EditorConfig {
     return {
       ...config,
       initialVariantId: selectedVariant(variants, formVariant(form)),
+      initialQuantity: formQuantity(form) ?? config.initialQuantity,
     };
   const view = document.defaultView;
   const variantInUrl = view

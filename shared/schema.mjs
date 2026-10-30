@@ -112,7 +112,11 @@ export const presentationSchema = z
 export const designSchema = z
   .object({
     schemaVersion: z.literal(1),
-    productId: z.literal("doypack-v1"),
+    productId: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/),
     name: z.string().min(1).max(100),
     artboard: z
       .object({
@@ -176,11 +180,11 @@ export const designSchema = z
         message: "Toplam görsel verisi 16 MB sınırını aşıyor",
       });
   });
-export function blankDesign() {
+export function blankDesign(productId = "design") {
   return {
     schemaVersion: 1,
-    productId: PRODUCT.id,
-    name: "untitled",
+    productId,
+    name: "Tasarımım",
     updatedAt: new Date().toISOString(),
     faces: { front: [], back: [] },
     background: "#ffffff",

@@ -21,7 +21,7 @@ import {
   Shapes,
   Sparkles,
   Square,
-  Settings2,
+  ShoppingBag,
   Type,
   Upload,
   X,
@@ -33,13 +33,13 @@ import { MockupPreview } from "./mockups/MockupPreview";
 import type { MockupPreviewHandle } from "./mockups/types";
 import type { ArtworkProvider } from "./mockups/compositor";
 import { ProductPreview } from "./ProductPreview";
+import { OrderPanel } from "./OrderPanel";
+import { LayoutPanel } from "./LayoutPanel";
 import { useDesigner, newElement } from "./useDesigner";
 import { SelectionInspector } from "./SelectionInspector";
 import { PRESETS, presetElements } from "./designPresets";
-import { referenceTemplateSvg } from "../shared/templates.mjs";
 import { manufacturerDielineUrl } from "../shared/storefront.mjs";
 import { pngBlob } from "./files";
-import { LayoutPanel } from "./LayoutPanel";
 import { ConfigureDialog } from "./ConfigureDialog";
 import { PackagingSymbols } from "./PackagingSymbols";
 import { InterfaceIcon } from "./InterfaceIcon";
@@ -177,6 +177,7 @@ export default function OnlineDesigner({
     mockupScenes[0];
   const photoActive = hasMockups && mode !== "3d";
   const mockupPreview = useRef<MockupPreviewHandle>(null);
+  const [readyMockupId, setReadyMockupId] = useState("");
   const [captureBusy, setCaptureBusy] = useState(false);
   const exportTrigger = useRef<HTMLButtonElement>(null);
   const artworkProvider = useCallback<ArtworkProvider>(
@@ -290,15 +291,24 @@ export default function OnlineDesigner({
     resize();
     return () => observer.disconnect();
   }, []);
-  const guideUrl = useMemo(
-    () =>
-      URL.createObjectURL(
-        new Blob([referenceTemplateSvg()], { type: "image/svg+xml" }),
-      ),
-    [],
-  );
   const manufacturerFile = manufacturerDielineUrl(d.product.dielineUrl);
   const manufacturerModel = manufacturerDielineUrl(d.product.modelUrl);
+  const purchasePreviewReady = hasMockups
+    ? Boolean(
+        selectedScene &&
+        readyMockupId === selectedScene.id &&
+        (!d.settings.mockupSceneId ||
+          d.settings.mockupSceneId === selectedScene.id),
+      )
+    : Boolean(
+        d.textures.front &&
+        d.templateUrl &&
+        manufacturerModel &&
+        modelFaces.includes("front"),
+      );
+  d.purchaseGuard.current = purchasePreviewReady
+    ? ""
+    : "Sipariş için ürünün tasarımlı önizlemesinin hazır olması gerekiyor.";
   useEffect(() => {
     if (
       !photoActive &&
@@ -309,7 +319,6 @@ export default function OnlineDesigner({
     )
       d.changeFace("front");
   }, [manufacturerModel, modelFaces, d.face, photoActive]);
-  useEffect(() => () => URL.revokeObjectURL(guideUrl), [guideUrl]);
   useEffect(
     () => () =>
       Object.values(exports).forEach((url) => {
@@ -475,31 +484,6 @@ export default function OnlineDesigner({
     setExports({ png, json });
     setExportOpen(true);
   };
-  const getLayoutCovers = useCallback(
-    (signal: AbortSignal) => {
-      if (!d.preview.current)
-        return Promise.reject(new Error("3B model henüz hazır değil."));
-      return d.preview.current.layoutCovers(signal);
-    },
-    [d.preview],
-  );
-  const layoutRevision = useMemo(
-    () => ({}),
-    [
-      d.textures,
-      d.product.id,
-      manufacturerModel,
-      modelFaces,
-      d.settings.material,
-      d.settings.finishing,
-      d.settings.substrate,
-      d.settings.printMode,
-      d.settings.exposure,
-      d.settings.shadows,
-      d.settings.lighting,
-      d.settings.inflate,
-    ],
-  );
   const renderSource = async (options: RenderOptions) => {
     const design = d.state.current;
     const multiplier = artworkMultiplier(
@@ -615,7 +599,7 @@ export default function OnlineDesigner({
             title={d.saved ? "Saved to server" : d.localStatus}
             className="document-status"
           >
-            {d.saved ? "Server" : "Local"}
+            {d.saved ? "Sunucuda" : "Taslak"}
           </span>
         </div>
         <ModeSwitch mode={mode} onChange={changeMode} hasMockups={hasMockups} />
@@ -638,32 +622,35 @@ export default function OnlineDesigner({
           </button>
           <button
             className="icon-button mobile-config-toggle"
-            aria-label="Ürün ayarlarını aç veya kapat"
+            aria-label="Sipariş seçeneklerini aç veya kapat"
             aria-expanded={mobileConfig}
             onClick={() => {
               setMobileConfig(!mobileConfig);
               setConfigOpen(true);
             }}
           >
-            <Settings2 size={19} />
+            <ShoppingBag size={19} />
+            <span>Sipariş</span>
           </button>
-          <a
-            className="outline-button template-link"
-            href={manufacturerFile || guideUrl}
-            target={manufacturerFile ? "_blank" : undefined}
-            rel="noopener noreferrer"
-            download={
-              manufacturerFile ? undefined : "alacam-ornek-olcu-kilavuzu.svg"
-            }
-            title={
-              manufacturerFile
-                ? "Üretici dosyasını aç"
-                : "Örnek SVG kılavuzu; üretim dosyası değildir"
-            }
-          >
-            <InterfaceIcon name="dieline" size={23} />
-            <span>{hasMockups ? "Bıçak izi" : "Download dieline"}</span>
-          </a>
+          {manufacturerFile && (
+            <a
+              className="outline-button template-link"
+              href={manufacturerFile}
+              target={manufacturerFile ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              download={
+                manufacturerFile ? undefined : "alacam-ornek-olcu-kilavuzu.svg"
+              }
+              title={
+                manufacturerFile
+                  ? "Üretici dosyasını aç"
+                  : "Örnek SVG kılavuzu; üretim dosyası değildir"
+              }
+            >
+              <InterfaceIcon name="dieline" size={23} />
+              <span>{hasMockups ? "Bıçak izi" : "Download dieline"}</span>
+            </a>
+          )}
           <button
             className="outline-button header-upload"
             disabled={d.busy}
@@ -787,26 +774,13 @@ export default function OnlineDesigner({
           {tool === "layout" && (
             <>
               <LayoutPanel
-                getCovers={getLayoutCovers}
-                revision={layoutRevision}
-                mockupScenes={mockupScenes}
                 mockupCards={resolvedMockups.cards}
-                hasMockupWorkflow={hasMockups}
                 mockupSceneId={selectedScene?.id}
-                activeMode={photoActive ? "mockup" : "3d"}
                 onMockupSelect={(id) => {
                   d.setPresentation({ mockupSceneId: id });
                   setMode("mockup");
                   if (matchMedia("(max-width:700px)").matches) setPanel(false);
                 }}
-                layout={d.settings.layout || "single"}
-                spacing={d.settings.spacing || 1}
-                onSelect={(layout) => {
-                  d.setPresentation({ layout });
-                  setMode("3d");
-                  if (matchMedia("(max-width:700px)").matches) setPanel(false);
-                }}
-                onSpacing={(spacing) => d.setPresentation({ spacing })}
               />
               {selectedScene?.backgroundControl && (
                 <label className="mockup-background-control">
@@ -1229,6 +1203,10 @@ export default function OnlineDesigner({
                 textures={d.textures}
                 artworkProvider={artworkProvider}
                 exportArtworkProvider={exportArtworkProvider}
+                onReady={(info) => setReadyMockupId(info.id)}
+                onStatus={(status) => {
+                  if (status !== "ready") setReadyMockupId("");
+                }}
               />
             </div>
           )}
@@ -1332,195 +1310,143 @@ export default function OnlineDesigner({
           </div>
           {configOpen && (
             <>
-              <div className="config-details">
-                <h2 className="config-product-title">{d.product.title}</h2>
-                {photoActive && selectedScene && (
-                  <div className="mockup-config-summary">
-                    <strong>{selectedScene.title}</strong>
-                    <span>
-                      {selectedScene.width} × {selectedScene.height} px
-                    </span>
-                    <p>
-                      Tasarımınız hazır sahneye anlık uygulanır. Ek render
-                      işlemi gerekmez.
-                    </p>
-                    {d.settings.mockupSceneId &&
-                      d.settings.mockupSceneId !== selectedScene.id && (
-                        <p role="alert">
-                          Kaydedilen sahne artık ürün listesinde yok. İlk sahne
-                          gösteriliyor; indirmeden önce Yerleşimler bölümünden
-                          bir sahne seçin.
-                        </p>
-                      )}
-                  </div>
-                )}
-                <dl hidden={photoActive}>
-                  <div>
-                    <dt>{d.design.artboard ? "Şablon alanı" : "Size"}</dt>
-                    <dd>
-                      {d.design.artboard
-                        ? d.design.artboard.widthMm &&
-                          d.design.artboard.heightMm
-                          ? `${d.design.artboard.widthMm} × ${d.design.artboard.heightMm} mm`
-                          : "Ölçü tanımlanmadı"
-                        : "140 × 210 mm"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Material</dt>
-                    <dd>
-                      {manufacturerModel
-                        ? "GLB malzemeleri"
-                        : {
-                            white: "White film",
-                            kraft: "Kraft",
-                            metallic: "Metallic film",
-                          }[d.settings.substrate || "white"]}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Print</dt>
-                    <dd>
-                      {
-                        { color: "Full Color", black: "Black", blank: "Blank" }[
-                          d.settings.printMode || "color"
-                        ]
-                      }
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Print Sides</dt>
-                    <dd>
-                      {modelFaces.length === 1
-                        ? "Tek sarım yüzeyi"
-                        : "Front and back"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Finishing</dt>
-                    <dd>
-                      {manufacturerModel
-                        ? "Modelde tanımlı"
-                        : { gloss: "Gloss", matte: "Matte", none: "Blank" }[
-                            d.settings.finishing ||
-                              (d.settings.material === "glossy"
-                                ? "gloss"
-                                : "matte")
-                          ]}
-                    </dd>
-                  </div>
-                </dl>
-                {d.templateStatus && (
-                  <p className="config-approximate" role="status">
-                    {d.templateStatus}
-                  </p>
-                )}
-                {config.productId &&
-                  !manufacturerModel &&
-                  !photoActive &&
-                  !hasMockups && (
+              <h2 className="config-product-title">{d.product.title}</h2>
+              <OrderPanel
+                product={d.product}
+                variant={d.variant}
+                quantity={d.quantity}
+                busy={d.busy}
+                storage={d.storage}
+                previewReady={purchasePreviewReady}
+                orderStatus={d.orderStatus}
+                onVariantChange={d.setVariant}
+                onQuantityChange={d.setQuantity}
+                onOrder={() => void d.cart()}
+              />
+              <details
+                className="order-technical-details"
+                open={d.product.variants.length === 0}
+              >
+                <summary>Ürün ve önizleme bilgileri</summary>
+                <div className="config-details">
+                  {photoActive && selectedScene && (
+                    <div className="mockup-config-summary">
+                      <strong>{selectedScene.title}</strong>
+                      <span>
+                        {selectedScene.width} × {selectedScene.height} px
+                      </span>
+                      <p>
+                        Tasarımınız hazır sahneye anlık uygulanır. Ek render
+                        işlemi gerekmez.
+                      </p>
+                      {d.settings.mockupSceneId &&
+                        d.settings.mockupSceneId !== selectedScene.id && (
+                          <p role="alert">
+                            Kaydedilen sahne artık ürün listesinde yok. İlk
+                            sahne gösteriliyor; indirmeden önce Yerleşimler
+                            bölümünden bir sahne seçin.
+                          </p>
+                        )}
+                    </div>
+                  )}
+                  <dl hidden={photoActive}>
+                    <div>
+                      <dt>{d.design.artboard ? "Şablon alanı" : "Size"}</dt>
+                      <dd>
+                        {d.design.artboard
+                          ? d.design.artboard.widthMm &&
+                            d.design.artboard.heightMm
+                            ? `${d.design.artboard.widthMm} × ${d.design.artboard.heightMm} mm`
+                            : "Ölçü tanımlanmadı"
+                          : "140 × 210 mm"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Material</dt>
+                      <dd>
+                        {manufacturerModel
+                          ? "GLB malzemeleri"
+                          : {
+                              white: "White film",
+                              kraft: "Kraft",
+                              metallic: "Metallic film",
+                            }[d.settings.substrate || "white"]}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Print</dt>
+                      <dd>
+                        {
+                          {
+                            color: "Full Color",
+                            black: "Black",
+                            blank: "Blank",
+                          }[d.settings.printMode || "color"]
+                        }
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Print Sides</dt>
+                      <dd>
+                        {modelFaces.length === 1
+                          ? "Tek sarım yüzeyi"
+                          : "Front and back"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Finishing</dt>
+                      <dd>
+                        {manufacturerModel
+                          ? "Modelde tanımlı"
+                          : { gloss: "Gloss", matte: "Matte", none: "Blank" }[
+                              d.settings.finishing ||
+                                (d.settings.material === "glossy"
+                                  ? "gloss"
+                                  : "matte")
+                            ]}
+                      </dd>
+                    </div>
+                  </dl>
+                  {d.templateStatus && (
                     <p className="config-approximate" role="status">
-                      GLB meta alanında dosya bulunamadı; örnek model
-                      gösteriliyor.
+                      {d.templateStatus}
                     </p>
                   )}
-                {manufacturerModel && !photoActive && (
-                  <p className="config-approximate">
-                    <a
-                      href={manufacturerModel}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Ürünün GLB dosyasını aç
-                    </a>
-                    <br />
-                    Ürünün kendi GLB dosyası önizlemede yüklenir.
-                  </p>
-                )}
-                <p className="config-approximate">
-                  {photoActive
-                    ? "Mockup önizlemesi · Üretim dosyası değildir"
-                    : manufacturerModel
-                      ? "Ürün modeli · Baskı ölçüleri henüz onaylanmadı"
-                      : "Approximate model · Sample dimensions"}
-                  <br />
-                  Manufacturer dieline{" "}
-                  {manufacturerFile
-                    ? "linked; production approval required."
-                    : "not connected."}
-                </p>
-              </div>
-              <div className="config-order">
-                {d.product.variants.length > 0 ? (
-                  <>
-                    <label>
-                      Variant
-                      <select
-                        aria-label="Ürün varyantı"
-                        disabled={d.busy}
-                        value={d.variant}
-                        onChange={(e) => d.setVariant(e.target.value)}
+                  {config.productId &&
+                    !manufacturerModel &&
+                    !photoActive &&
+                    !hasMockups && (
+                      <p className="config-approximate" role="status">
+                        Bu ürüne henüz 3B model eklenmedi.
+                      </p>
+                    )}
+                  {manufacturerModel && !photoActive && (
+                    <p className="config-approximate">
+                      <a
+                        href={manufacturerModel}
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
-                        {d.product.variants.map((variant) => (
-                          <option
-                            key={variant.id}
-                            value={variant.id}
-                            disabled={!variant.available}
-                          >
-                            {variant.title}
-                            {variant.available ? "" : " · Tükendi"}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="quantity-field">
-                      Quantity
-                      <input
-                        aria-label="Adet"
-                        disabled={d.busy}
-                        type="number"
-                        min={1}
-                        max={10000}
-                        value={d.quantity}
-                        onChange={(e) =>
-                          d.setQuantity(
-                            Math.max(
-                              1,
-                              Math.min(10000, Number(e.target.value) || 1),
-                            ),
-                          )
-                        }
-                      />
-                    </label>
-                  </>
-                ) : (
-                  <p className="integration-note">
-                    {hasMockups
-                      ? "Sipariş seçenekleri ürün sayfasından açıldığında görünür."
-                      : "Connect a Shopify product and variant to display order options."}
+                        Ürünün GLB dosyasını aç
+                      </a>
+                      <br />
+                      Ürünün kendi GLB dosyası önizlemede yüklenir.
+                    </p>
+                  )}
+                  <p className="config-approximate">
+                    {photoActive
+                      ? "Mockup önizlemesi · Üretim dosyası değildir"
+                      : manufacturerModel
+                        ? "Ürün modeli · Baskı ölçüleri henüz onaylanmadı"
+                        : "Ürün dosyalarının tamamlanması bekleniyor"}
+                    <br />
+                    Manufacturer dieline{" "}
+                    {manufacturerFile
+                      ? "linked; production approval required."
+                      : "not connected."}
                   </p>
-                )}
-                <button
-                  aria-label="Tasarımla sepete ekle"
-                  className="black-button order-button"
-                  disabled={
-                    d.busy ||
-                    !d.storage ||
-                    !d.variant ||
-                    (hasMockups && !selectedScene)
-                  }
-                  onClick={() => void d.cart()}
-                >
-                  {hasMockups ? "Tasarımla sepete ekle" : "Buy Now"}
-                </button>
-                {!d.storage && (
-                  <small>
-                    {hasMockups
-                      ? "Sunucu depolaması bağlı değil. Sepete ekleme kullanılamıyor."
-                      : "Storage is not configured. Checkout is unavailable."}
-                  </small>
-                )}
-              </div>
+                </div>
+              </details>
             </>
           )}
         </aside>
@@ -1543,7 +1469,7 @@ export default function OnlineDesigner({
             onClick={() => void save()}
           >
             {d.busy && <Loader2 className="spin" size={17} />}
-            {hasMockups ? "Kaydet" : "Save"}
+            {"Kaydet"}
           </button>
           <span>
             {hasMockups

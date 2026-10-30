@@ -26,7 +26,41 @@ export type ResolvedProductMockups = {
   cards: MockupCard[];
   scenes: MockupScene[];
 };
-export type SavedDesign = { id: string; designUrl: string; previewUrl: string };
+export type SavedDesign = {
+  id: string;
+  designUrl: string;
+  previewUrl: string;
+  productId: string;
+  variantId: string | null;
+  createdAt?: string;
+};
+export type ProductOption = {
+  name: string;
+  position: number;
+  values: string[];
+};
+export type StoreVariant = {
+  id: number;
+  title: string;
+  available: boolean;
+  /** Shopify Liquid money values: one hundredth of a currency unit. */
+  price?: number;
+  compareAtPrice?: number;
+  options?: string[];
+  sku?: string;
+  quantityRule?: { min: number; increment: number; max?: number | null };
+  quantityPriceBreaks?: { minimumQuantity: number; price: number }[];
+  /** Physical pieces per one Shopify cart item, explicitly supplied by the merchant. */
+  unitsPerItem?: number;
+  unitPrice?: number;
+  unitPriceMeasurement?: {
+    measuredType: string;
+    quantityValue: number;
+    quantityUnit: string;
+    referenceValue: number;
+    referenceUnit: string;
+  };
+};
 export type EditorConfig = {
   apiBase?: string;
   productId?: string;
@@ -36,10 +70,16 @@ export type EditorConfig = {
   productDielineUrl?: string;
   productMockupScenes?: MockupScenes;
   productMockupImages?: MockupImage[];
-  mockupApiBase?: string;
   products?: StoreProduct[];
-  variants?: { id: number; title: string; available: boolean }[];
+  variants?: StoreVariant[];
+  productOptions?: ProductOption[];
+  productHandle?: string;
+  productUrl?: string;
+  currency?: string;
+  locale?: string;
+  requiresSellingPlan?: boolean;
   initialVariantId?: string | number;
+  initialQuantity?: number;
   cartRoot?: string;
   storageKey?: string;
   libraryKey?: string;
@@ -65,5 +105,11 @@ export type StoreProduct = {
   dielineUrl?: string;
   mockupScenes?: MockupScenes;
   mockupImages?: MockupImage[];
-  variants: { id: number; title: string; available: boolean }[];
+  variants: StoreVariant[];
+  productOptions?: ProductOption[];
+  handle?: string;
+  url?: string;
+  currency?: string;
+  locale?: string;
+  requiresSellingPlan?: boolean;
 };

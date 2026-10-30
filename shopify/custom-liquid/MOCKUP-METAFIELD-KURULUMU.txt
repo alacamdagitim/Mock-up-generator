@@ -1,71 +1,44 @@
-ALAÇAM — HAZIR MOCKUP PAKETİNİ SHOPIFY'A EKLEME
+ALAÇAM — ÜRÜN DOSYALARI VE SATIN ALMA KURULUMU
 
-1. ÜRÜN META ALANLARINI OLUŞTURUN
-Ayarlar → Özel veriler → Ürünler → Tanım ekle
+Ürün meta alanları:
+custom.mockup_gorselleri → Dosya listesi, yalnız Görseller. Baskısız fotoğraflar.
+custom.mockup_sahneleri → JSON. Tüm mockuplar için tek katalog metni.
+custom.3b_glb_dosyasi → Dosya. Ürünün isteğe bağlı GLB modeli.
+custom.bicak_i_zi → Dosya. Ölçülü üretici şablonu; 2D gösterim için SVG.
 
-Mockup görselleri
-Anahtar: custom.mockup_gorselleri
-Tür: Dosya → Dosya listesi; yalnız görseller (list.file_reference)
-İçerik: Baskısız Layout kartları ve sıraları.
+JSON dosyasını Dosya alanına yüklemeyin; içeriğini JSON alanına yapıştırın.
+On mockup aynı JSON içindeki scenes listesinde on sahnedir. Ham JPG/PSD
+müşteri tarafında kendiliğinden değiştirilebilir mockup olmaz; hazırlama gerekir.
+Maske, UV ve ışık dosyaları katalogdaki HTTPS adreslerinden okunur.
 
-Mockup sahneleri
-Anahtar: custom.mockup_sahneleri
-Tür: JSON
-İçerik: Ürünün bütün sahnelerini içeren tek kataloğun metni.
-JSON dosyası Dosya türünde bir alana yüklenmez; içeriği JSON alanına yapıştırılır.
-Bir üründe 10 mockup varsa aynı JSON'un scenes listesinde 10 sahne olur.
+Görsel listesi doluysa her fotoğrafın sabit Shopify dosya kimliği JSON'daki
+shopifyImageId alanıyla eşleşmelidir. İsim ve sıra kimlik değildir; yeni yükleme
+yeni kimliktir. Liste boşsa hazırlanmış katalog kartları kullanılır.
 
-3B model
-Anahtar: custom.3b_glb_dosyasi
-Tür: Dosya (file_reference)
-İçerik: İsteğe bağlı GLB; fotoğraf mockupı için zorunlu değildir.
+Online tasarla düğmesi:
+Ürün şablonundaki Özel Liquid bloğuna online-design-vercel.liquid dosyasının
+tamamını yapıştırın. Vercel yayını eski Liquid kodunu kendiliğinden değiştirmez.
+Ürün verileri ve seçili varyant/miktar mevcut Shopify ürününden aktarılır.
 
-Bıçak izi
-Anahtar: custom.bicak_i_zi
-Tür: Dosya (file_reference)
-İçerik: Üretici şablonu. SVG 2D'de görünür; diğer türler indirilebilir.
+Fiyat/adet:
+Fiyat, stok, seçenekler ve miktar kuralları Shopify'dan gelir. Fiziksel parça
+başına fiyat için isteğe bağlı custom.paket_ici_adet (Tam sayı) ürün/varyant
+alanı kullanılabilir. Varyant değeri ürün değerinden önce gelir. Paket içi adet
+bilinmiyorsa paket fiyatı parça fiyatı olarak sunulmaz; başlıktaki sayı tahmin edilmez.
 
-2. HAZIR SAHNEYİ ÜRÜNE BAĞLAYIN
-PSD kaynaklarını hazırlık için iletin. Baskı alanı, perspektif/eğrilik,
-maskeler ve ışık katmanları incelenip örnek logo, yazı ve renkle kontrol edilir.
-Baskısız görseller ve tek ürün JSON'u teslim edilir; desteklenmeyen efektler
-incelenmeden hazır sayılmaz.
+Kalıcı kayıt:
+Vercel Storage'da erişimi Private olan Blob store bağlayın; Production ortamında
+BLOB_READ_WRITE_TOKEN sunucu değişkeni bulunmalıdır. Gizli token Liquid'e veya
+VITE_ değişkenine yazılmaz. Bağladıktan sonra yeniden deploy edin.
+/api/health configured:false ise tasarımla sepete ekleme kullanılamaz.
 
-Baskısız görselleri Mockup görselleri alanına ekleyin. Yüklenen dosyaların
-sabit Shopify kimliklerini JSON'daki shopifyImageId alanlarına bağlayın.
-Teslim edilen kataloğun tamamını Mockup sahneleri alanına yapıştırıp kaydedin.
-Görsel adı, başlığı veya listedeki sırası eşleme anahtarı değildir.
+Satın alma:
+JSON ve PNG önce kalıcı depolamada doğrulanır. Başarıdan sonra seçili varyant ve
+sepet miktarı Shopify sepetine tasarım kimliği/dosya referanslarıyla eklenir;
+müşteri sepete yönlendirilir. Ödeme Shopify'da yapılır. Yerel taslak sipariş kaydı değildir.
 
-Maske, UV ve ışık dosyaları bizim yayımladığımız Vercel/CDN paketinden JSON
-ile okunur. Bunlar için ek ürün meta alanları açılmaz. Müşteri PSD indirmez;
-sadece seçili sahnenin hazırlanmış web varlıkları yüklenir. Bu akışta sürekli
-çalışan PSD sunucusu zorunlu değildir.
+SVG düzenleyicide görünür; PDF/AI indirilebilir kaynak olarak kalır.
+Mockup PNG/JPG sunum içindir; onaylı baskıya hazır üretim dosyası sayılmaz.
 
-Mevcut elde bardak örneğini hemen denemek için:
-shopify/metafields/hand-cup-r1.json dosyasının tamamını kullanın.
-Bu örnekte Mockup görselleri listesini boş bırakabilirsiniz; JSON hazır kartı içerir.
-Baskısız görsel:
-https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/hand-cup-r1/base.png
-
-3. CUSTOM LIQUID'İ GÜNCELLEYİN
-Tema düzenleyicisinde ürün şablonunun Özel Liquid bloğunu açın.
-shopify/custom-liquid/online-design-vercel.liquid dosyasının tamamını eski kodun yerine yapıştırıp kaydedin.
-Vercel'i yeniden deploy etmek, Shopify'a önceden yapıştırdığınız Liquid kodunu değiştirmez.
-Ürün sayfasını yenileyip Online tasarla düğmesine basın.
-Hazır JSON varsa isteğe bağlı uzak PSD katalog adresinden önce kullanılır.
-Normal kurulumda mockup_api_base tanımlamayın. Eski mağaza düzeyi
-custom.mockup_servis_adresi alanı otomatik bağlantı açmaz.
-
-4. MOCKUP GÖRSEL LİSTESİNİ KONTROL EDİN
-
-Bu alanı boş bırakırsanız hazır JSON sahneleri doğrudan görünür.
-Doldurursanız, görünmesini istediğiniz tüm sahnelerin baskısız fotoğraflarını istediğiniz sırada seçin. Her dosya, hazırlanmış JSON sahnesinin shopifyImageId alanıyla bağlanmalıdır. Liquid çıktısındaki sayısal kimliği aynı metin olarak yazın; sayısal ID ve gid:// biçimi otomatik eşdeğer sayılmaz. Kimlik yoksa tam baseImageUrl eşlemesi kullanılır. Yeni bir Shopify yüklemesi yeni kimlik/adres oluşturur; görsel adı veya sıra numarası baskı eşlemesi değildir.
-
-Ürün başına en fazla 64 sahne ve 64 görsel desteklenir; yüksek çözünürlüklü kaynaklar yalnız seçilen sahne için yüklenir.
-
-Alt metin kart başlığı olur; boşsa Mockup 1 gibi bir ad verilir. Başlık değişikliği eşlemeyi bozmaz. Yeni JPG yüklemek otomatik UV üretmez; hazırlanmamış görsel açıkça bekleyen seçenek olarak görünür.
-
-Elde bardak sahnesi: 1448 × 1086 px, yaklaşık fotoğraf eşlemesi. Web editöründe kullanım izni mağaza sahibi tarafından onaylanmıştır; kamu malı veya CC0 olarak sunulmaz. Mockup görseli üretim/baskı dosyası değildir.
-
-Ayrıntılar:
-docs/SHOPIFY-MOCKUP-SAHNELERI.md
+Ayrıntılı kurulum: docs/SHOPIFY-KURULUM.md
+Sahne hazırlama: docs/MOCKUP-HAZIRLAMA.md

@@ -1,231 +1,48 @@
-# Alaçam · Online Tasarım Editörü
+# Alaçam · Ürün Tasarım Stüdyosu
 
-Bu editörün ana işi, müşterinin tasarımını ürünün **hazır mockup fotoğraflarında** göstermek ve PNG/JPG olarak indirmektir. **Online tasarla** düğmesi ürün sayfasının üzerinde tam ekran editörü açar. Hazır mockup bağlı üründe önce **Mockup** görünümü ve **Yerleşimler** paneli açılır. Panelde ürünün baskısız sahneleri seçenek olarak görünür; karta basınca mevcut tasarım otomatik uygulanır.
+Shopify ürün sayfasından açılan, ürünün kendi dosyalarıyla çalışan React + TypeScript editörü. Müşteri tasarımını 2D bıçak izi üzerinde düzenler, hazırlanmış fotoğraf mockuplarında veya ürünün GLB modelinde görür, tasarımıyla birlikte ürünü sepete ekler.
 
-**Mockup → 2D bıçak izi → isteğe bağlı 3B inceleme** aynı tasarımı kullanır. Logo, yazı ve renk 2D'de düzenlenir; mockup anında güncellenir. Seçili sahne gerçek kaynak ölçüsünde dışa aktarılır; 3B render beklenmez. React + TypeScript ve Fabric.js düzenlemeyi, Canvas hazır mockupı, Three.js isteğe bağlı ürün incelemesini sağlar. Pacdora SDK/API veya kaynak kodu kullanılmaz.
+Bu depo gerçek ürün entegrasyonudur. Örnek ürün, uydurma varyant/fiyat, demo sayfası ve PSD yükleme yönetim paneli yoktur. Kök adres ürün seçmez; editör Shopify ürün sayfasındaki **Online tasarla** düğmesinden açılır. Müşteriye PSD indirilmez.
 
-**Varsayılan iş akışı:** Mağaza sahibi PSD'leri hazırlık için iletir; baskı eşlemesi, maskeler ve ışık katmanları çıkarılıp örnek tasarımla görsel kalite kontrolü yapılır. Baskısız görseller ve ürünün bütün mockuplarını içeren **tek JSON katalog** teslim edilir. 10 mockup için 10 ayrı ürün JSON'u hazırlanmaz. Web varlıkları Vercel/CDN'de yayımlanır; müşteriye kaynak PSD indirilmez ve mağazanın sürekli çalışan bir PSD servisine ihtiyacı yoktur.
+## Ürün dosyaları
 
-| Ürün meta alanı | Tür | İçerik |
+| Shopify ürün metafield | Tür | Kullanım |
 | --- | --- | --- |
-| `custom.mockup_gorselleri` | Dosya listesi → Görseller | Baskısız Layout kartları; sabit Shopify dosya kimlikleri JSON'a bağlanır. |
-| `custom.mockup_sahneleri` | JSON | Tüm sahneleri içeren tek kataloğun içeriği. |
-| `custom.3b_glb_dosyasi` | Dosya | İsteğe bağlı 3B model; fotoğraf mockupı için zorunlu değildir. |
-| `custom.bicak_i_zi` | Dosya | Bıçak izi; 2D gösterim için SVG. |
+| `custom.mockup_gorselleri` | Dosya listesi → Görseller | Yerleşimler panelindeki baskısız fotoğraflar ve sıraları. |
+| `custom.mockup_sahneleri` | JSON | Ürünün bütün mockupları için tek hazırlanmış katalog. |
+| `custom.3b_glb_dosyasi` | Dosya | Ürünün isteğe bağlı GLB modeli. |
+| `custom.bicak_i_zi` | Dosya | Ölçülü üretici şablonu; 2D için SVG. |
 
-Maske, UV ve ışık dosyaları hazırlanan paketin teknik varlıklarıdır; bunlar için ek ürün alanları açılmaz. Görsel adı veya sıra değişikliği eşleme anahtarı değildir; yeni yükleme yeni Shopify dosya kimliği oluşturur. [Hazırlama, teslim ve alan bağlantıları](docs/SHOPIFY-MOCKUP-SAHNELERI.md).
+On mockup, aynı ürün JSON’unun `scenes` listesinde on sahnedir. Ham JPG tek başına baskı eşlemesi oluşturmaz. PSD’ler bir kez hazırlanır; maske, yüzey eşlemesi ve ışık dosyaları JSON’un işaret ettiği web paketinde tutulur. [Hazırlama yöntemi](docs/MOCKUP-HAZIRLAMA.md).
 
-**Elde bardak sahnesini hemen Shopify'a ekleme:** [Custom Liquid kodunun](shopify/custom-liquid/online-design-vercel.liquid) tamamını ürünün Özel Liquid bloğuna yapıştırın. Ürün için **`custom.mockup_sahneleri`**, tür **JSON** alanı açıp [hazır sahne JSON'unu](shopify/metafields/hand-cup-r1.json) kaydedin. Bu sahne için ayrıca görsel listesi oluşturmak gerekmez. [Canlı elde bardak denemesi](https://mock-up-generator-y265.vercel.app/hand-cup-demo.html) / yerelde `/hand-cup-demo.html`. Çıktı 1448 × 1086 px; fotoğrafa göre yaklaşık eşleme kullanır ve üretim dosyası değildir. Mağaza sahibi web editöründe kullanım iznini beyan etmiştir; kaynak görsel CC0 olarak sunulmaz.
+## Kurulum ve yayın
 
-İsteğe bağlı **`custom.mockup_gorselleri`**, tür **Dosya listesi → Görseller**, ürünün Yerleşimler kartlarını ve sırasını Shopify'dan yönetir. Her görsel bir kez hazırlanmış JSON sahnesine sabit Shopify dosya kimliğiyle bağlanır. Ham JPG yüklemek otomatik baskı eşlemesi oluşturmaz. Liste boşsa hazırlanmış JSON sahneleri gösterilir. Ürün başına 64 sahne/görsel desteklenir; yalnız seçili sahnenin yüksek çözünürlüklü kaynakları yüklenir. [Alanlar, sahne hazırlığı ve kurulum](docs/SHOPIFY-MOCKUP-SAHNELERI.md).
-
-Özgün prosedürel bardak örneği `/mockup-demo.html`, mockup bağlanmamış eski 2D/3D doypack örneği `/` adresindedir. Demolar mağaza ürünlerine otomatik atanmaz. JPG/PNG kaynaklarından sahne hazırlama ve sayısal UV kalibrasyonu: [Fotoğraftan mockup hazırlama](docs/FOTOGRAFTAN-MOCKUP-HAZIRLAMA.md).
-
-## Kurulum
-
-Node 20.11+ gerekir. 2D ve hazır mockup Canvas ile çalışır; 3D görünüm için WebGL destekli tarayıcı gerekir.
+Node.js 22 kullanın.
 
 ```sh
 npm ci
 npm run dev
-```
-
-Yerel mockup denemesi: `http://127.0.0.1:5184/hand-cup-demo.html`. `/` adresindeki eski doypack demosu doğrudan 2D editörü açar. Sunucu olmadan görsel/yazı düzenleme, 3D, örnek SVG, PNG, düzenlenebilir JSON ve yerel kayıt çalışır. Sepete ekleme için gerçek Shopify varyantı ve kalıcı sunucu depolaması gerekir.
-
-Düğmeden açılışı denemek için `http://127.0.0.1:5184/launcher-demo.html` adresini açın. **Online design**, aynı sayfanın üzerinde tam ekran editör açar; X/Escape ürün sayfasına döner. Bu sayfadaki ürün/varyant kimlikleri yalnız demo içindir; Shopify için gerçek verileri hazır [Custom Liquid düğmesi](docs/SHOPIFY-BUTON.md) aktarır.
-
-```sh
-npm test
 npm run build
 ```
 
-Derleme `dist/alacam-editor.js` ve Shopify'a kopyalanacak `shopify/assets/` dosyalarını üretir. CSS JavaScript içinde Shadow DOM'a yüklenir; tema stilleriyle iki yönde yalıtılır. Büyük bundle uyarısı sürer; Three.js/Fabric ilk yükleme maliyeti vardır.
+`npm run build`, `dist/` ve Shopify tema varlıklarını `shopify/assets/` altında üretir. Vercel ayarları: **Vite**, Root Directory `./`, Build Command `npm run build`, Output Directory `dist`.
 
-Tarayıcı akışlarını test etmek için Vite açıkken:
+Shopify’da ürün şablonuna bir **Özel Liquid** bloğu ekleyin ve [online-design-vercel.liquid](shopify/custom-liquid/online-design-vercel.liquid) dosyasının tamamını yapıştırın. Editör JavaScript dosyalarını Vercel’den yükler. Ürünün kimliği, dosyaları, seçenekleri, satışa açıklığı, fiyatları ve seçili varyantı Liquid’den gelir; ürün kodda tanımlanmaz.
 
-```sh
-npx playwright install chromium
-npm run test:workspace
-npm run test:preview
-npm run test:render
-npm run test:exports
-npm run test:mockup
-npm run test:high-resolution
-npm run test:render-snapshot
-npm run test:denoise
-```
+**Siparişe bağlanabilen kalıcı tasarım kaydı için Vercel’de Private Blob depolaması bağlanmalıdır.** Bağlı değilse düzenleme/indirme kullanılabilir, sepete tasarımla ekleme kapalıdır; yerel taslak sunucu kaydı sayılmaz. [Adım adım Shopify ve depolama kurulumu](docs/SHOPIFY-KURULUM.md).
 
-Özel Chromium yolu için `PLAYWRIGHT_CHROMIUM_EXECUTABLE`, test sunucusu için `ALACAM_TEST_URL` kullanılabilir. Tarayıcı testleri izole yerel depolama ve API taklitleri kullanır; gerçek Shopify sepetine veya kullanıcının açık sekmelerine yazmaz. `test:render`, render motorunu taklit etmeden gerçek 1024 px PNG hesaplar; GPU'ya göre birkaç dakika sürebilir. Gerekirse `ALACAM_RENDER_TIMEOUT_MS=300000` ile süre sınırı artırılır.
+## Satın alma akışı
 
-## Editör akışı
+Sağdaki sipariş paneli gerçek Shopify seçeneklerini ve mevcut müşteri bağlamındaki fiyatı kullanır. Miktar, geçerli minimum/artış/maksimum kurallarına uyar. Yalnız Shopify’ın bildirdiği miktar fiyatları gösterilir; indirim üretilmez. Paket içindeki fiziksel parça sayısını göstermek için isteğe bağlı tam sayı `custom.paket_ici_adet` alanı kullanılır; varyant tanımı ürün tanımına üstün gelir. Bu bilgi yoksa paket fiyatı parça fiyatı olarak sunulmaz.
 
-- Hazır mockup bağlı ürünlerde **Mockup / 2D / 3B**, diğer ürünlerde **3D / 2D** geçişi bulunur. Hazır sahneli ürün açılışında **Mockup** seçilir ve **Yerleşimler** paneli görünür. Mockup sahneleri sabit kamera, hazırlanmış baskı eşlemesi ve ışık katmanlarıyla çalışır; 3B görünüm isteğe bağlıdır. Ham PNG/JPG veya PSD tek başına değiştirilebilir bir sahne sayılmaz.
-- Üstte tasarım adı, **görünüm geçişi**, **Görsel indir**, **Şablonu indir**, **Görsel yükle**, PNG/JSON menüsü ve kapatma düğmesi bulunur.
-- Mockup bağlı ürünlerde **Görsel indir** yalnız hazır sahnenin gerçek ölçüsünü koruyan PNG/JPG sunar; 2K/4K/8K büyütme veya stüdyo hesaplaması göstermez. Seçili sahne kimliği JSON, yerel taslak ve kayıt akışında korunur. Kaynak sahne yüklenemediğinde başka bir ürün görseliyle başarı taklit edilmez.
-- Mockup bağlı olmayan ürünlerde **Görsel indir**, büyük önizleme ve sağ ayarlar sütunuyla açılır. Varsayılan **Canlı görünüm**, mevcut kamera, ışık ve yerleşimi doğrudan PNG/JPG indirir; gerçek piksel boyutu gösterilir. Görüntü masaüstünde en çok 2560, mobilde 1536 px uzun kenarda yeniden çizilir. **Stüdyo render** seçilirse ayrı WebGL2 path tracing motoru 1K/2K/4K/8K, 64/256 ışık örneği, üç ışık düzeni, gölge ve en/boy oranı sunar. Mobilde bu hesaplamanın sınırı 1K'dır. Bıçak izi sekmesi SVG/PNG/RGB PDF ve düzenlenebilir JSON indirir. Paylaşım, yapılandırılmış sunucudan gelen gerçek dosya bağlantılarını kullanır. Ayrıntılar: [Görsel ve stüdyo render](docs/RENDER.md).
-- Hazır mockup bağlı ürünlerde solda **Yerleşimler / Görseller / Yazı / Örnekler / Renk / Şekiller** bulunur. Mockup bağlanmamış eski ürünlerde **Inspirations / Uploads / Text / Background / Shapes / Layout** etiketleri korunur. 16 örnek bu proje için özgün hazırlanmıştır; seçili yüzü değiştirir, geri alınabilir. Erişilebilirlik ve entegrasyon etiketleri Türkçe tutulur.
-- 2D modunda merkezde ölçülü bıçak izi, sağ üstte canlı mockup, altında ürün bilgisi vardır. **Görsel yükle** veya **Yazı** düzenlemeyi 2D modunda açar; **Yerleşimler** ana mockup görünümüne döner. Mockup bağlı olmayan ürünlerin küçük önizlemesi 3B kullanır. İsteğe bağlı 3B modunda model ana alanı kaplar.
-- **Yerleşimler**, hazır mockup bağlı ürünlerde yalnız o ürünün baskısız fotoğraf kartlarını gösterir. Hazırlanmamış veya birden fazla eşlemeye bağlanmış görsel, açıklamasıyla devre dışı görünür. Mockup bağlı olmayan eski ürünlerin **Yerleşim** panelinde Tek ürün, Ön ve yan, Ön ve arka, Eğik ikili, İkili, Üçlü seri, Yelpaze, Kademeli, Vitrin, Beşli seri ve Katalog vardır. Seçim gerçek 3D sahnesini değiştirir; mesafe ayarlanabilir. 2D modunda tek yüz gösterilir, seçili yerleşim korunur. Yerleşim ve mesafe JSON/yerel taslakta saklanır; geri alınabilir ve PNG önizlemeye yansır. Kompozisyondaki ürün kopyaları sipariş adedini değiştirmez.
-- Ön ve arka yüzler bağımsızdır. **Yüzey rengi** seçicisi HSV, HEX, önerilen renkler ve desteklenen tarayıcılarda ekran renk seçicisiyle seçili yüzü değiştirir; tek sürükleme tek geri alma adımıdır. Yükleme PNG/JPG için 8 MB, SVG için 1 MB sınırındadır. SVG temizlenip yerel raster dokuya dönüştürülür; betik, harici görsel/bağlantı ve animasyon kabul edilmez. AI/PDF görsel içe aktarma yoktur.
-- Öğeler taşınır, ölçeklenir, döndürülür ve silinir. Seçili öğe araçları tuval üzerinde açılır. Yazıda içerik, DM Sans ve dört sistem fontu, boyut, renk, hizalama, kalın/italik/altı çizili; öğelerde dönüş, ölçek, saydamlık, yatay/dikey çevirme, çoğaltma, kilitleme ve dört katman sırası işlemi vardır. Üç nokta menüsü ayrıntıları açar. Katman listesi sol panelin altında açılır.
-- Tuval çubuğunda seçim, kaydırma, geri al/yinele, silme, zoom, ekrana sığdırma ve baskı/güvenli alan kılavuzları vardır. `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z` ve Delete/Backspace desteklenir.
-- Baskı alanı dışındaki öğeler dokuda kırpılır. Görsel çözünürlüğü örnek baskı ölçüsüne göre hesaplanır, 300 DPI altı uyarılır.
-- Ambalajın temel rengi iki yüzü birlikte değiştirir. Mat/parlak ayarı yalnızca önizleme malzemesini değiştirir; satış ürününün gerçek malzemesini değiştirmez.
-- **Kaydet** editörü kapatmaz. Hazır mockup akışında **Tasarımı düzenle / Mockupı gör** ana eyleminin yanında bulunur; başarı/hata bildirir. Sunucu bağlı değilse taslağın bu cihazda korunduğu açıkça belirtilir. Eski 2D/3D akışındaki düğme **Save** adını korur. X editörü kapatır; yerel taslağı silmez. Geri açmak için ürünün **Online tasarla** düğmesi kullanılır.
-- Mobilde ürünün aynı Mockup/2D/3B geçişi kullanılır; mockup bağlanmamış ürünler 2D/3D kullanır. Altı araç yataydır; içerik paneli açılır kapanır. Başlıktaki ayar düğmesi ürün/sipariş kartını açar. Mobilde 2D ve 3D aynı anda render alanı olarak gösterilmez.
+**Tasarımla sepete ekle:** JSON ve önizleme önce kalıcı depolamada doğrulanıp kaydedilir. Ardından seçili gerçek varyant ve Shopify sipariş miktarı mağazanın Ajax Cart API’siyle sepete eklenir ve müşteri sepete yönlendirilir. Sepette yalnız tasarım kimliği ve dosya referansları tutulur. Nihai stok, fiyat, indirim, vergi ve ödeme Shopify tarafından belirlenir.
 
-Taslak 650 ms gecikmeyle localStorage'a yazılır; yenilemede desteklenen v1 JSON geri yüklenir. Kaydet ayrıca düzenlenebilir tasarımı ve küçük resmi IndexedDB'de saklar. Eski Kütüphane ekranı kaldırıldı; eski kayıtlar topluca silinmez. Kalıcı kişisel dosya kütüphanesi veya bulut proje listesi yoktur. Görsel galerisi mevcut tasarımdaki görselleri ve son 24 oturum yüklemesini gösterir. Tarayıcı verileri silinirse yerel kayıtlar kaybolur; JSON yedeği alınmalıdır.
+## Mevcut sınırlar
 
-## Shopify kurulumu
+- Mockup hazırlığı ürün başına yapılır; dosyanın adını değiştirmek yeniden yüklemekle aynı değildir. Hazırlanmamış görsel tasarımlı mockup gibi gösterilmez.
+- GLB’de UV/baskı yüzü eşlemesi gerekir. Belirsiz modelde parça seçimi yapılır; eksik GLB yerine örnek ürün açılmaz.
+- SVG bıçak izi düzenleyicide gösterilir. PDF/AI gibi üretici kaynakları indirilebilir; doğrudan 2D vektör düzenleyici olarak açılmaz.
+- Önizleme PNG/JPG, üretim dosyası değildir. Ölçü, taşma/güvenli alan ve üretici baskı şartları doğrulanmadan baskıya hazır iddiası yoktur.
+- Taslak tarayıcıya aittir; siparişe eklenmeden önce sunucu kaydı gerekir. Private Blob bağlantısı ve mağaza Liquid güncellemesi mağaza/Vercel hesabından yapılmalıdır.
 
-**Vercel yayını üzerinden düğmeyle açılış:** `shopify/custom-liquid/online-design-vercel.liquid` dosyasının tamamını ürün şablonundaki Custom Liquid bloğuna yapıştırın. Mevcut Vercel adresi dosyada hazırdır; editör varlıkları buradan yüklenir. Kalıcı kayıt API'si bu dağıtımda henüz kurulu değildir; Save yalnız cihaz kaydıdır. Ayrıntılar: [Vercel Custom Liquid](docs/SHOPIFY-BUTON.md#vercel-yayınıyla-hazır-custom-liquid).
-
-**Ürün sayfasında düğmeyle tam ekran açılış:** [Custom Liquid / Online design kurulumu](docs/SHOPIFY-BUTON.md). `shopify/custom-liquid/online-design-button.liquid` dosyasının tamamını temanın Custom Liquid bloğuna yapıştırabilirsiniz; önce derlenmiş dosyalar tema `assets/` dizinine yüklenmelidir. Alternatif olarak aynı işlevi snippet ile çağırabilirsiniz.
-
-**Sayfaya doğrudan editör ekleme:** Normal sayfanın içerik/metin kutusuna kod yapıştırılmaz. `npm run build` sonrası dosyaları tema kod düzenleyicisinden yerleştirin:
-
-| Proje dosyası                                    | Shopify teması                                                                        |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `shopify/assets/alacam-editor.js`                | `assets/alacam-editor.js`                                                             |
-| `shopify/assets/alacam-launcher.js`              | `assets/alacam-launcher.js`; Online design düğmesini ve tam ekran açılışı yönetir. |
-| `shopify/assets/alacam-*.js`                     | Diğer bütün JavaScript parçaları da aynı `assets/` klasörüne; render motoru ilk açılışta bunlardan yüklenir. |
-| `shopify/assets/alacam-licenses.txt`             | `assets/alacam-licenses.txt`                                                          |
-| `shopify/assets/alacam-dm-sans-*.woff2`          | Aynı adlarla `assets/` klasörü; fontlar yerel sunulur, harici font servisi çağrılmaz. |
-| `shopify/assets/alacam-layout-*.webp`            | Aynı adlarla `assets/` klasörü; tüm üretilen WebP dosyalarını kopyalayın.             |
-| `shopify/sections/alacam-tasarim-editoru.liquid` | `sections/alacam-tasarim-editoru.liquid`                                              |
-| `shopify/templates/page.alacam-editor.json`      | `templates/page.alacam-editor.json`                                                   |
-
-1. Shopify'da bir sayfa oluşturup `page.alacam-editor` şablonunu seçin veya uyumlu sayfa/ürün şablonuna **Alaçam Tasarım Editörü** section'ını ekleyin.
-2. Section ayarında ambalaj ürününü seçin. Ürün şablonunda seçim yapılmazsa mevcut `product` kullanılır. Yalnızca seçili ürünün adı, kimliği ve varyantları editöre aktarılır; ürün listesi/katalog ayarı yoktur.
-3. Hazır mockup önizleme ve indirme için ayrı API gerekmez. Sunucuda tasarım kaydı ve sepete bağlama kullanılacaksa HTTPS kayıt API adresini section ayarına girin, örneğin `https://design-api.magazaniz.com/api`.
-4. Ürün GLB dosyasını `custom.3b_glb_dosyasi`, bıçak izini `custom.bicak_i_zi` tür **Dosya** alanlarına bağlayın. SVG bıçak izi düzenleyicide gösterilir; diğer dosyalar indirilebilir. Hazır sahneler için `custom.mockup_sahneleri`, tür **JSON**, kullanın; elde bardak için `shopify/metafields/hand-cup-r1.json` hazırdır. İsteğe bağlı `custom.mockup_gorselleri`, tür **Dosya listesi → Görseller**, kart listesini yönetir ve her görselin hazırlanmış sahneyle bağlantısı gerekir. [Sahne hazırlığı ve kurulum](docs/SHOPIFY-MOCKUP-SAHNELERI.md).
-5. Gerçek mağazada varyant, yerelleştirilmiş sepet kökü, API origin/CORS, kayıt ve sepet özelliklerini test edin. Bu teslimatta gerçek mağazaya dağıtım yapılmadı.
-
-Sepet akışı önce tasarım JSON'unu ve PNG'yi sunucuda kaydeder, sonra Shopify Ajax Cart API üzerinden seçili varyantı ekler. Line item properties yalnızca `_alacam_design_id`, `_alacam_design_url`, `_alacam_preview_url` ve görünür `Tasarım` referansını içerir. Artwork/JSON/base64 sepete yazılmaz. Fiyat veya teslim süresi uydurulmaz; mevcut kart bu değerleri göstermez. Tarayıcıda Admin API anahtarı veya depolama sırrı bulunmaz.
-
-Tema içinde eyleme bağlamak için editör kökünden Shadow DOM dışına çıkan olaylar vardır:
-
-```js
-document.addEventListener("alacam:design-saved", (event) => {
-  // scope === 'server': id, designUrl, previewUrl
-  // scope === 'device': localId; sunucu kaydı olarak kullanmayın.
-  console.log(event.detail);
-});
-document.addEventListener("alacam:close", (event) => {
-  // Tema burada kendi editör kapsayıcısını kapatabilir.
-  // detail.productId seçili Shopify ürünüdür.
-});
-```
-
-Section doğrudan editörü gösterir. Düğmeden aynı sayfada tam ekran açılan akış için `alacam-launcher.js` ve [hazır Custom Liquid / snippet](docs/SHOPIFY-BUTON.md) kullanılır; ayrı bir Shopify uygulaması veya Pacdora SDK anahtarı gerekmez.
-
-## Sunucu ve ortam değişkenleri
-
-```sh
-cp .env.example .env
-npm run server
-```
-
-Örnek yerel yapılandırma:
-
-```dotenv
-PORT=3001
-DESIGN_STORAGE_DIR=./data/designs
-PUBLIC_BASE_URL=http://127.0.0.1:3001
-ALLOWED_ORIGINS=http://127.0.0.1:5184
-```
-
-| Ayar                 | Açıklama                                                                |
-| -------------------- | ----------------------------------------------------------------------- |
-| `PORT`               | API portu, varsayılan 3001.                                             |
-| `DESIGN_STORAGE_DIR` | Kalıcı, yazılabilir ve yedeklenen dizin. Boşsa sunucu kaydı devre dışı. |
-| `PUBLIC_BASE_URL`    | API origin'i, sonunda `/api` olmaz. Üretimde HTTPS gerekir.             |
-| `ALLOWED_ORIGINS`    | Tam mağaza origin'leri, virgülle ayrılır.                               |
-| Section `api_base`   | İstemcinin eriştiği adres, sonunda `/api` olur. Gizli değildir.         |
-
-Vite `/api` isteklerini yerel 3001 portuna yönlendirir. API uçları:
-
-| Uç                                 | İşlev                                                                                      |
-| ---------------------------------- | ------------------------------------------------------------------------------------------ |
-| `GET /api/health`                  | `storageConfigured` durumunu bildirir.                                                     |
-| `POST /api/designs`                | Doğrulanmış tasarım JSON'u ve PNG önizlemeyi saklar; kimlik ve referans URL'leri döndürür. |
-| `GET /api/designs/:id/design.json` | Düzenlenebilir tasarım.                                                                    |
-| `GET /api/designs/:id/preview.png` | Ekran önizlemesi.                                                                          |
-
-Sunucu ilk sürümde kalıcı dosya sistemi kullanır. Geçici container diski uygun değildir; çoklu instance için paylaşılan kalıcı depolama veya S3 uyumlu adapter gerekir. URL'ler rastgele kimliklidir, bağlantıya sahip olan dosyayı okuyabilir. CORS kimlik doğrulama değildir. Üretim erişim politikanıza göre imzalı bağlantı, oturum doğrulaması veya Shopify App Proxy doğrulaması ayrıca eklenmelidir. Var olmayan bir doğrulama uygulanmış gibi gösterilmez.
-
-## Model, şablon ve üretim sınırı
-
-Özgün yaklaşık GLB ve SVG paketi `public/product-assets/doypack-v1-r1/` altındadır. `npm run assets:generate` aynı kaynak geometriden yeniden üretir. Açıklama: `docs/MODEL-VE-SABLON-DOSYALARI.md`.
-
-- Canlı editör `custom.3b_glb_dosyasi` doluysa ürün GLB’sini, `custom.bicak_i_zi` SVG ise ürün şablonunu yükler. Açık baskı tanımları ve tek, tam UV'li etiket/sarım yüzeyi otomatik bağlanır. Belirsiz modellerde **Baskı yüzeyini seç** mevcut UV'li parçayı ve dikey yönü seçtirir; seçim modele özel `modelBinding` alanıyla JSON ve taslakta korunur. Kapak ve diğer parçalar kendi görünümünü korur. UV üretimi ve çok panelli kutu açınımı eklenmedi. Ayrıntılar: `docs/SHOPIFY-BUTON.md`.
-- 140 × 210 mm örnektir. Üreticinin gerçek kesim/katlama/kaynak/körük ölçüleri, taşma ve güvenli alanı, baskı gereksinimleri ve renk profili sağlanmadan **baskıya hazır** çıktı yoktur.
-- Üretici şablonu bağlantısı yoksa **Şablonu indir** yalnızca açıkça etiketli örnek SVG kılavuzu verir. Gerçek kesim makinesi dosyası değildir. `productionReady=false` korunur.
-- **Görsel indir → Canlı görünüm**, canlı PBR sahnesinin PNG/JPG sunumudur. **Stüdyo render** ayrıca ışık yollarını hesaplar ve daha uzun sürebilir. Bıçak izi sekmesindeki SVG, ayrı kesim katmanı ve gömülü raster tasarım taşır; PDF, tanımlı fiziksel ölçüde RGB görsel içerir. Bu çıktılar üretim onaylı değildir; CMYK/ICC, AI ve düzenlenebilir vektör PDF yoktur. JSON düzenlenebilir tasarımdır. `src/production.ts` gelecekteki onaylı üretim çıktısı için sözleşmedir, üretim exporter'ı kayıtlı değildir.
-- Bardak, kutu, farklı ölçü ve yeni baskı yüzleri için uygun model/UV adaptörü ve açık şema sürümü gerekir. Pacdora'nın modelleri/şablonları alınmaz.
-- Canlı baskı dokusu uzun kenarda masaüstünde 2048, mobilde 1536 px ile sınırlandırılır; kaynak modelin ayrı bütçeleri vardır. Fiziksel telefonlarda performans benchmark'ı yapılmadı. Modelin geometri ve malzemeleri görüntü kalitesini belirler; fotoğraf doğruluğu veya baskı rengi garantisi yoktur.
-
-## Doğrulama ve lisanslar
-
-`npm test`: şema, güvenlik, model hedefleri, geometri ve çözünürlük kontrolleri. `npm run test:model-binding`: GLB eşleme, JSON/yenileme/geçmiş ve mobil pencere; izinli kutu modeli için `ALACAM_CAN_FIXTURE=/mutlak/yol/model.glb` verilebilir. `npm run test:live-preview`: canlı piksel kalitesi, boşta çizim yükü ve PNG sonrası kamera korunması; gerçek dosyalar için `ALACAM_MODEL_FIXTURE` / `ALACAM_DIELINE_FIXTURE` kullanılır. `npm run test:workspace` temel düzenleme ve izole sepet akışını kontrol eder. Gerçek mağaza siparişi veya üretim onayı bu testlerin kapsamı değildir.
-
-Doğrudan bağımlılıklar ticari kullanıma uygun ücretsiz açık kaynaktır. React/Fabric/Three.js MIT, Lucide ISC, DOMPurify Apache-2.0 veya MPL-2.0. Tam liste `THIRD_PARTY_NOTICES.md`; `npm run licenses` dağıtıma lisans metinlerini ekler. Üçüncü taraf model veya lisanslı hazır görsel alınmadı; DM Sans font paketi açık OFL lisansıyla eklenmiştir.
-
-## Küçük teslim paketi
-
-`npm run release`, derlemeyi yapıp Python 3 standart kütüphanesiyle yalnızca iki ZIP üretir:
-
-- `releases/alacam-online-design-kaynak.zip`: kaynak, GLB/SVG, özgün WebP kapaklar, testler ve belgeler. `node_modules`, derlenmiş dosyalar, ekran görüntüleri ve gizli `.env` dahil edilmez. Açtıktan sonra `npm ci` ve `npm run build` çalıştırın.
-- `releases/alacam-online-design-shopify.zip`: temaya kopyalanacak derlenmiş dosyalar, WebP kapaklar, WOFF2 fontlar, section, şablon ve lisans bildirimi.
-
-Eski ZIP takma adları ve açılmış proje kopyaları yoktur. Test ekran görüntüleri `test-results/screenshots/` altında geçici üretilir; teslim ZIP'lerine eklenmez. Geliştirme için gereken `node_modules` yerel bilgisayarda kalır; teslimin parçası değildir.
-
-Yerleşim paneli açıldığında kapaklar seçili ürün ve güncel tasarımdan mevcut renderer ile hazırlanır; ayrı WebGL bağlamı açılmaz. Hazır özgün örnek kapaklar yükleme sırasında kullanılır. Bunları yeniden üretmek için Vite çalışırken `npm run assets:layouts` kullanılabilir (Playwright Chromium gerekir).
-
-Arayüz fontu DM Sans (SIL OFL 1.1) yerel paketlenir. Pacdora'nın Gilroy fontu ve özel ikon fontu alınmadı; standart araç simgeleri bağımsız SVG olarak çizildi. Shapes panelinde sekiz temel şekil, 14 ambalaj sembolü ve altı sosyal/iletişim simgesi; Background panelinde 12 özgün desen vardır. Desen seçimi yüzü kaplayacak şekilde en arka katmana eklenir. Tuval 90° görünüm döndürmesi üretim koordinatlarını değiştirmez.
-
-### Configure ve hareketler
-
-Sağdaki **Config** düğmesi Apply/Discard penceresini açar. Material: White film/Kraft/Metallic; Print: Full Color/Black/Blank; Finishing: Gloss/Matte/Blank. Bu seçimler gerçek 3D malzeme/doku önizlemesini değiştirir ve sürüm 1 JSON'un isteğe bağlı `substrate`, `printMode`, `finishing` alanlarında tutulur. Kaynak artwork korunur. Seçimler satıcı varyantlarıyla eşlenmeden üretim seçeneği/sipariş fiyatı sayılmaz. Çalışan API, yeni ortak şemayı yüklemek için bu sürümle birlikte yeniden başlatılmalıdır.
-
-2D tuvalde dikey wheel imleç merkezli zoom; Ctrl/Meta+wheel hızlı zoom; Shift+wheel ve yatay trackpad pan; Space+drag, orta fare tuşu ve Hand pan desteklenir. İki parmak pinch/pan artwork koordinatlarını değiştirmez. 90° görünümde sığdırma doğru en/boyu kullanır. Oklar 1, Shift+oklar 10 tasarım pikseli taşır; Cmd/Ctrl+D çoğaltır, Escape seçimi kapatır; Cmd/Ctrl+Y yineler. Kısayollar editör odağıyla sınırlıdır. 3D sürükleme, baskın eksene göre ürünü döndürür; bırakınca atalet sürmez. Wheel/touch zoom ve View menüsündeki Rotate/Pan ile Front/Back/Perspective görünümleri kullanılabilir. Yeniden boyutlandırma kamera yönünü korur.
-
-`npm run test:interactions` gerçek wheel/Space/orta tuş/iki-touch girdilerini, kısayolları, Config Apply/Discard/Escape, yedi farklı render sonucu, kayıt/yenileme ve container ölçülerini izole Chromium'da test eder.
-
-### Mod geçişi, mini önizleme ve alt çubuk
-
-Üstteki 3D/2D seçicinin siyah göstergesi 300 ms kayar; genişliğe göre 114×28, 130×36 veya 150×40 px olur. Aynı moda tekrar basmak görünümü/panelleri sıfırlamaz. 2D tuvalin zoom/pan/dönüşü 3D'ye gidip dönünce korunur; 3D'de gizli 2D düzenleme kilitlenir.
-
-Küçük 3D önizlemenin sol altındaki tutamacı sürükleyin. Pencere kare kalır ve sağ üst köşesi sabittir; başlangıcı 280 px, üst sınırı editör yüksekliğine bağlıdır. Klavyede oklar, Home ve End de çalışır. Sağ üstteki özgün 3D işareti, referanstaki gibi yalnız sürükleme ipucudur; büyük sahneye üstteki 3D seçiciden geçilir.
-
-2D alt çubuktaki yüzde, 50/100/200/Fit menüsünü açar. +/- düğmeleri 25–200% aralığında 25/50 puanlık adımlar kullanır. Göz menüsü Show Dimension / Show material / Show bleedline / Cut bleedline / Move bleedline to topmost seçeneklerini açar. Bunlar yalnız çalışma görünümünü etkiler: 3D dokusu ve PNG her zaman gerçek tasarım rengiyle, baskı alanına kırpılarak ve kılavuz olmadan üretilir.
-
-3D alt çubukta +/−, doypack için **Inflate** ve View menüsü bulunur. Inflate 0–100 değeri yaklaşık modelin derinliğini değiştirir; fiziksel dolum simülasyonu değildir. Değer v1 JSON'un isteğe bağlı `presentation.inflate` alanında saklanır ve geri alınabilir. Kutu katlama kontrolü yalnız böyle bir model ve mekanizma eklendiğinde sunulabilir.
-
-`npm run test:shell` mod geçişi, oranlar, boyutlandırma, alt çubuk, Inflate kalıcılığı ve baskın eksen sürüklemesini doğrular. İstemci kaynaklarının ayrıntılı incelemesi için [kod analizi](docs/ISTEMCI-KOD-ANALIZI.md) belgesine bakın.
-
-### 3B deneyim ince ayarı
-
-Yerleşim ve mesafe değişiklikleri kamera yönünü, kaydırma konumunu ve göreli yakınlaştırmayı korur. Front/Back/Perspective bilinçli olarak görünümü yeniden kurar. Ürün döndürülürken temas gölgesi aynı karede güncellenir; kamera yakınlaştırması gölgeyi yeniden hesaplamaz. Boştaki önizleme sürekli render döngüsü çalıştırmaz. Işık ve gölge sınırları sahnedeki ürünlerin boyutundan hesaplanır.
-
-Mat, parlak, kaplamasız, kraft ve metalik yüzeylerin pürüzlülük, kaplama ve mikro doku tepkileri ayrıştırılmıştır. Kaynak artwork, UV ve model ölçüleri değişmez. Bu ayarlar gerçek üretim malzemesinin ölçülmüş optik değerleri değildir.
-
-Alt körük kapaması baskı yüzünün dışına beyaz bir oval olarak taşmayacak şekilde daraltılmıştır. Aynı düzeltme özgün GLB'ye ve 11 yerleşim küçük resmine de uygulanmıştır; baskı yüzlerinin UV'leri ve örnek ölçüleri korunur.
-
-İki parmaktan tek parmağa geçiş döndürmeye kesintisiz devam eder. Mini önizleme tutamacı ilk sürüklemede sıçramaz. View menüsü ok/Home/End tuşlarıyla gezilir; Escape yalnız bu menüyü kapatır ve odağı düğmesine geri verir. Editör kapanınca WebGL bağlamı da serbest bırakılır.
-
-DM Sans ve Türkçe karakter alt kümesi, Fabric metni ölçmeden önce yüklenir. Böylece ilk açılışta 2D yazısı veya 3D baskı dokusu geçici yedek fontla kalmaz. Font indirme hatası açıkça gösterilir; son geçerli font korunur. İşletim sistemi fontlarının bulunabilirliği cihaza bağlıdır.
-
-`npm run test:preview` gerçek WebGL çıktısıyla zoom sınırlarını, basılı sürükleme sırasında gölgeyi, kamera konumunun korunmasını, iki parmaktan tek parmağa geçişi, modifier tuşuyla pan hareketini, geciken ilk font yüklemesini ve dört Shopify aç/kapat döngüsünden sonra GPU bağlamlarının serbest kalmasını doğrular.
-
-## Hazır PSD mockup denemesi
-
-Matcha bardak dosyası için sabit açılı, tasarım değiştirilebilen yerel bir kalite denemesi hazırlandı. `npm run mockup:preview`, özel katman paketinden yalnız birleşik PNG/JPG üretir. Kaynak PSD/katmanlar proje ve herkese açık dağıtım dışında tutulur; Shopify Yerleşimler paneli bu pilotla değişmez. Doğal çıktı 600×800 px; merkez baskı eşlemesi yaklaşık olarak kalibre edilir. Kurulum, lisans sınırları ve testler: [Hazır mockup denemesi](docs/HAZIR-MOCKUP-DENEMESI.md).
-
-## Teneke kutu mockupı
-
-6000 × 4500 kaynak PSD’den gövde ve kapağı ayrı değiştirilebilen bir sahne hazırlandı. Gerçek maskeler, gölge ve yansıma katmanları korunur; 4K tarayıcı çıktısı ve ayrı 6K örnek dosyası vardır. Kurulum ve testler: [Teneke kutu hazırlığı](docs/TENEKE-KUTU-MOCKUP.md). Kaynak PSD ve hazırlık önbelleği Git dışında kalır; hazırlanmış web varlıkları Vercel’de sunulur. Ürün meta alanına yapıştırılacak dosya: [tin-can-r1.json](shopify/metafields/tin-can-r1.json).
-
-## İsteğe bağlı geliştirici aracı: PSD'leri toplu hazırlama
-
-Varsayılan mağaza akışı yukarıdaki hazır görseller + tek ürün JSON'udur. Yerel hazırlığı otomatikleştirmek isteyen geliştirici, `/mockup-admin.html` panelinden bir seferde 10 PSD'yi Node/Python worker'a yükleyebilir. Araç desteklenen katmanları ve eğriliği doğrulayıp katalog üretir; uygun PSD'lerde arka plan rengi de hazırlanır. Canlı otomatik yükleme ayrıca uzak worker ve kalıcı disk gerektirir, ancak hazır katalog kullanan mağazada bu servis zorunlu değildir. [İsteğe bağlı araç, kurulum ve destek sınırları](docs/OTOMATIK-PSD-IMPORT.md).
+Fabric.js ve Three.js MIT, React MIT, Lucide ISC, DM Sans OFL lisanslıdır. Tam bildirim [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Pacdora API/SDK bağımlılığı yoktur. Ürün fotoğrafları ve PSD’ler kendi kaynak lisanslarını korur.

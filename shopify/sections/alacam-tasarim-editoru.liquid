@@ -14,12 +14,19 @@
 {% assign alacam_dieline_url = alacam_dieline_file.url | default: alacam_dieline_file.src | default: '' %}
 {% capture editor_config %}
 {
-  "apiBase": {{ section.settings.api_base | default: '/api' | json }},
+  "apiBase": {{ section.settings.api_base | default: 'https://mock-up-generator-y265.vercel.app/api' | json }},
   "productId": {{ editor_product.id | append: '' | json }},
-  "productTitle": {{ editor_product.title | default: 'Beyaz Doypack' | json }},
+  "productTitle": {{ editor_product.title | json }},
+  "productHandle": {{ editor_product.handle | json }},
+  "productUrl": {{ editor_product.url | json }},
+  "currency": {{ cart.currency.iso_code | default: localization.country.currency.iso_code | default: shop.currency | json }},
+  "locale": {{ request.locale.iso_code | default: shop.locale | json }},
+  "requiresSellingPlan": {{ editor_product.requires_selling_plan | default: false | json }},
+  "productOptions": [{% for alacam_option in editor_product.options_with_values %}
+    {"name": {{ alacam_option.name | json }}, "position": {{ alacam_option.position | json }}, "values": [{% for alacam_option_value in alacam_option.values %}{{ alacam_option_value.name | default: alacam_option_value | append: '' | json }}{% unless forloop.last %},{% endunless %}{% endfor %}]}{% unless forloop.last %},{% endunless %}
+  {% endfor %}],
   "productModelUrl": {{ alacam_model_url | json }},
   "productDielineUrl": {{ alacam_dieline_url | json }},
-    "mockupApiBase": {{ mockup_api_base | default: '' | json }},
     "productMockupScenes": {% if editor_product.metafields.custom['mockup_sahneleri'].value != blank %}{{ editor_product.metafields.custom['mockup_sahneleri'].value | json }}{% else %}null{% endif %},
     "productMockupImages": {% if editor_product.metafields.custom['mockup_gorselleri'].value != blank %}[
       {% assign alacam_mockup_separator = '' %}
@@ -44,12 +51,34 @@
   "productImage": {% if editor_product.featured_image %}{{ editor_product.featured_image | image_url: width: 400 | json }}{% else %}null{% endif %},
   "libraryKey": {{ 'alacam:library:v1:' | append: section.id | json }},
   "storageKey": {{ 'alacam:v1:' | append: section.id | append: ':' | append: editor_product.id | json }},
+  "initialVariantId": {{ editor_product.selected_or_first_available_variant.id | json }},
+  "initialQuantity": {{ editor_product.selected_or_first_available_variant.quantity_rule.min | default: 1 | json }},
   "cartRoot": {{ routes.root_url | json }},
-  "variants": [{% for variant in editor_product.variants %}{"id": {{ variant.id | json }}, "title": {{ variant.title | json }}, "available": {{ variant.available | json }}}{% unless forloop.last %},{% endunless %}{% endfor %}]
+  "variants": [{% for alacam_variant in editor_product.variants %}
+    {% assign alacam_units_per_item = alacam_variant.metafields.custom['paket_ici_adet'].value | default: editor_product.metafields.custom['paket_ici_adet'].value %}
+    {
+      "id": {{ alacam_variant.id | json }},
+      "title": {{ alacam_variant.title | json }},
+      "available": {{ alacam_variant.available | json }},
+      "price": {{ alacam_variant.price | json }},
+      "compareAtPrice": {{ alacam_variant.compare_at_price | json }},
+      "sku": {{ alacam_variant.sku | json }},
+      "options": [{% for alacam_variant_option in alacam_variant.options %}{{ alacam_variant_option.name | default: alacam_variant_option | append: '' | json }}{% unless forloop.last %},{% endunless %}{% endfor %}],
+      "unitsPerItem": {% if alacam_units_per_item != blank %}{{ alacam_units_per_item | json }}{% else %}null{% endif %},
+      "quantityRule": {"min": {{ alacam_variant.quantity_rule.min | default: 1 | json }}, "increment": {{ alacam_variant.quantity_rule.increment | default: 1 | json }}, "max": {{ alacam_variant.quantity_rule.max | json }}},
+      "quantityPriceBreaks": [{% for alacam_price_break in alacam_variant.quantity_price_breaks %}{"minimumQuantity": {{ alacam_price_break.minimum_quantity | json }}, "price": {{ alacam_price_break.price | json }}}{% unless forloop.last %},{% endunless %}{% endfor %}],
+      "unitPrice": {{ alacam_variant.unit_price | json }},
+      "unitPriceMeasurement": {% if alacam_variant.unit_price_measurement != blank %}{"measuredType": {{ alacam_variant.unit_price_measurement.measured_type | json }}, "quantityValue": {{ alacam_variant.unit_price_measurement.quantity_value | json }}, "quantityUnit": {{ alacam_variant.unit_price_measurement.quantity_unit | default: '' | json }}, "referenceValue": {{ alacam_variant.unit_price_measurement.reference_value | json }}, "referenceUnit": {{ alacam_variant.unit_price_measurement.reference_unit | default: '' | json }}}{% else %}null{% endif %}
+    }{% unless forloop.last %},{% endunless %}
+  {% endfor %}]
 }
 {% endcapture %}
+{% if editor_product != blank and editor_product.id != blank %}
 <div data-alacam-editor data-config="{{ editor_config | strip_newlines | escape }}" style="display:block; min-height:600px;"></div>
 <script src="{{ 'alacam-editor.js' | asset_url }}" type="module"></script>
+{% else %}
+<p role="status">Tasarım editörü için section ayarlarından bir ürün seçin veya bu section’ı ürün şablonuna ekleyin.</p>
+{% endif %}
 {% schema %}
 {
   "name": "Alaçam Tasarım Editörü",

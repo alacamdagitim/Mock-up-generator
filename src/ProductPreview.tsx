@@ -96,7 +96,15 @@ export const ProductPreview = forwardRef<
       };
     }, [modelUrl, retry, bindingKey]);
     if (!modelUrl)
-      return <Preview ref={ref} textures={textures} settings={settings} />;
+      return (
+        <div className="mockup-missing-model" role="status">
+          <strong>3B model henüz eklenmedi</strong>
+          <p>
+            Ürünün 3B GLB Dosyası meta alanına model eklendiğinde burada
+            gösterilir.
+          </p>
+        </div>
+      );
     if (!loaded || loaded.key !== requestKey)
       return (
         <div

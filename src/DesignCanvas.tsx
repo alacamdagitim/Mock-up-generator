@@ -17,7 +17,7 @@ import { InterfaceIcon } from "./InterfaceIcon";
 import { Editor } from "./Editor";
 import type { EditorHandle } from "./Editor";
 import type { Design, Element, Face } from "./types";
-import { effectiveDpi, PRODUCT } from "../shared/schema.mjs";
+import { effectiveDpi } from "../shared/schema.mjs";
 import {
   faceBackground,
   recommendedSurfaceColors,
@@ -110,10 +110,8 @@ export function DesignCanvas({
   >(null);
   const width = design.artboard?.canvasWidth || 600;
   const height = design.artboard?.canvasHeight || 900;
-  const widthMm = design.artboard ? design.artboard.widthMm : PRODUCT.widthMm;
-  const heightMm = design.artboard
-    ? design.artboard.heightMm
-    : PRODUCT.heightMm;
+  const widthMm = design.artboard?.widthMm;
+  const heightMm = design.artboard ? design.artboard.heightMm : undefined;
   useEffect(() => {
     if (singleFace && face !== "front") onFace("front");
   }, [singleFace, face, onFace]);
@@ -453,7 +451,7 @@ export function DesignCanvas({
         <span>
           {design.artboard
             ? `Ürün bıçak izi · ${widthMm && heightMm ? `${widthMm} × ${heightMm} mm` : "Ölçü tanımlanmadı"}`
-            : "Örnek doypack · 140 × 210 mm"}
+            : "Ürün çalışma alanı · Bıçak izi bekleniyor"}
         </span>
       </div>
       <div

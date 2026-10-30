@@ -38,12 +38,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         page: "index.html",
-        demo: "launcher-demo.html",
-        mockupDemo: "mockup-demo.html",
-        handCupDemo: "hand-cup-demo.html",
-        tinCanDemo: "tin-can-demo.html",
-        mockupAdmin: "mockup-admin.html",
-        psdProductDemo: "psd-product-demo.html",
         editor: "src/main.tsx",
         launcher: "src/launcher.ts",
       },
@@ -58,10 +52,6 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": "http://127.0.0.1:3001",
-      "/mockup-worker": {
-        target: "http://127.0.0.1:3002",
-        rewrite: (path) => path.replace(/^\/mockup-worker/, ""),
-      },
     },
   },
 });

@@ -1,68 +1,83 @@
 import { parseMockupImages, parseMockupScenes } from "./mockup-scenes.mjs";
+import {
+  normalizeCurrency,
+  normalizeLocale,
+  normalizeProductOptions,
+  normalizeStoreVariant,
+} from "./commerce.mjs";
 
 /** Storefront product data comes from the merchant's Liquid section, never a third-party model library. */
 export function storefrontProducts(config) {
   const supplied = Array.isArray(config.products) ? config.products : [];
-  const initialId = String(
-    config.productId ||
-      supplied.find((p) => p.modelId === "doypack-v1")?.id ||
-      "doypack-v1",
-  );
+  const initialId = String(config.productId || supplied[0]?.id || "");
   const products = supplied.map((p) => ({
     ...p,
     mockupScenes: parseMockupScenes(p.mockupScenes),
     mockupImages: parseMockupImages(p.mockupImages),
     id: String(p.id),
-    variants: Array.isArray(p.variants) ? p.variants : [],
+    variants: Array.isArray(p.variants)
+      ? p.variants.map(normalizeStoreVariant)
+      : [],
+    productOptions: normalizeProductOptions(p.productOptions, p.variants || []),
+    currency: normalizeCurrency(p.currency ?? config.currency),
+    locale: normalizeLocale(p.locale ?? config.locale),
     category: p.category || "Diğer",
   }));
   const found = products.find((p) => p.id === initialId);
-  if (!found)
+  if (!found && initialId)
     products.unshift({
       id: initialId,
-      title: config.productTitle || "Beyaz doypack",
-      category: "Doypack",
-      modelId: "doypack-v1",
-      variants: config.variants || [],
+      title: config.productTitle || "Ürün",
+      category: "Ürün",
+      variants: (config.variants || []).map(normalizeStoreVariant),
+      productOptions: normalizeProductOptions(
+        config.productOptions,
+        config.variants || [],
+      ),
+      currency: normalizeCurrency(config.currency),
+      locale: normalizeLocale(config.locale),
+      handle: config.productHandle,
+      url: config.productUrl,
+      requiresSellingPlan: config.requiresSellingPlan === true,
       image: config.productImage,
       modelUrl: config.productModelUrl,
       dielineUrl: config.productDielineUrl,
       mockupScenes: parseMockupScenes(config.productMockupScenes),
       mockupImages: parseMockupImages(config.productMockupImages),
     });
-  else {
-    if (!found.modelId) found.modelId = "doypack-v1";
+  else if (found) {
     if (config.productModelUrl) found.modelUrl = config.productModelUrl;
     if (config.productDielineUrl) found.dielineUrl = config.productDielineUrl;
     if (config.productMockupScenes !== undefined)
       found.mockupScenes = parseMockupScenes(config.productMockupScenes);
     if (config.productMockupImages !== undefined)
       found.mockupImages = parseMockupImages(config.productMockupImages);
+    if (config.variants !== undefined)
+      found.variants = config.variants.map(normalizeStoreVariant);
+    if (config.productOptions !== undefined)
+      found.productOptions = normalizeProductOptions(
+        config.productOptions,
+        found.variants,
+      );
+    if (config.currency) found.currency = normalizeCurrency(config.currency);
+    if (config.locale) found.locale = normalizeLocale(config.locale);
+    if (config.productHandle) found.handle = config.productHandle;
+    if (config.productUrl) found.url = config.productUrl;
+    if (config.requiresSellingPlan !== undefined)
+      found.requiresSellingPlan = config.requiresSellingPlan === true;
   }
   return products.filter(
     (p, i, all) => p.id && p.title && all.findIndex((x) => x.id === p.id) === i,
   );
 }
 
-/** A product's prepared JSON is authoritative, including an explicitly empty catalog. */
-export function usesRemoteMockupCatalog(config) {
-  if (!config.mockupApiBase) return false;
-  const initialId = String(
-    config.productId ||
-      config.products?.find((p) => p.modelId === "doypack-v1")?.id ||
-      "doypack-v1",
-  );
-  const product = storefrontProducts(config).find((p) => p.id === initialId);
-  return !product?.mockupScenes;
-}
-
 export function productDraftKey(config, id) {
-  const originalId = String(config.productId || "doypack-v1");
+  const originalId = String(config.productId || config.products?.[0]?.id || "");
   if (config.storageKey)
     return id === originalId
       ? config.storageKey
       : `${config.storageKey}:product:${id}`;
-  return `alacam:draft:v1:${id === "doypack-v1" && !config.productId ? "doypack" : id}`;
+  return `alacam:draft:v1:${id}`;
 }
 
 /** Only direct HTTPS links from the merchant configuration may be opened. */
