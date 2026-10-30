@@ -4,7 +4,6 @@ import type { EditorConfig } from "./types";
 import OnlineDesigner from "./OnlineDesigner";
 import { storefrontProducts } from "../shared/storefront.mjs";
 import css from "./styles.css?inline";
-import configureCss from "./configure.css?inline";
 import modeSwitchCss from "./mode-switch.css?inline";
 import previewWindowCss from "./preview-window.css?inline";
 import previewToolbarCss from "./preview-toolbar.css?inline";
@@ -85,7 +84,6 @@ export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
   const style = document.createElement("style");
   style.textContent = [
     css,
-    configureCss,
     modeSwitchCss,
     previewWindowCss,
     canvasToolsCss,

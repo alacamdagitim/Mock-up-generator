@@ -1971,13 +1971,10 @@ strong {
   height: 16px;
   color: #525c60;
 }
-.configure-trigger {
-  padding: 2px 6px;
+.order-panel-heading {
   font-size: 12px;
-  line-height: 20px;
-  height: 24px;
-  background: #f2f2f2;
-  border-radius: 5px;
+  font-weight: 600;
+  color: #555;
 }
 .config-details dl > div {
   min-height: 40px;

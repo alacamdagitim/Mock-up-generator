@@ -40,7 +40,6 @@ import { SelectionInspector } from "./SelectionInspector";
 import { PRESETS, presetElements } from "./designPresets";
 import { manufacturerDielineUrl } from "../shared/storefront.mjs";
 import { pngBlob } from "./files";
-import { ConfigureDialog } from "./ConfigureDialog";
 import { PackagingSymbols } from "./PackagingSymbols";
 import { InterfaceIcon } from "./InterfaceIcon";
 import { ModeSwitch } from "./ModeSwitch";
@@ -164,7 +163,6 @@ export default function OnlineDesigner({
   );
   const [guides, setGuides] = useState(true);
   const [configOpen, setConfigOpen] = useState(true);
-  const [configureOpen, setConfigureOpen] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
   const [closed, setClosed] = useState(false);
   const [mobileConfig, setMobileConfig] = useState(false);
@@ -1265,24 +1263,17 @@ export default function OnlineDesigner({
           <div className="config-heading">
             <button
               className="config-collapse"
-              aria-label="Collapse configuration"
+              aria-label={
+                configOpen
+                  ? "Sipariş seçeneklerini daralt"
+                  : "Sipariş seçeneklerini aç"
+              }
               aria-expanded={configOpen}
               onClick={() => setConfigOpen(!configOpen)}
             >
               {configOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
             </button>
-            <button
-              className="configure-trigger"
-              disabled={!!manufacturerModel || photoActive}
-              title={
-                manufacturerModel
-                  ? "Bu modelin özgün GLB malzemeleri kullanılıyor; kaplama eşlemesi ayrıca tanımlanmalı."
-                  : undefined
-              }
-              onClick={() => setConfigureOpen(true)}
-            >
-              {hasMockups ? "Ürün bilgisi" : "Config"}
-            </button>
+            <span className="order-panel-heading">Sipariş</span>
           </div>
           {configOpen && (
             <>
@@ -1481,25 +1472,6 @@ export default function OnlineDesigner({
           ),
         }}
       />
-      {configureOpen && (
-        <ConfigureDialog
-          values={{
-            substrate: d.settings.substrate || "white",
-            printMode: d.settings.printMode || "color",
-            finishing:
-              d.settings.finishing ||
-              (d.settings.material === "glossy" ? "gloss" : "matte"),
-          }}
-          onClose={() => setConfigureOpen(false)}
-          onApply={(values) => {
-            d.setPresentation({
-              ...values,
-              material: values.finishing === "gloss" ? "glossy" : "matte",
-            });
-            setConfigureOpen(false);
-          }}
-        />
-      )}
       {d.toast && (
         <div
           className={`online-toast ${d.toast.error ? "error" : ""}`}
