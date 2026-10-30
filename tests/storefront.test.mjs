@@ -4,7 +4,33 @@ import {
   storefrontProducts,
   productDraftKey,
   manufacturerDielineUrl,
+  usesRemoteMockupCatalog,
 } from "../shared/storefront.mjs";
+
+test("prepared product JSON takes precedence over an obsolete remote PSD service", () => {
+  const catalog = { schemaVersion: 1, scenes: [] };
+  const config = { productId: "100", mockupApiBase: "https://offline.example" };
+  assert.equal(usesRemoteMockupCatalog({ productId: "100" }), false);
+  assert.equal(usesRemoteMockupCatalog(config), true);
+  assert.equal(
+    usesRemoteMockupCatalog({ ...config, productMockupScenes: catalog }),
+    false,
+  );
+  assert.equal(
+    usesRemoteMockupCatalog({
+      ...config,
+      products: [{ id: "100", title: "Ürün", mockupScenes: catalog }],
+    }),
+    false,
+  );
+  assert.equal(
+    usesRemoteMockupCatalog({
+      ...config,
+      products: [{ id: "101", title: "Diğer ürün", mockupScenes: catalog }],
+    }),
+    true,
+  );
+});
 
 test("standalone keeps the original local draft key and single native model", () => {
   const products = storefrontProducts({});

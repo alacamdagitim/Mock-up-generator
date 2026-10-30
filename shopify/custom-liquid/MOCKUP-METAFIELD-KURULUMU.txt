@@ -1,16 +1,50 @@
-ALAÇAM — ELDE BARDAK MOCKUPINI SHOPIFY'A EKLEME
+ALAÇAM — HAZIR MOCKUP PAKETİNİ SHOPIFY'A EKLEME
 
-1. ÜRÜN META ALANINI OLUŞTURUN
+1. ÜRÜN META ALANLARINI OLUŞTURUN
 Ayarlar → Özel veriler → Ürünler → Tanım ekle
-Ad: Mockup sahneleri
-Ad alanı ve anahtar: custom.mockup_sahneleri
+
+Mockup görselleri
+Anahtar: custom.mockup_gorselleri
+Tür: Dosya → Dosya listesi; yalnız görseller (list.file_reference)
+İçerik: Baskısız Layout kartları ve sıraları.
+
+Mockup sahneleri
+Anahtar: custom.mockup_sahneleri
 Tür: JSON
+İçerik: Ürünün bütün sahnelerini içeren tek kataloğun metni.
+JSON dosyası Dosya türünde bir alana yüklenmez; içeriği JSON alanına yapıştırılır.
+Bir üründe 10 mockup varsa aynı JSON'un scenes listesinde 10 sahne olur.
+
+3B model
+Anahtar: custom.3b_glb_dosyasi
+Tür: Dosya (file_reference)
+İçerik: İsteğe bağlı GLB; fotoğraf mockupı için zorunlu değildir.
+
+Bıçak izi
+Anahtar: custom.bicak_i_zi
+Tür: Dosya (file_reference)
+İçerik: Üretici şablonu. SVG 2D'de görünür; diğer türler indirilebilir.
 
 2. HAZIR SAHNEYİ ÜRÜNE BAĞLAYIN
-shopify/metafields/hand-cup-r1.json dosyasının tamamını kopyalayın.
-İlgili ürünü açıp Mockup sahneleri alanına yapıştırın ve kaydedin.
+PSD kaynaklarını hazırlık için iletin. Baskı alanı, perspektif/eğrilik,
+maskeler ve ışık katmanları incelenip örnek logo, yazı ve renkle kontrol edilir.
+Baskısız görseller ve tek ürün JSON'u teslim edilir; desteklenmeyen efektler
+incelenmeden hazır sayılmaz.
 
-Bu son hazırlanmış sahne için ayrıca görsel yüklemek veya dosya listesi doldurmak GEREKMEZ. JSON; taban, maske ve UV eşlemesini Vercel adreslerinden kullanır. Baskısız görsel:
+Baskısız görselleri Mockup görselleri alanına ekleyin. Yüklenen dosyaların
+sabit Shopify kimliklerini JSON'daki shopifyImageId alanlarına bağlayın.
+Teslim edilen kataloğun tamamını Mockup sahneleri alanına yapıştırıp kaydedin.
+Görsel adı, başlığı veya listedeki sırası eşleme anahtarı değildir.
+
+Maske, UV ve ışık dosyaları bizim yayımladığımız Vercel/CDN paketinden JSON
+ile okunur. Bunlar için ek ürün meta alanları açılmaz. Müşteri PSD indirmez;
+sadece seçili sahnenin hazırlanmış web varlıkları yüklenir. Bu akışta sürekli
+çalışan PSD sunucusu zorunlu değildir.
+
+Mevcut elde bardak örneğini hemen denemek için:
+shopify/metafields/hand-cup-r1.json dosyasının tamamını kullanın.
+Bu örnekte Mockup görselleri listesini boş bırakabilirsiniz; JSON hazır kartı içerir.
+Baskısız görsel:
 https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/hand-cup-r1/base.png
 
 3. CUSTOM LIQUID'İ GÜNCELLEYİN
@@ -18,12 +52,11 @@ Tema düzenleyicisinde ürün şablonunun Özel Liquid bloğunu açın.
 shopify/custom-liquid/online-design-vercel.liquid dosyasının tamamını eski kodun yerine yapıştırıp kaydedin.
 Vercel'i yeniden deploy etmek, Shopify'a önceden yapıştırdığınız Liquid kodunu değiştirmez.
 Ürün sayfasını yenileyip Online tasarla düğmesine basın.
+Hazır JSON varsa isteğe bağlı uzak PSD katalog adresinden önce kullanılır.
+Normal kurulumda mockup_api_base tanımlamayın. Eski mağaza düzeyi
+custom.mockup_servis_adresi alanı otomatik bağlantı açmaz.
 
-4. MOCKUP GÖRSEL LİSTESİ — İSTEĞE BAĞLI
-Ad: Mockup görselleri
-Ad alanı ve anahtar: custom.mockup_gorselleri
-Tür: Dosya → Dosya listesi
-Kabul edilen dosya türü: Yalnız görseller
+4. MOCKUP GÖRSEL LİSTESİNİ KONTROL EDİN
 
 Bu alanı boş bırakırsanız hazır JSON sahneleri doğrudan görünür.
 Doldurursanız, görünmesini istediğiniz tüm sahnelerin baskısız fotoğraflarını istediğiniz sırada seçin. Her dosya, hazırlanmış JSON sahnesinin shopifyImageId alanıyla bağlanmalıdır. Liquid çıktısındaki sayısal kimliği aynı metin olarak yazın; sayısal ID ve gid:// biçimi otomatik eşdeğer sayılmaz. Kimlik yoksa tam baseImageUrl eşlemesi kullanılır. Yeni bir Shopify yüklemesi yeni kimlik/adres oluşturur; görsel adı veya sıra numarası baskı eşlemesi değildir.
@@ -31,10 +64,6 @@ Doldurursanız, görünmesini istediğiniz tüm sahnelerin baskısız fotoğrafl
 Ürün başına en fazla 64 sahne ve 64 görsel desteklenir; yüksek çözünürlüklü kaynaklar yalnız seçilen sahne için yüklenir.
 
 Alt metin kart başlığı olur; boşsa Mockup 1 gibi bir ad verilir. Başlık değişikliği eşlemeyi bozmaz. Yeni JPG yüklemek otomatik UV üretmez; hazırlanmamış görsel açıkça bekleyen seçenek olarak görünür.
-
-Mevcut alanlar korunur:
-custom.3b_glb_dosyasi — 3B model
-custom.bicak_i_zi — 2B bıçak izi
 
 Elde bardak sahnesi: 1448 × 1086 px, yaklaşık fotoğraf eşlemesi. Web editöründe kullanım izni mağaza sahibi tarafından onaylanmıştır; kamu malı veya CC0 olarak sunulmaz. Mockup görseli üretim/baskı dosyası değildir.
 

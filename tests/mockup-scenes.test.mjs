@@ -185,6 +185,10 @@ test("all Shopify entry points read the JSON mockup metafield and escape embedde
     "../shopify/custom-liquid/online-design-vercel.liquid",
   ]) {
     const source = await readFile(new URL(path, import.meta.url), "utf8");
+    assert.doesNotMatch(
+      source,
+      /shop\.metafields\.custom\.mockup_servis_adresi/,
+    );
     assert.match(
       source,
       /alacam_mockup_source_image \| image_url: width: alacam_mockup_native_width/,

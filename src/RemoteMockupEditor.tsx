@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import App from "./OnlineDesigner";
 import type { EditorConfig } from "./types";
 import { parseMockupScenes } from "../shared/mockup-scenes.mjs";
+import { usesRemoteMockupCatalog } from "../shared/storefront.mjs";
 export function RemoteMockupEditor({
   config,
   onClose,
@@ -11,13 +12,14 @@ export function RemoteMockupEditor({
   onClose?: () => void;
   onReady?: () => void;
 }) {
+  const remote = usesRemoteMockupCatalog(config);
   const [ready, setReady] = useState<EditorConfig | null>(
-      config.mockupApiBase ? null : config,
+      remote ? null : config,
     ),
     [error, setError] = useState(""),
     [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (!config.mockupApiBase) {
+    if (!remote) {
       setReady(config);
       return;
     }
@@ -85,7 +87,7 @@ export function RemoteMockupEditor({
       clearTimeout(timer);
       abort.abort();
     };
-  }, [config, attempt]);
+  }, [config, remote, attempt]);
   useEffect(() => {
     if (ready || error) onReady?.();
   }, [ready, error, onReady]);

@@ -15,6 +15,7 @@ const summary = {
   passed: [],
   errors: [],
   engineRequests: [],
+  sourceRequests: [],
   serverWrites: [],
   downloads: {},
 };
@@ -128,11 +129,16 @@ async function mockContext({
   const target = await context.newPage();
   target.on("pageerror", (error) => summary.errors.push(error.message));
   target.on("request", (request) => {
+    if (/retired-psd-service\.example|\.psd(?:\?|$)/i.test(request.url()))
+      summary.sourceRequests.push(request.url());
     if (/studioRender|three-gpu-pathtracer/.test(request.url()))
       summary.engineRequests.push(request.url());
     if (request.method() === "POST" && /\/api\//.test(request.url()))
       summary.serverWrites.push(request.url());
   });
+  await target.route("https://retired-psd-service.example/**", (route) =>
+    route.abort(),
+  );
   await target.route("**/api/health", (route) =>
     route.fulfill({ json: { storageConfigured: server } }),
   );
@@ -165,7 +171,8 @@ async function mockContext({
       )
       .replace(
         "productMockupScenes:",
-        `productMockupImages: ${JSON.stringify(pendingOnly ? images.slice(2) : images)},
+        `mockupApiBase: 'https://retired-psd-service.example',
+         productMockupImages: ${JSON.stringify(pendingOnly ? images.slice(2) : images)},
          products: [{ id: 'qa-other-product', title: 'Diğer ürün', category: 'Bardak', variants: [], mockupImages: [{ id: '901', title: 'Diğer ürüne ait mockup', imageUrl: '${plainUrl}' }], mockupScenes: {schemaVersion: 1, scenes: [{ ...DEMO_MOCKUP_SCENES[0], id: 'other-product-scene', title: 'Diğer ürüne ait mockup', shopifyImageId: '901' }] } }],
          productMockupScenes:`,
       );
@@ -498,12 +505,10 @@ try {
         requestAnimationFrame(() => requestAnimationFrame(resolve)),
       ),
   );
-  await page
-    .locator(".online-panel")
-    .screenshot({
-      path: `${output}/mobile-layout-panel.png`,
-      animations: "disabled",
-    });
+  await page.locator(".online-panel").screenshot({
+    path: `${output}/mobile-layout-panel.png`,
+    animations: "disabled",
+  });
   await page.screenshot({
     path: `${output}/mobile-layout.png`,
     animations: "disabled",
@@ -629,6 +634,10 @@ try {
   );
   await legacy.context.close();
   expect(summary.engineRequests).toEqual([]);
+  expect(summary.sourceRequests).toEqual([]);
+  summary.passed.push(
+    "prepared product JSON works despite an obsolete PSD service URL and never requests raw PSDs",
+  );
   expect(summary.errors).toEqual([]);
   console.log(JSON.stringify(summary, null, 2));
 } catch (error) {

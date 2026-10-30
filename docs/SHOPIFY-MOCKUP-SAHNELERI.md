@@ -2,6 +2,23 @@
 
 Mockup, ürünün ana sunumudur. Müşteri 2B bıçak izi üzerinde tasarlar; Yerleşimler bölümündeki baskısız sahne kartlarından birini seçince aynı tasarım o sahneye uygulanır. Ürüne eklenen görsellerin sırası seçeneklerin sırasını belirler. Fotoğrafın ışığı, gölgeleri ve önde kalan bölgeleri hazırlanan eşleme ve maskelerle korunur. PNG/JPG indirmek için ayrıca 3B render beklenmez. GLB varsa 3B görünüm inceleme için kalır. Kayıt ve görsel indirme, 3B inceleme açıkken de seçili hazır mockupı kullanır.
 
+## Varsayılan hazırlama ve teslim akışı
+
+Mağaza sahibi PSD kaynaklarını hazırlık için iletir. Her PSD'nin baskı alanı, perspektifi/eğriliği, maskeleri, gölge ve ışık katmanları incelenir; gerçek bir logo, yazı ve renk örneğiyle önizleme ve indirilen görsel kontrol edilir. Teslimde baskısız mockup görselleri ve ürünün bütün sahnelerini içeren **tek bir JSON katalog** verilir. Bir ürünün 10 mockupı varsa 10 ayrı ürün JSON'u gerekmez; aynı kataloğun `scenes` listesinde 10 sahne bulunur. Desteklenmeyen PSD efektleri incelenmeden hazır sayılmaz; fotoğraftaki fonun değiştirilebilmesi ayrıca hazırlanmış arka plan katmanlarına bağlıdır.
+
+Ürünlerde kullanılacak dört alan:
+
+| Ad | Ad alanı ve anahtar | Tür | İşlev |
+| --- | --- | --- | --- |
+| **Mockup görselleri** | **`custom.mockup_gorselleri`** | **Dosya listesi → Görseller** (`list.file_reference`) | Baskısız Layout kartları ve sıraları. Yüklenen dosyaların sabit Shopify kimlikleri JSON'daki sahnelere bağlanır. |
+| **Mockup sahneleri** | **`custom.mockup_sahneleri`** | **JSON** | Ürünün tüm mockupları için tek katalog. `.json` dosyasının içeriği bu alana yapıştırılır; alan Dosya türünde değildir. |
+| **3B model** | **`custom.3b_glb_dosyasi`** | **Dosya** (`file_reference`) | İsteğe bağlı GLB incelemesi. Hazır fotoğraf mockupı için GLB zorunlu değildir. |
+| **Bıçak izi** | **`custom.bicak_i_zi`** | **Dosya** (`file_reference`) | Üreticinin şablonu. SVG düzenleyicide gösterilir; diğer dosya türleri indirme bağlantısı olarak kullanılır. |
+
+Maske, UV eşlemesi ve ışık katmanları da hazırlanan web paketinin içindedir; bizim yayımladığımız Vercel/CDN adreslerinden JSON ile okunur. Bunlar için ayrıca ürün meta alanları açılmaz. Müşteri kaynak PSD'yi indirmez; Layout küçük kartları yükler, yüksek çözünürlüklü varlıklar seçilen sahne için alınır. Hazır paket dağıtıldıktan sonra sürekli çalışan bir PSD servisi gerekmez. İsteğe bağlı geliştirici içe aktarıcısı [ayrı belgede](OTOMATIK-PSD-IMPORT.md) korunur.
+
+Görselleri Shopify'a yükledikten sonra sabit dosya kimliklerini sahnelerin `shopifyImageId` alanlarıyla bağlayın. Dosya adı, başlık veya liste sırası eşleme anahtarı değildir. Henüz bu bağlantı yapılmadıysa görsel listesini boş bırakıp JSON'daki hazır kartlarla deneme yapılabilir. Hazır ürün JSON'u, isteğe bağlı uzak PSD katalog bağlantısından önce kullanılır; normal kurulumda `mockup_api_base` tanımlamayın.
+
 ## Son hazırlanan “Elde karton bardak” sahnesini hemen bağlama
 
 1. Shopify yönetiminde **Ayarlar → Özel veriler → Ürünler → Tanım ekle** yolunu açın.

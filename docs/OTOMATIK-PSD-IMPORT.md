@@ -1,6 +1,10 @@
-# PSD yükleme ve otomatik mockup hazırlama
+# İsteğe bağlı geliştirici aracı: PSD yükleme ve otomatik mockup hazırlama
 
-Amaç: mağaza sahibi ürünü seçer, bir seferde en fazla 10 PSD yükler. Servis katmanları ve Smart Object eğriliğini okur, kayıtlı Photoshop önizlemesiyle doğrular, baskısız kartları ve sahne kataloğunu otomatik üretir. Müşteri Yerleşimler'den sahne seçer, 2D tasarımını fotoğraf üzerinde görür ve PNG/JPG indirir. Ürün başına elle JSON yazılmaz.
+**Mağazanın varsayılan iş akışı hazır görseller + tek ürün JSON'udur.** Mağaza sahibi PSD'leri hazırlık için iletir; katmanlar, baskı bölgeleri ve örnek tasarımın sonucu kontrol edilir. Hazırlanan görseller, maskeler, UV ve ışık dosyaları Vercel/CDN'de yayımlanır. Ürünün bütün sahnelerini içeren tek katalog `custom.mockup_sahneleri` alanına konur; 10 mockup için 10 ayrı ürün JSON'u gerekmez. Baskısız kart listesi `custom.mockup_gorselleri`, isteğe bağlı model `custom.3b_glb_dosyasi`, şablon `custom.bicak_i_zi` alanındadır. [Varsayılan Shopify kurulumu](SHOPIFY-MOCKUP-SAHNELERI.md).
+
+Bu belge, hazırlık işlemini yerelde otomatikleştiren geliştirici aracını ve isteğe bağlı uzak servis seçeneğini anlatır. Hazır katalog kullanmak için worker'ın sürekli açık olması gerekmez. Müşteri kaynak PSD'yi indirmez.
+
+Araçta geliştirici ürünü seçer, bir seferde en fazla 10 PSD yükler. Servis katmanları ve Smart Object eğriliğini okur, kayıtlı Photoshop önizlemesiyle doğrular, baskısız kartları ve sahne kataloğunu üretir. Üretilen dosyaların yayımlanması ve örnek tasarımla kalite kontrolü hazırlık tesliminin parçasıdır.
 
 ## Mevcut durum
 
@@ -9,7 +13,7 @@ Amaç: mağaza sahibi ürünü seçer, bir seferde en fazla 10 PSD yükler. Serv
 - Ürüne özel katalog; yeniden adlandırılan aynı PSD yeniden işlenmez. Kaynak PSD, iş kayıtları ve doğrulama raporu müşteriye servis edilmez.
 - Hazırlanan sahneler, mevcut 2D / 3D / mockup editörüne bağlanır. Sahne fotoğrafı için ek 3D render işi oluşturulmaz.
 - Ayrı tam sayfa RGB düz renk katmanı uygun yapıdaysa arka plan rengi canlı değişir; ışık ve gölgeler korunur. Renk, düzenlenebilir tasarım JSON'una kaydedilir; önizleme ve indirme aynı seçimi kullanır.
-- **Canlı PSD işleme için ayrıca worker sunucusu kurulmalı.** Vercel'de yayımlanan yönetim paneli tek başına PSD işlemez. Bu ortamda servis yerelde çalıştırıldı; uzak worker hesabı/alan adı yapılandırılmadı.
+- **İsteğe bağlı canlı PSD yükleme için ayrıca worker sunucusu kurulmalı.** Hazır JSON'lu müşteri akışı buna bağlı değildir. Vercel'de yayımlanan yönetim paneli tek başına PSD işlemez. Bu ortamda servis yerelde çalıştırıldı; uzak worker hesabı/alan adı yapılandırılmadı.
 
 PSD, her müşteriye indirilen ve Photoshop gibi çalıştırılan bir belge değildir. Sunucu yükleme sırasında desteklenen katmanları bir defa çözümler; web editörü bu verileri kullanır. Bu nedenle kaynağın düzenlenebilir öğeleri aktarılabilir ve müşteri cihazının kaynak PSD'yi açması gerekmez.
 
@@ -62,7 +66,7 @@ npm run dev
 
 Bu makinede Node Rosetta altında, Python paketleri ARM kurulmuşsa aynı mimarideki Python kullanılmalı; `PSD_PYTHON` tam yolu buna göre belirlenir. `worker/.env` Git dışında tutulur.
 
-## Kalıcı uzak servis / Docker
+## İsteğe bağlı kalıcı uzak servis / Docker
 
 1. Kalıcı disk ve HTTPS adresi olan tek bir worker örneği kurun. Compose dosyası 4 GB bellek ve 2 CPU sınırı tanımlar. Docker imajı bu ortamda build edilmedi; yerel Node/Python servisi test edildi.
 2. `worker/.env` içinde `PSD_PUBLIC_BASE=https://mockup-api.magazaniz.com` yazın. `PSD_ALLOWED_ORIGINS` içine Vercel adresini ve mağazanın origin'ini ekleyin.
@@ -76,7 +80,7 @@ docker compose -f worker/compose.yaml up -d --build
 5. `psd-data` volume'unu yedekleyin. Varsayılan kota kaynak ve hazırlanmış dosyalar toplamında 8 GiB'dir. Bir ürün en fazla 64 dosya içerir; aynı anda 64 bekleyen iş, iki yükleme ve tek PSD çözümlemesi kabul edilir. Bir worker örneği kullanın; paylaşılan disk üzerinde birden fazla işlemciyle çalıştırma bu sürümde desteklenmez.
 6. Vercel'deki `/mockup-admin.html` sayfasında uzak HTTPS servis adresini ve anahtarı girin. PSD doğrudan bu servise gider; Vercel fonksiyon gövdesi üzerinden taşınmaz.
 
-## Shopify bağlantısı — ürün başına JSON yok
+## İsteğe bağlı uzak katalog bağlantısı
 
 Güncel `shopify/custom-liquid/online-design-vercel.liquid` dosyası, isteğe bağlı `mockupApiBase` bilgisini geçirir. Kurulumda bu dosyanın başına bir kez ekleyin:
 
@@ -84,9 +88,9 @@ Güncel `shopify/custom-liquid/online-design-vercel.liquid` dosyası, isteğe ba
 {% assign mockup_api_base = 'https://mockup-api.magazaniz.com' %}
 ```
 
-Dosyanın tamamını Shopify ürün şablonundaki Özel Liquid bloğunda kullanın. Bütün ürünlerde aynı servis adresi kullanılır; ürün kimliği Liquid'den otomatik gelir. Alternatif olarak mağaza düzeyinde URL meta alanı `custom.mockup_servis_adresi` tanımlanabilir. Worker, yönetim panelinde o ürün kimliğine yüklenen hazır sahneleri otomatik döndürür. Eski JSON tabanlı ürünler servis adresi tanımlanmadığında çalışmaya devam eder.
+Dosyanın tamamını Shopify ürün şablonundaki Özel Liquid bloğunda kullanın. Bu açık tercihle bütün ürünlerde aynı servis adresi kullanılır; ürün kimliği Liquid'den otomatik gelir. Worker, yönetim panelinde o ürün kimliğine yüklenen hazır sahneleri döndürür. **Üründe `custom.mockup_sahneleri` JSON'u varsa hazır katalog önceliklidir.** Mağaza düzeyindeki eski `custom.mockup_servis_adresi` alanı artık kendiliğinden bağlantı açmaz. Normal hazır paket kurulumunda `mockup_api_base` tanımlamayın.
 
-**PSD dosyalarını Shopify meta alanına yükleme zorunluluğu yoktur.** Shopify genel dosyalarda 20 MB sınırı uygular; örnek teneke PSD yaklaşık 146 MB'dir. Bu sürüm büyük PSD'leri özel yükleme paneline alır. Shopify Admin API anahtarı gerekmez; ürün listesi okuma veya ürün meta alanına otomatik yazma eklenmemiştir. Ürün numarası panelde seçilir/girilir. Vercel ve worker bağlantısı bir kere yapıldıktan sonra ürün başına katalog elle kopyalanmaz.
+**PSD dosyalarını Shopify meta alanına yükleme zorunluluğu yoktur.** Shopify genel dosyalarda 20 MB sınırı uygular; örnek teneke PSD yaklaşık 146 MB'dir. Bu geliştirici aracı büyük PSD'leri özel yükleme paneline alır. Shopify Admin API anahtarı gerekmez; ürün listesi okuma veya ürün meta alanına otomatik yazma eklenmemiştir. Ürün numarası panelde seçilir/girilir. Yalnız açıkça tercih edilen uzak katalog akışında Vercel ve worker bağlantısından sonra katalog elle kopyalanmaz; varsayılan teslim akışı ürünün JSON meta alanını kullanır.
 
 `custom.3b_glb_dosyasi` ve `custom.bicak_i_zi` mevcut 3D/2D işlevlerinde kullanılmaya devam eder. Gerçek üretici bıçak izi, tasarım çalışma alanında önceliklidir. Farklı PSD'lerin yüzey oranları aynı ürünün tasarımına uygun olmalıdır; içe aktarıcı fiziksel üretim uyumunu onaylamaz.
 

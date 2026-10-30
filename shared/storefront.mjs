@@ -43,6 +43,19 @@ export function storefrontProducts(config) {
     (p, i, all) => p.id && p.title && all.findIndex((x) => x.id === p.id) === i,
   );
 }
+
+/** A product's prepared JSON is authoritative, including an explicitly empty catalog. */
+export function usesRemoteMockupCatalog(config) {
+  if (!config.mockupApiBase) return false;
+  const initialId = String(
+    config.productId ||
+      config.products?.find((p) => p.modelId === "doypack-v1")?.id ||
+      "doypack-v1",
+  );
+  const product = storefrontProducts(config).find((p) => p.id === initialId);
+  return !product?.mockupScenes;
+}
+
 export function productDraftKey(config, id) {
   const originalId = String(config.productId || "doypack-v1");
   if (config.storageKey)

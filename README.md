@@ -4,6 +4,17 @@ Bu editörün ana işi, müşterinin tasarımını ürünün **hazır mockup fot
 
 **Mockup → 2D bıçak izi → isteğe bağlı 3B inceleme** aynı tasarımı kullanır. Logo, yazı ve renk 2D'de düzenlenir; mockup anında güncellenir. Seçili sahne gerçek kaynak ölçüsünde dışa aktarılır; 3B render beklenmez. React + TypeScript ve Fabric.js düzenlemeyi, Canvas hazır mockupı, Three.js isteğe bağlı ürün incelemesini sağlar. Pacdora SDK/API veya kaynak kodu kullanılmaz.
 
+**Varsayılan iş akışı:** Mağaza sahibi PSD'leri hazırlık için iletir; baskı eşlemesi, maskeler ve ışık katmanları çıkarılıp örnek tasarımla görsel kalite kontrolü yapılır. Baskısız görseller ve ürünün bütün mockuplarını içeren **tek JSON katalog** teslim edilir. 10 mockup için 10 ayrı ürün JSON'u hazırlanmaz. Web varlıkları Vercel/CDN'de yayımlanır; müşteriye kaynak PSD indirilmez ve mağazanın sürekli çalışan bir PSD servisine ihtiyacı yoktur.
+
+| Ürün meta alanı | Tür | İçerik |
+| --- | --- | --- |
+| `custom.mockup_gorselleri` | Dosya listesi → Görseller | Baskısız Layout kartları; sabit Shopify dosya kimlikleri JSON'a bağlanır. |
+| `custom.mockup_sahneleri` | JSON | Tüm sahneleri içeren tek kataloğun içeriği. |
+| `custom.3b_glb_dosyasi` | Dosya | İsteğe bağlı 3B model; fotoğraf mockupı için zorunlu değildir. |
+| `custom.bicak_i_zi` | Dosya | Bıçak izi; 2D gösterim için SVG. |
+
+Maske, UV ve ışık dosyaları hazırlanan paketin teknik varlıklarıdır; bunlar için ek ürün alanları açılmaz. Görsel adı veya sıra değişikliği eşleme anahtarı değildir; yeni yükleme yeni Shopify dosya kimliği oluşturur. [Hazırlama, teslim ve alan bağlantıları](docs/SHOPIFY-MOCKUP-SAHNELERI.md).
+
 **Elde bardak sahnesini hemen Shopify'a ekleme:** [Custom Liquid kodunun](shopify/custom-liquid/online-design-vercel.liquid) tamamını ürünün Özel Liquid bloğuna yapıştırın. Ürün için **`custom.mockup_sahneleri`**, tür **JSON** alanı açıp [hazır sahne JSON'unu](shopify/metafields/hand-cup-r1.json) kaydedin. Bu sahne için ayrıca görsel listesi oluşturmak gerekmez. [Canlı elde bardak denemesi](https://mock-up-generator-y265.vercel.app/hand-cup-demo.html) / yerelde `/hand-cup-demo.html`. Çıktı 1448 × 1086 px; fotoğrafa göre yaklaşık eşleme kullanır ve üretim dosyası değildir. Mağaza sahibi web editöründe kullanım iznini beyan etmiştir; kaynak görsel CC0 olarak sunulmaz.
 
 İsteğe bağlı **`custom.mockup_gorselleri`**, tür **Dosya listesi → Görseller**, ürünün Yerleşimler kartlarını ve sırasını Shopify'dan yönetir. Her görsel bir kez hazırlanmış JSON sahnesine sabit Shopify dosya kimliğiyle bağlanır. Ham JPG yüklemek otomatik baskı eşlemesi oluşturmaz. Liste boşsa hazırlanmış JSON sahneleri gösterilir. Ürün başına 64 sahne/görsel desteklenir; yalnız seçili sahnenin yüksek çözünürlüklü kaynakları yüklenir. [Alanlar, sahne hazırlığı ve kurulum](docs/SHOPIFY-MOCKUP-SAHNELERI.md).
@@ -86,7 +97,7 @@ Taslak 650 ms gecikmeyle localStorage'a yazılır; yenilemede desteklenen v1 JSO
 
 1. Shopify'da bir sayfa oluşturup `page.alacam-editor` şablonunu seçin veya uyumlu sayfa/ürün şablonuna **Alaçam Tasarım Editörü** section'ını ekleyin.
 2. Section ayarında ambalaj ürününü seçin. Ürün şablonunda seçim yapılmazsa mevcut `product` kullanılır. Yalnızca seçili ürünün adı, kimliği ve varyantları editöre aktarılır; ürün listesi/katalog ayarı yoktur.
-3. Herkese erişilebilir HTTPS API adresini section ayarına girin, örneğin `https://design-api.magazaniz.com/api`.
+3. Hazır mockup önizleme ve indirme için ayrı API gerekmez. Sunucuda tasarım kaydı ve sepete bağlama kullanılacaksa HTTPS kayıt API adresini section ayarına girin, örneğin `https://design-api.magazaniz.com/api`.
 4. Ürün GLB dosyasını `custom.3b_glb_dosyasi`, bıçak izini `custom.bicak_i_zi` tür **Dosya** alanlarına bağlayın. SVG bıçak izi düzenleyicide gösterilir; diğer dosyalar indirilebilir. Hazır sahneler için `custom.mockup_sahneleri`, tür **JSON**, kullanın; elde bardak için `shopify/metafields/hand-cup-r1.json` hazırdır. İsteğe bağlı `custom.mockup_gorselleri`, tür **Dosya listesi → Görseller**, kart listesini yönetir ve her görselin hazırlanmış sahneyle bağlantısı gerekir. [Sahne hazırlığı ve kurulum](docs/SHOPIFY-MOCKUP-SAHNELERI.md).
 5. Gerçek mağazada varyant, yerelleştirilmiş sepet kökü, API origin/CORS, kayıt ve sepet özelliklerini test edin. Bu teslimatta gerçek mağazaya dağıtım yapılmadı.
 
@@ -215,6 +226,6 @@ Matcha bardak dosyası için sabit açılı, tasarım değiştirilebilen yerel b
 
 6000 × 4500 kaynak PSD’den gövde ve kapağı ayrı değiştirilebilen bir sahne hazırlandı. Gerçek maskeler, gölge ve yansıma katmanları korunur; 4K tarayıcı çıktısı ve ayrı 6K örnek dosyası vardır. Kurulum ve testler: [Teneke kutu hazırlığı](docs/TENEKE-KUTU-MOCKUP.md). Kaynak PSD ve hazırlık önbelleği Git dışında kalır; hazırlanmış web varlıkları Vercel’de sunulur. Ürün meta alanına yapıştırılacak dosya: [tin-can-r1.json](shopify/metafields/tin-can-r1.json).
 
-## PSD'leri toplu yükleme
+## İsteğe bağlı geliştirici aracı: PSD'leri toplu hazırlama
 
-`/mockup-admin.html` panelinden ürüne bir seferde 10 PSD yüklenebilir. Ayrı Node/Python worker, desteklenen katmanları ve eğriliği doğrulayıp kataloğu otomatik oluşturur; ürün başına JSON yazılmaz. Uygun PSD'lerde arka plan rengi düzenlenebilir. Uzak worker ve kalıcı disk ayrıca yapılandırılmalıdır; Vercel ön yüzü tek başına PSD işlemez. [Kurulum, Shopify bağlantısı ve destek sınırları](docs/OTOMATIK-PSD-IMPORT.md).
+Varsayılan mağaza akışı yukarıdaki hazır görseller + tek ürün JSON'udur. Yerel hazırlığı otomatikleştirmek isteyen geliştirici, `/mockup-admin.html` panelinden bir seferde 10 PSD'yi Node/Python worker'a yükleyebilir. Araç desteklenen katmanları ve eğriliği doğrulayıp katalog üretir; uygun PSD'lerde arka plan rengi de hazırlanır. Canlı otomatik yükleme ayrıca uzak worker ve kalıcı disk gerektirir, ancak hazır katalog kullanan mağazada bu servis zorunlu değildir. [İsteğe bağlı araç, kurulum ve destek sınırları](docs/OTOMATIK-PSD-IMPORT.md).
