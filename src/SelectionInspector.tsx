@@ -146,7 +146,7 @@ export function SelectionInspector({
               value={selected.text}
               maxLength={2000}
               onChange={(e) => {
-                if (e.target.value) update({ text: e.target.value });
+                update({ text: e.target.value });
               }}
             />
           )}

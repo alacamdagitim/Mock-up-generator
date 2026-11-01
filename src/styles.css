@@ -1772,14 +1772,6 @@ strong {
 .online-rail button {
   height: 67.5px;
 }
-.online-rail button:last-child {
-  position: absolute;
-  top: calc(100% + 10px);
-  height: 68px;
-  width: 70px;
-  background: white;
-  border-radius: 16px;
-}
 .online-panel,
 .online-preview,
 .online-config {

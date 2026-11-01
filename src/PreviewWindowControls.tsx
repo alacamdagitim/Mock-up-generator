@@ -6,6 +6,7 @@ type PreviewWindowControlsProps = {
   onResize: (size: number) => void;
   minSize?: number;
   maxSize: number;
+  onExpand?: () => void;
 };
 
 type WindowDrag = {
@@ -21,6 +22,7 @@ export function PreviewWindowControls({
   onResize,
   minSize = 280,
   maxSize,
+  onExpand,
 }: PreviewWindowControlsProps) {
   const drag = useRef<WindowDrag | null>(null);
   const resizeTipId = useId();
@@ -94,8 +96,19 @@ export function PreviewWindowControls({
 
   return (
     <>
-      <div className="preview-window-indicator" aria-hidden="true">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <button
+        type="button"
+        className="preview-window-indicator"
+        aria-label="3B görünümü büyüt"
+        onClick={onExpand}
+      >
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 28 28"
+          fill="none"
+          aria-hidden="true"
+        >
           <text
             x="14"
             y="13"
@@ -122,9 +135,9 @@ export function PreviewWindowControls({
           />
         </svg>
         <span className="preview-window-indicator-tip" role="tooltip">
-          Modeli döndürmek için sürükleyin
+          3B görünümü büyüt
         </span>
-      </div>
+      </button>
       <div
         className="preview-window-resize"
         role="slider"

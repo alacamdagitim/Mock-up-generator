@@ -88,7 +88,10 @@ const serialize = (o: Obj): Element => {
     });
   return result;
 };
-async function objectFrom(e: Element): Promise<Obj> {
+async function objectFrom(
+  e: Element,
+  hiddenTextareaContainer?: HTMLElement,
+): Promise<Obj> {
   const opts = {
     left: e.x,
     top: e.y,
@@ -117,8 +120,11 @@ async function objectFrom(e: Element): Promise<Obj> {
   let o: Obj;
   if (e.kind === "text") {
     await ensureDesignFont(e);
-    o = new Textbox(e.text || "Yazınız", {
+    o = new Textbox(e.text ?? "Yazınız", {
       ...opts,
+      // The launcher uses a native modal dialog. A textarea in document.body
+      // is inert outside that dialog and cannot receive text or IME input.
+      hiddenTextareaContainer,
       fontSize: e.fontSize,
       fontWeight: e.fontWeight || "normal",
       fontStyle: e.fontStyle || "normal",
@@ -209,6 +215,50 @@ export const Editor = forwardRef<
       object: Textbox;
       values: Record<string, unknown>;
     } | null>(null);
+  const pendingTextEditing = useRef<{
+    object: Textbox;
+    root: Document | ShadowRoot;
+    focused: globalThis.Element | null;
+  } | null>(null);
+  const textEditingFrame = useRef<number>();
+  const textInputContainer = (c: Canvas) =>
+    c.upperCanvasEl.closest<HTMLElement>(".online-app") ||
+    c.upperCanvasEl.parentElement!;
+  const startTextEditing = (object: Textbox) => {
+    const root = node.current?.getRootNode() as Document | ShadowRoot;
+    const pending =
+      pendingTextEditing.current?.object === object
+        ? pendingTextEditing.current
+        : { object, root, focused: root.activeElement };
+    pendingTextEditing.current = pending;
+    if (textEditingFrame.current !== undefined)
+      cancelAnimationFrame(textEditingFrame.current);
+    // Adding text can also switch the workbench from Mockup/3B to 2D. Wait
+    // until React has removed `inert`, then focus inside the same dialog/root.
+    textEditingFrame.current = requestAnimationFrame(() => {
+      textEditingFrame.current = undefined;
+      const c = canvas.current;
+      if (
+        !c ||
+        pendingTextEditing.current !== pending ||
+        !c.getObjects().includes(object) ||
+        c.getActiveObject() !== object
+      )
+        return;
+      if (latest.current.interactive === false) return;
+      pendingTextEditing.current = null;
+      if (
+        pending.focused?.isConnected &&
+        pending.root.activeElement !== pending.focused
+      )
+        return;
+      object.enterEditing();
+      object.selectAll();
+      object.hiddenTextarea?.setAttribute("aria-label", "Tasarım yazısı");
+      object.hiddenTextarea?.focus({ preventScroll: true });
+      c.requestRenderAll();
+    });
+  };
   const invalidateFontUpdates = () => {
     fontRevision.current++;
     pendingFont.current = null;
@@ -330,6 +380,9 @@ export const Editor = forwardRef<
     c.on("mouse:up", () => setSnap({ x: false, y: false }));
     return () => {
       invalidateFontUpdates();
+      pendingTextEditing.current = null;
+      if (textEditingFrame.current !== undefined)
+        cancelAnimationFrame(textEditingFrame.current);
       generation.current++;
       canvas.current = null;
       void c.dispose();
@@ -340,11 +393,16 @@ export const Editor = forwardRef<
     if (!c) return;
     const gen = ++generation.current;
     invalidateFontUpdates();
+    pendingTextEditing.current = null;
     loading.current = true;
     setBusy(true);
     c.discardActiveObject();
     latest.current.onSelect(null);
-    void Promise.all(props.elements.map(objectFrom))
+    void Promise.all(
+      props.elements.map((element) =>
+        objectFrom(element, textInputContainer(c)),
+      ),
+    )
       .then((objects) => {
         if (gen !== generation.current) return;
         c.clear();
@@ -387,7 +445,11 @@ export const Editor = forwardRef<
     const c = canvas.current;
     if (!c) return;
     c.skipTargetFind = props.interactive === false;
-    if (props.interactive === false) c.discardActiveObject();
+    if (props.interactive === false) {
+      pendingTextEditing.current = null;
+      c.discardActiveObject();
+    } else if (pendingTextEditing.current)
+      startTextEditing(pendingTextEditing.current.object);
     c.requestRenderAll();
   }, [props.interactive]);
   useImperativeHandle(ref, () => ({
@@ -398,13 +460,14 @@ export const Editor = forwardRef<
       if (c.getObjects().length >= 60)
         throw new Error("Her yüze en fazla 60 öğe eklenebilir.");
       const gen = generation.current,
-        o = await objectFrom(e);
+        o = await objectFrom(e, textInputContainer(c));
       if (gen !== generation.current)
         throw new Error("Yüz değişti. Lütfen görseli tekrar ekleyin.");
       c.add(o);
       c.setActiveObject(o);
       c.renderAll();
       commit();
+      if (o instanceof Textbox && o.editable) startTextEditing(o);
     },
     update: (v) => {
       const c = canvas.current!,

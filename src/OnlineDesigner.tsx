@@ -129,7 +129,7 @@ export default function OnlineDesigner({
   const [maxPreviewSize, setMaxPreviewSize] = useState(280);
   const [tool, setTool] = useState<Tool>(hasMockups ? "layout" : "uploads");
   const [panel, setPanel] = useState(
-    () => !hasMockups || !matchMedia("(max-width:700px)").matches,
+    () => !hasMockups || !matchMedia("(max-width:1100px)").matches,
   );
   const [guides, setGuides] = useState(true);
   const [layersOpen, setLayersOpen] = useState(false);
@@ -142,14 +142,15 @@ export default function OnlineDesigner({
   const selectedScene =
     mockupScenes.find((scene) => scene.id === d.settings.mockupSceneId) ||
     mockupScenes[0];
-  const photoActive = hasMockups && mode !== "3d";
+  const photoActive = hasMockups && mode === "mockup";
+  const mockupOutput = hasMockups && mode !== "3d";
   const mockupPreview = useRef<MockupPreviewHandle>(null);
   const [captureBusy, setCaptureBusy] = useState(false);
   const exportTrigger = useRef<HTMLButtonElement>(null);
   const artworkProvider = useCallback<ArtworkProvider>(
     (face, backgroundMode) => {
       const snapshot = d.design;
-      const longEdge = matchMedia("(max-width:700px)").matches ? 1024 : 2048;
+      const longEdge = matchMedia("(max-width:700px)").matches ? 1536 : 3072;
       return renderFace(
         snapshot.faces[face],
         backgroundMode === "transparent"
@@ -200,8 +201,8 @@ export default function OnlineDesigner({
       );
     }
   }, [selectedScene?.id, d.settings.mockupSceneId]);
-  // All save, cart and download paths use the same selected presentation.
-  d.captureOverride.current = hasMockups
+  // The current view determines the download: a photo scene or the live GLB.
+  d.captureOverride.current = mockupOutput
     ? async () => {
         const snapshot = d.state.current;
         if (!selectedScene)
@@ -231,7 +232,7 @@ export default function OnlineDesigner({
     setExportOpen(false);
     try {
       const png = await d.capturePreview(8);
-      if (!hasMockups) changeMode("3d");
+      if (!mockupOutput) changeMode("3d");
       setRenderPreviewUrl(png);
       setRenderOpen(true);
     } catch (error) {
@@ -261,14 +262,14 @@ export default function OnlineDesigner({
   const manufacturerModel = manufacturerDielineUrl(d.product.modelUrl);
   useEffect(() => {
     if (
-      !photoActive &&
       manufacturerModel &&
+      !hasMockups &&
       modelFaces.length === 1 &&
       modelFaces[0] === "front" &&
       d.face !== "front"
     )
       d.changeFace("front");
-  }, [manufacturerModel, modelFaces, d.face, photoActive]);
+  }, [manufacturerModel, modelFaces, d.face, hasMockups]);
   useEffect(
     () => () =>
       Object.values(exports).forEach((url) => {
@@ -351,6 +352,7 @@ export default function OnlineDesigner({
       new CustomEvent(name, { detail, bubbles: true, composed: true }),
     );
   const openTool = (value: Tool) => {
+    setExportOpen(false);
     if (value !== "layout") last2dTool.current = value;
     setTool(value);
     setPanel(true);
@@ -388,17 +390,16 @@ export default function OnlineDesigner({
   };
   const changeMode = (value: "2d" | "mockup" | "3d") => {
     if (value === mode) return;
+    setExportOpen(false);
     setMode(value);
     if (value !== "2d") {
       d.editor.current?.deselect();
       if (hasMockups && value === "mockup") {
         setTool("layout");
-        setPanel(!matchMedia("(max-width:700px)").matches);
+        setPanel(!matchMedia("(max-width:1100px)").matches);
       } else setPanel(false);
     } else {
       if (tool === "layout") setTool(last2dTool.current);
-      setInteraction("rotate");
-      d.preview.current?.interaction("rotate");
       if (!matchMedia("(max-width:700px)").matches) setPanel(true);
     }
   };
@@ -480,7 +481,7 @@ export default function OnlineDesigner({
     );
   return (
     <div
-      className={`online-app ${hasMockups ? "mockup-product" : ""} mode-${mode} ${mode === "mockup" ? "mode-3d" : ""} ${photoActive ? "has-mockup-preview" : ""} ${hasMockups && !manufacturerModel ? "mockup-no-model" : ""} tool-${tool} ${panel ? "with-panel" : "without-panel"} ${mobileConfig ? "show-mobile-config" : ""}`}
+      className={`online-app ${hasMockups ? "mockup-product" : ""} mode-${mode} tool-${tool} ${panel ? "with-panel" : "without-panel"} ${mobileConfig ? "show-mobile-config" : ""}`}
       style={{ "--preview-size": `${previewSize}px` } as CSSProperties}
       ref={root}
       data-editor-scope={d.keyboardScope}
@@ -526,8 +527,14 @@ export default function OnlineDesigner({
             ref={exportTrigger}
             aria-busy={captureBusy}
             aria-label="Görsel indir"
-            disabled={d.busy || captureBusy || (hasMockups && !selectedScene)}
-            title={hasMockups ? "Seçili hazır mockupı indir" : undefined}
+            disabled={
+              d.busy ||
+              captureBusy ||
+              (mockupOutput ? !selectedScene : !manufacturerModel)
+            }
+            title={
+              mockupOutput ? "Seçili hazır mockupı indir" : "3B görünümü indir"
+            }
             onClick={() => void openImageExport()}
           >
             {captureBusy ? (
@@ -585,14 +592,14 @@ export default function OnlineDesigner({
                   <a
                     href={exports.png}
                     download={
-                      hasMockups
+                      mockupOutput
                         ? "alacam-mockup-onizleme.png"
                         : "alacam-3b-onizleme.png"
                     }
                     onClick={() => setExportOpen(false)}
                   >
                     <ImagePlus size={17} />{" "}
-                    {hasMockups ? "Mockup PNG" : "Önizleme PNG"}
+                    {mockupOutput ? "Mockup PNG" : "3B önizleme PNG"}
                   </a>
                 )}
                 <a
@@ -673,7 +680,7 @@ export default function OnlineDesigner({
                 onMockupSelect={(id) => {
                   d.setPresentation({ mockupSceneId: id });
                   setMode("mockup");
-                  if (matchMedia("(max-width:700px)").matches) setPanel(false);
+                  if (matchMedia("(max-width:1100px)").matches) setPanel(false);
                 }}
               />
               {selectedScene?.backgroundControl && (
@@ -1013,20 +1020,16 @@ export default function OnlineDesigner({
           </div>
         )}
         <section
-          className="online-preview"
-          aria-label={
-            photoActive ? "Canlı mockup önizleme" : "Canlı 3B önizleme"
-          }
+          className="online-mockup-stage"
+          aria-label="Seçili mockup sahnesi"
+          hidden={!photoActive}
         >
           {selectedScene && (
-            <div
-              className="mockup-capture-stage"
-              hidden={!photoActive}
-              aria-hidden={!photoActive}
-            >
+            <div className="mockup-capture-stage">
               <MockupPreview
                 ref={mockupPreview}
                 scene={selectedScene}
+                active={photoActive}
                 backgroundColor={
                   d.settings.mockupBackgrounds?.[selectedScene.id]
                 }
@@ -1036,7 +1039,7 @@ export default function OnlineDesigner({
               />
             </div>
           )}
-          {photoActive && !selectedScene ? (
+          {!selectedScene && (
             <div className="mockup-empty-state" role="status">
               <ImagePlus size={36} />
               <h2>
@@ -1050,51 +1053,38 @@ export default function OnlineDesigner({
                   : "Ürüne hazır mockup sahneleri eklendiğinde burada tasarımınızı görebilirsiniz."}
               </p>
             </div>
-          ) : photoActive ? null : hasMockups && !manufacturerModel ? (
-            <div className="mockup-missing-model" role="status">
-              <Box size={36} />
-              <strong>3B model bağlı değil</strong>
-              <p>
-                Bu ürünün hazır mockup sahnesini kullanabilirsiniz. 3B görünüm
-                için ürünün GLB dosyasını ekleyin.
-              </p>
-              <button
-                className="black-button"
-                onClick={() => changeMode("mockup")}
-              >
-                Mockupı göster
-              </button>
-            </div>
-          ) : (
-            <ProductPreview
-              modelUrl={manufacturerModel}
-              onFaces={setModelFaces}
-              binding={d.design.modelBinding}
-              onBindingChange={(modelBinding) => {
-                const next = {
-                  ...d.state.current,
-                  updatedAt: new Date().toISOString(),
-                };
-                if (modelBinding) next.modelBinding = modelBinding;
-                else delete next.modelBinding;
-                d.change(next);
-              }}
-              ref={d.preview}
-              textures={d.textures}
-              settings={
-                mode === "2d" || hasMockups
-                  ? { ...d.settings, layout: "single", spacing: 1 }
-                  : d.settings
-              }
-            />
           )}
-          {mode === "2d" ? (
+        </section>
+        <section className="online-preview" aria-label="Canlı 3B önizleme">
+          <ProductPreview
+            modelUrl={manufacturerModel}
+            onFaces={setModelFaces}
+            binding={d.design.modelBinding}
+            onBindingChange={(modelBinding) => {
+              const next = {
+                ...d.state.current,
+                updatedAt: new Date().toISOString(),
+              };
+              if (modelBinding) next.modelBinding = modelBinding;
+              else delete next.modelBinding;
+              d.change(next);
+            }}
+            ref={d.preview}
+            textures={d.textures}
+            settings={
+              mode === "2d" || hasMockups
+                ? { ...d.settings, layout: "single", spacing: 1 }
+                : d.settings
+            }
+          />
+          {mode !== "3d" && manufacturerModel ? (
             <PreviewWindowControls
               size={previewSize}
               maxSize={maxPreviewSize}
               onResize={setPreviewSize}
+              onExpand={() => changeMode("3d")}
             />
-          ) : !photoActive && !!manufacturerModel ? (
+          ) : mode === "3d" && manufacturerModel ? (
             <PreviewToolbar
               preview={d.preview}
               allowInflate={false}
@@ -1137,7 +1127,7 @@ export default function OnlineDesigner({
             className={
               hasMockups ? "outline-button mockup-draft-save" : "black-button"
             }
-            disabled={d.busy || (hasMockups && !selectedScene)}
+            disabled={d.busy}
             onClick={() => void save()}
           >
             {d.busy && <Loader2 className="spin" size={17} />}
@@ -1163,8 +1153,8 @@ export default function OnlineDesigner({
           );
         }}
         source={renderSource}
-        allowStudio={!hasMockups}
-        imageLabel={hasMockups ? "Hazır mockup" : "Canlı görünüm"}
+        allowStudio={!mockupOutput}
+        imageLabel={mockupOutput ? "Hazır mockup" : "Canlı 3B görünüm"}
         previewUrl={renderPreviewUrl}
         panels={{
           dieline: (

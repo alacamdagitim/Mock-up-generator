@@ -9,6 +9,7 @@ import { RefreshCw } from "lucide-react";
 import { checkAbort, MAX_SCENE_PIXELS } from "./assets";
 import { canvasDataUrl, composeMockup, loadMockupScene } from "./compositor";
 import type { ArtworkProvider, LoadedMockup } from "./compositor";
+import { previewResolution } from "./sampling";
 import type {
   MockupPreviewHandle,
   MockupPreviewInfo,
@@ -18,6 +19,7 @@ import type {
 
 export type MockupPreviewProps = {
   scene: MockupScene;
+  active?: boolean;
   backgroundColor?: string;
   textures: MockupTextures;
   artworkProvider?: ArtworkProvider;
@@ -32,6 +34,7 @@ export const MockupPreview = forwardRef<
   (
     {
       scene,
+      active = true,
       backgroundColor,
       textures,
       artworkProvider,
@@ -45,6 +48,10 @@ export const MockupPreview = forwardRef<
     const [error, setError] = useState("");
     const [busy, setBusy] = useState(true);
     const [retry, setRetry] = useState(0);
+    const [resolution, setResolution] = useState<{
+      targetEdge: number;
+      renderEdge: number;
+    } | null>(null);
     const canvasHost = useRef<HTMLDivElement>(null);
     const loadedRef = useRef<LoadedMockup | null>(null);
     const propsRef = useRef({
@@ -123,26 +130,78 @@ export const MockupPreview = forwardRef<
       };
     }, [sceneKey, retry]);
     useEffect(() => {
-      if (!loaded) return;
+      if (!loaded || !active) return;
+      const host = canvasHost.current;
+      if (!host) return;
+      const measure = () => {
+        const bounds = host.getBoundingClientRect();
+        const next = previewResolution(
+          loaded.scene.width,
+          loaded.scene.height,
+          bounds.width,
+          bounds.height,
+          window.devicePixelRatio,
+          matchMedia("(max-width: 760px)").matches,
+        );
+        setResolution((current) =>
+          current?.targetEdge === next?.targetEdge &&
+          current?.renderEdge === next?.renderEdge
+            ? current
+            : next,
+        );
+      };
+      measure();
+      const observer = new ResizeObserver(measure);
+      observer.observe(host);
+      // Browser zoom, screen density changes and mobile viewport resizing.
+      window.addEventListener("resize", measure);
+      window.visualViewport?.addEventListener("resize", measure);
+      return () => {
+        observer.disconnect();
+        window.removeEventListener("resize", measure);
+        window.visualViewport?.removeEventListener("resize", measure);
+      };
+    }, [loaded, active]);
+    useEffect(() => {
+      if (!loaded || !active || !resolution) return;
       const controller = new AbortController();
       let output: HTMLCanvasElement | null = null;
       setBusy(true);
       setError("");
-      // Small-screen editing uses fewer pixels; native export still uses the source scene.
-      const mobile = matchMedia("(max-width: 760px)").matches;
       const timer = setTimeout(() => {
         composeMockup(loaded, textures, {
-          maxEdge: mobile ? 960 : 1440,
+          maxEdge: resolution.renderEdge,
+          antialias: true,
           signal: controller.signal,
           artworkProvider,
           backgroundColor,
         })
-          .then((value) => {
-            output = value;
+          .then((rendered) => {
             if (controller.signal.aborted || !mounted.current) {
-              value.width = value.height = 1;
+              rendered.width = rendered.height = 1;
               return;
             }
+            let value = rendered;
+            if (
+              resolution.targetEdge < Math.max(rendered.width, rendered.height)
+            ) {
+              value = document.createElement("canvas");
+              const scale =
+                resolution.targetEdge /
+                Math.max(rendered.width, rendered.height);
+              value.width = Math.max(1, Math.round(rendered.width * scale));
+              value.height = Math.max(1, Math.round(rendered.height * scale));
+              const context = value.getContext("2d");
+              if (!context) {
+                rendered.width = rendered.height = 1;
+                throw new Error("Bu tarayıcı mockup önizlemesini açamadı.");
+              }
+              context.imageSmoothingEnabled = true;
+              context.imageSmoothingQuality = "high";
+              context.drawImage(rendered, 0, 0, value.width, value.height);
+              rendered.width = rendered.height = 1;
+            }
+            output = value;
             const host = canvasHost.current;
             if (host) {
               for (const child of host.children)
@@ -184,7 +243,14 @@ export const MockupPreview = forwardRef<
         controller.abort();
         if (output && !output.isConnected) output.width = output.height = 1;
       };
-    }, [loaded, textures, artworkProvider, backgroundColor]);
+    }, [
+      loaded,
+      textures,
+      artworkProvider,
+      backgroundColor,
+      resolution,
+      active,
+    ]);
     useImperativeHandle(
       ref,
       () => ({

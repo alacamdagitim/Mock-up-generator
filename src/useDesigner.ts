@@ -574,6 +574,8 @@ export function useDesigner(config: EditorConfig) {
   }, [toast]);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229)
+        return;
       const path = event.composedPath();
       if (
         !path.some(

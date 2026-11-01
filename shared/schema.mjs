@@ -54,7 +54,10 @@ export const elementSchema = z
   .superRefine((v, c) => {
     if (v.kind === "image" && (!v.src || !v.pixelWidth || !v.pixelHeight))
       c.addIssue({ code: "custom", message: "Görsel verisi eksik" });
-    if (v.kind === "text" && (!v.text || !v.fontSize || !v.fontFamily))
+    if (
+      v.kind === "text" &&
+      (typeof v.text !== "string" || !v.fontSize || !v.fontFamily)
+    )
       c.addIssue({ code: "custom", message: "Yazı verisi eksik" });
   });
 export const DEFAULT_PRESENTATION = Object.freeze({

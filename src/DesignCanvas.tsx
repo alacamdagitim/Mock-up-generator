@@ -272,6 +272,9 @@ export function DesignCanvas({
     const keyDown = (event: KeyboardEvent) => {
       if (
         !open ||
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.keyCode === 229 ||
         event.composedPath().some(isEditable) ||
         popoverState.current
       )

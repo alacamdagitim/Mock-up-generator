@@ -2,6 +2,8 @@ import { mockupSceneSchema } from "../../shared/mockup-scenes.mjs";
 import { checkAbort, createAssetStore, MAX_SCENE_PIXELS } from "./assets";
 import type { AssetStore } from "./assets";
 import type { MockupScene, MockupTextures } from "./types";
+import { sampleBilinear, sampleMinified, sampleUv16 } from "./sampling";
+import type { PixelLevel } from "./sampling";
 
 export type ArtworkProvider = (
   face: "front" | "back",
@@ -136,6 +138,8 @@ export function inverseQuad(points: ReadonlyArray<readonly [number, number]>) {
 function imagePixels(image: CanvasImageSource, width: number, height: number) {
   const temporary = canvas(width, height),
     ctx = context(temporary);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.drawImage(image, 0, 0, width, height);
   const data = ctx.getImageData(0, 0, width, height).data;
   temporary.width = temporary.height = 1;
@@ -144,56 +148,13 @@ function imagePixels(image: CanvasImageSource, width: number, height: number) {
 function mix(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
-/** Premultiplied-alpha bilinear filtering preserves transparent logo edges. */
-function sample(
-  data: Uint8ClampedArray,
-  width: number,
-  height: number,
-  x: number,
-  y: number,
-  out: Float64Array,
-) {
-  x = Math.max(0, Math.min(width - 1, x));
-  y = Math.max(0, Math.min(height - 1, y));
-  const left = Math.floor(x),
-    top = Math.floor(y),
-    right = Math.min(width - 1, left + 1),
-    bottom = Math.min(height - 1, top + 1);
-  const a = (top * width + left) * 4,
-    b = (top * width + right) * 4,
-    c = (bottom * width + left) * 4,
-    d = (bottom * width + right) * 4,
-    tx = x - left,
-    ty = y - top;
-  const alpha = mix(
-    mix(data[a + 3], data[b + 3], tx),
-    mix(data[c + 3], data[d + 3], tx),
-    ty,
-  );
-  out[3] = alpha;
-  for (let channel = 0; channel < 3; channel++)
-    out[channel] = alpha
-      ? mix(
-          mix(
-            data[a + channel] * data[a + 3],
-            data[b + channel] * data[b + 3],
-            tx,
-          ),
-          mix(
-            data[c + channel] * data[c + 3],
-            data[d + channel] * data[d + 3],
-            tx,
-          ),
-          ty,
-        ) / alpha
-      : 0;
-}
 const yieldFrame = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 export async function composeMockup(
   loaded: LoadedMockup,
   textures: MockupTextures,
   options: {
     maxEdge?: number;
+    antialias?: boolean;
     signal?: AbortSignal;
     artworkProvider?: ArtworkProvider;
     backgroundColor?: string;
@@ -293,13 +254,39 @@ export async function composeMockup(
         sourceWidth,
         sourceHeight,
       );
-      const sourcePixels = sourceContext.getImageData(
-        0,
-        0,
-        sourceWidth,
-        sourceHeight,
-      ).data;
-      source.width = source.height = 1;
+      const levels: PixelLevel[] = [
+        {
+          data: sourceContext.getImageData(0, 0, sourceWidth, sourceHeight)
+            .data,
+          width: sourceWidth,
+          height: sourceHeight,
+        },
+      ];
+      let previous = source;
+      // Browser downsampling averages the full footprint before the nonlinear warp.
+      // Native export keeps its original one-level path and dimensions.
+      if (options.antialias) {
+        while (previous.width > 1 || previous.height > 1) {
+          checkAbort(options.signal);
+          const level = canvas(
+              Math.max(1, Math.ceil(previous.width / 2)),
+              Math.max(1, Math.ceil(previous.height / 2)),
+            ),
+            levelContext = context(level);
+          levelContext.imageSmoothingEnabled = true;
+          levelContext.imageSmoothingQuality = "high";
+          levelContext.drawImage(previous, 0, 0, level.width, level.height);
+          levels.push({
+            data: levelContext.getImageData(0, 0, level.width, level.height)
+              .data,
+            width: level.width,
+            height: level.height,
+          });
+          previous.width = previous.height = 1;
+          previous = level;
+        }
+      }
+      previous.width = previous.height = 1;
       const overlay = canvas(width, height),
         overlayContext = context(overlay),
         mapped = overlayContext.createImageData(width, height);
@@ -326,7 +313,39 @@ export async function composeMockup(
         surface.mapping.type === "quad"
           ? inverseQuad(surface.mapping.points)
           : null;
-      const sampled = new Float64Array(4);
+      const sampled = new Float64Array(4),
+        scratch = new Float64Array(4),
+        uv = new Float64Array(2),
+        adjacent = new Float64Array(2),
+        nativeStepX = scene.width / width,
+        nativeStepY = scene.height / height;
+      const readUv = (x: number, y: number, result: Float64Array) => {
+        if (transform) {
+          const px = (x + 0.5) * nativeStepX,
+            py = (y + 0.5) * nativeStepY,
+            denom = transform[6] * px + transform[7] * py + 1;
+          result[0] =
+            (transform[0] * px + transform[1] * py + transform[2]) / denom;
+          result[1] =
+            (transform[3] * px + transform[4] * py + transform[5]) / denom;
+        } else if (uv16) {
+          sampleUv16(
+            uv16,
+            scene.width,
+            scene.height,
+            (x + 0.5) * nativeStepX - 0.5,
+            (y + 0.5) * nativeStepY - 0.5,
+            result,
+          );
+        } else if (uv8) {
+          const offset =
+            (Math.max(0, Math.min(height - 1, y)) * width +
+              Math.max(0, Math.min(width - 1, x))) *
+            4;
+          result[0] = uv8[offset] / 255;
+          result[1] = uv8[offset + 1] / 255;
+        } else throw new Error("Mockup baskı eşlemesi eksik.");
+      };
       for (let y = 0; y < height; y++) {
         if (y % 64 === 0) {
           checkAbort(options.signal);
@@ -338,41 +357,63 @@ export async function composeMockup(
             ? (mask[offset] * mask[offset + 3]) / (255 * 255)
             : 1;
           if (!coverage) continue;
-          let u: number, v: number;
-          if (transform) {
-            const px = (x + 0.5) / scale,
-              py = (y + 0.5) / scale,
-              denom = transform[6] * px + transform[7] * py + 1;
-            u = (transform[0] * px + transform[1] * py + transform[2]) / denom;
-            v = (transform[3] * px + transform[4] * py + transform[5]) / denom;
-            if (
-              !Number.isFinite(u) ||
-              !Number.isFinite(v) ||
-              u < 0 ||
-              u > 1 ||
-              v < 0 ||
-              v > 1
-            )
-              continue;
-          } else if (uv16) {
-            const px = Math.min(scene.width - 1, Math.floor((x + 0.5) / scale)),
-              py = Math.min(scene.height - 1, Math.floor((y + 0.5) / scale)),
-              index = (py * scene.width + px) * 4;
-            u = uv16.getUint16(index, true) / 65535;
-            v = uv16.getUint16(index + 2, true) / 65535;
-          } else if (uv8) {
-            u = uv8[offset] / 255;
-            v = uv8[offset + 1] / 255;
-            coverage *= uv8[offset + 3] / 255;
-          } else throw new Error("Mockup baskı eşlemesi eksik.");
-          sample(
-            sourcePixels,
-            sourceWidth,
-            sourceHeight,
-            u * (sourceWidth - 1),
-            v * (sourceHeight - 1),
-            sampled,
-          );
+          readUv(x, y, uv);
+          const u = uv[0],
+            v = uv[1];
+          if (
+            !Number.isFinite(u) ||
+            !Number.isFinite(v) ||
+            u < 0 ||
+            u > 1 ||
+            v < 0 ||
+            v > 1
+          )
+            continue;
+          if (uv8) coverage *= uv8[offset + 3] / 255;
+          if (options.antialias) {
+            let footprint = 1;
+            for (let axis = 0; axis < 2; axis++) {
+              readUv(
+                x + (axis === 0 ? 1 : 0),
+                y + (axis === 1 ? 1 : 0),
+                adjacent,
+              );
+              let du = adjacent[0] - u,
+                dv = adjacent[1] - v;
+              // Outside a masked surface a UV map may contain zero/sentinel values.
+              // A backwards derivative avoids smearing that discontinuity into the art.
+              if (
+                !Number.isFinite(du + dv) ||
+                Math.abs(du) > 0.25 ||
+                Math.abs(dv) > 0.25
+              ) {
+                readUv(
+                  x - (axis === 0 ? 1 : 0),
+                  y - (axis === 1 ? 1 : 0),
+                  adjacent,
+                );
+                du = u - adjacent[0];
+                dv = v - adjacent[1];
+              }
+              if (
+                Number.isFinite(du + dv) &&
+                Math.abs(du) <= 0.25 &&
+                Math.abs(dv) <= 0.25
+              )
+                footprint = Math.max(
+                  footprint,
+                  Math.hypot(du * sourceWidth, dv * sourceHeight),
+                );
+            }
+            sampleMinified(levels, u, v, footprint, sampled, scratch);
+          } else {
+            sampleBilinear(
+              levels[0],
+              u * (sourceWidth - 1),
+              v * (sourceHeight - 1),
+              sampled,
+            );
+          }
           for (let channel = 0; channel < 3; channel++)
             mapped.data[offset + channel] =
               sampled[channel] *
