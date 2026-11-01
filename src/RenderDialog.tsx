@@ -11,6 +11,7 @@ type RenderDialogProps = {
   /** Prepared photo mockups export directly without a separate 3D render. */
   allowStudio?: boolean;
   imageLabel?: string;
+  artworkOnly?: boolean;
   /** Each panel supplies its own preview section and settings aside. */
   panels?: { dieline?: ReactNode; share?: ReactNode };
 };
@@ -81,6 +82,7 @@ function RenderDialogContent({
   panels,
   allowStudio = true,
   imageLabel = "Canlı görünüm",
+  artworkOnly = false,
 }: Omit<RenderDialogProps, "open">) {
   const [options, setOptions] = useState<RenderOptions>(initialOptions);
   const [imageMode, setImageMode] = useState<ImageMode>("live");
@@ -237,7 +239,7 @@ function RenderDialogContent({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `alacam-${allowStudio ? "canli-gorunum" : "mockup"}.${liveFormat === "jpeg" ? "jpg" : "png"}`;
+      link.download = `alacam-${artworkOnly ? "2b-onizleme" : allowStudio ? "canli-gorunum" : "mockup"}.${liveFormat === "jpeg" ? "jpg" : "png"}`;
       document.body.append(link);
       link.click();
       link.remove();
@@ -714,7 +716,9 @@ function RenderDialogContent({
                     <p>
                       {allowStudio
                         ? "Ürününüzün tasarımı, yerleşimi, kamera açısı ve ışığı ekranda gördüğünüz haliyle korunur."
-                        : "Hazır sahnenin ışığı, gölgeleri ve tasarımınız ekranda gördüğünüz haliyle korunur."}
+                        : artworkOnly
+                          ? "Seçili yüzün tasarımını düz görsel olarak indirin. Bu dosya üretim çıktısı değildir."
+                          : "Hazır sahnenin ışığı, gölgeleri ve tasarımınız ekranda gördüğünüz haliyle korunur."}
                     </p>
                   </div>
                   <div className="studio-render-live-size">
@@ -766,7 +770,9 @@ function RenderDialogContent({
                     {liveNotice ||
                       (allowStudio
                         ? "Yeniden hesaplama beklemeden indirin."
-                        : "Hazır ürün görselini kaynak boyutunda indirin.")}
+                        : artworkOnly
+                          ? "Seçili tasarım yüzünün önizlemesini indirin."
+                          : "Hazır ürün görselini kaynak boyutunda indirin.")}
                   </p>
                   {liveError && (
                     <div className="studio-render-error" role="alert">

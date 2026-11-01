@@ -20,6 +20,7 @@ import type {
 export type MockupPreviewProps = {
   scene: MockupScene;
   active?: boolean;
+  deferLoading?: boolean;
   backgroundColor?: string;
   textures: MockupTextures;
   artworkProvider?: ArtworkProvider;
@@ -35,6 +36,7 @@ export const MockupPreview = forwardRef<
     {
       scene,
       active = true,
+      deferLoading = false,
       backgroundColor,
       textures,
       artworkProvider,
@@ -46,7 +48,7 @@ export const MockupPreview = forwardRef<
   ) => {
     const [loaded, setLoaded] = useState<LoadedMockup | null>(null);
     const [error, setError] = useState("");
-    const [busy, setBusy] = useState(true);
+    const [busy, setBusy] = useState(!deferLoading || active);
     const [retry, setRetry] = useState(0);
     const [resolution, setResolution] = useState<{
       targetEdge: number;
@@ -71,9 +73,22 @@ export const MockupPreview = forwardRef<
       onStatus,
     };
     const exportRef = useRef<AbortController | null>(null);
+    const loadRef = useRef<{
+      key: string;
+      controller: AbortController;
+      promise: Promise<LoadedMockup>;
+      value: LoadedMockup | null;
+    } | null>(null);
+    const ensureLoaded = useRef<() => Promise<LoadedMockup>>(async () => {
+      throw new Error("Mockup sahnesi henüz hazır değil.");
+    });
+    const retrySceneKey = useRef<string | null>(null);
     const mounted = useRef(true);
     const sceneKey = JSON.stringify(scene);
     const requestedSceneKey = useRef(sceneKey);
+    const requestKey = JSON.stringify([sceneKey, retry]);
+    const requestedLoadKey = useRef(requestKey);
+    requestedLoadKey.current = requestKey;
     const loadedSceneKey = useRef<string | null>(null);
     requestedSceneKey.current = sceneKey;
     useEffect(() => {
@@ -83,52 +98,102 @@ export const MockupPreview = forwardRef<
         exportRef.current?.abort();
       };
     }, []);
-    useEffect(() => {
+    // Viewing and exporting share one validated load. Inactive photo scenes can
+    // stay lightweight until the user opens them or requests a photo download.
+    ensureLoaded.current = () => {
+      if (!mounted.current)
+        return Promise.reject(
+          new DOMException("Mockup sahnesi kapatıldı.", "AbortError"),
+        );
+      const existing = loadRef.current;
+      if (existing?.key === requestKey) return existing.promise;
+      if (existing) {
+        loadRef.current = null;
+        existing.controller.abort();
+        existing.value?.dispose();
+      }
       const controller = new AbortController();
-      let active = true,
-        owned: LoadedMockup | null = null;
+      const timeout = setTimeout(() => controller.abort(), 45_000);
+      const request = {
+        key: requestKey,
+        controller,
+        promise: Promise.resolve().then(() =>
+          loadMockupScene(scene, controller.signal),
+        ),
+        value: null as LoadedMockup | null,
+      };
+      loadRef.current = request;
+      request.promise = request.promise
+        .then((value) => {
+          if (
+            !mounted.current ||
+            controller.signal.aborted ||
+            loadRef.current !== request ||
+            requestedLoadKey.current !== requestKey
+          ) {
+            value.dispose();
+            throw new DOMException("Mockup işlemi iptal edildi.", "AbortError");
+          }
+          request.value = value;
+          loadedRef.current = value;
+          loadedSceneKey.current = sceneKey;
+          setLoaded(value);
+          setBusy(false);
+          return value;
+        })
+        .catch((reason) => {
+          if (
+            mounted.current &&
+            loadRef.current === request &&
+            requestedLoadKey.current === requestKey
+          ) {
+            const message =
+              reason instanceof Error && reason.name !== "AbortError"
+                ? reason.message
+                : "Mockup yükleme süresi doldu. Kaynak adreslerini ve CDN erişimini kontrol edin.";
+            setError(message);
+            setBusy(false);
+            propsRef.current.onStatus?.("error", message);
+          }
+          throw reason;
+        })
+        .finally(() => clearTimeout(timeout));
+      setBusy(true);
+      setError("");
+      propsRef.current.onStatus?.("loading");
+      return request.promise;
+    };
+    useEffect(() => {
       exportRef.current?.abort();
       loadedRef.current = null;
       loadedSceneKey.current = null;
       setLoaded(null);
-      setBusy(true);
+      setResolution(null);
+      setBusy(false);
       setError("");
-      canvasHost.current?.replaceChildren();
-      propsRef.current.onStatus?.("loading");
-      const timeout = setTimeout(() => controller.abort(), 45_000);
-      loadMockupScene(scene, controller.signal)
-        .then((value) => {
-          owned = value;
-          if (!active) {
-            value.dispose();
-            return;
-          }
-          loadedRef.current = value;
-          loadedSceneKey.current = sceneKey;
-          setLoaded(value);
-        })
-        .catch((reason) => {
-          if (!active) return;
-          const message =
-            reason instanceof Error && reason.name !== "AbortError"
-              ? reason.message
-              : "Mockup yükleme süresi doldu. Kaynak adreslerini ve CDN erişimini kontrol edin.";
-          setError(message);
-          setBusy(false);
-          propsRef.current.onStatus?.("error", message);
-        })
-        .finally(() => clearTimeout(timeout));
+      const host = canvasHost.current;
+      if (host) {
+        for (const child of host.children)
+          if (child instanceof HTMLCanvasElement)
+            child.width = child.height = 1;
+        host.replaceChildren();
+      }
       return () => {
-        active = false;
-        clearTimeout(timeout);
-        controller.abort();
-        owned?.dispose();
-        if (loadedRef.current === owned) {
-          loadedRef.current = null;
-          loadedSceneKey.current = null;
+        exportRef.current?.abort();
+        const request = loadRef.current;
+        if (request?.key === requestKey) {
+          loadRef.current = null;
+          request.controller.abort();
+          request.value?.dispose();
         }
+        loadedRef.current = null;
+        loadedSceneKey.current = null;
       };
-    }, [sceneKey, retry]);
+    }, [requestKey]);
+    useEffect(() => {
+      if (active || !deferLoading || retrySceneKey.current === sceneKey)
+        void ensureLoaded.current().catch(() => {});
+    }, [requestKey, active, deferLoading]);
     useEffect(() => {
       if (!loaded || !active) return;
       const host = canvasHost.current;
@@ -177,7 +242,11 @@ export const MockupPreview = forwardRef<
           backgroundColor,
         })
           .then((rendered) => {
-            if (controller.signal.aborted || !mounted.current) {
+            if (
+              controller.signal.aborted ||
+              !mounted.current ||
+              requestedLoadKey.current !== requestKey
+            ) {
               rendered.width = rendered.height = 1;
               return;
             }
@@ -250,6 +319,7 @@ export const MockupPreview = forwardRef<
       backgroundColor,
       resolution,
       active,
+      requestKey,
     ]);
     useImperativeHandle(
       ref,
@@ -268,16 +338,21 @@ export const MockupPreview = forwardRef<
       [],
     );
     async function exportImage(format: "image/png" | "image/jpeg") {
-      const current = loadedRef.current;
-      if (!current || loadedSceneKey.current !== requestedSceneKey.current)
-        throw new Error("Mockup sahnesi henüz hazır değil.");
       if (exportRef.current)
         throw new Error("Mockup görseli zaten hazırlanıyor.");
       const controller = new AbortController();
+      const expectedLoadKey = requestedLoadKey.current;
       exportRef.current = controller;
       let output: HTMLCanvasElement | null = null;
       const frozen = new Map<string, HTMLCanvasElement>();
       try {
+        const current = await ensureLoaded.current();
+        checkAbort(controller.signal);
+        if (
+          expectedLoadKey !== requestedLoadKey.current ||
+          loadedSceneKey.current !== requestedSceneKey.current
+        )
+          throw new DOMException("Mockup sahnesi değişti.", "AbortError");
         const currentProps = propsRef.current;
         const currentTextures = currentProps.textures;
         const provider =
@@ -346,7 +421,12 @@ export const MockupPreview = forwardRef<
           <div className="mockup-preview-state mockup-error" role="alert">
             <strong>Mockup açılamadı</strong>
             <p>{error}</p>
-            <button onClick={() => setRetry((v) => v + 1)}>
+            <button
+              onClick={() => {
+                retrySceneKey.current = sceneKey;
+                setRetry((v) => v + 1);
+              }}
+            >
               <RefreshCw size={16} />
               Yeniden dene
             </button>

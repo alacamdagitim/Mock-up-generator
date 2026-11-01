@@ -36,6 +36,13 @@ export type EditorHandle = {
   layer: (direction: "up" | "down" | "front" | "back") => void;
   select: (id: string) => void;
   deselect: () => void;
+  cancelTransform: () => void;
+  selectionBounds: () => {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null;
   exportCanvas: () => HTMLCanvasElement | null;
 };
 const serialize = (o: Obj): Element => {
@@ -196,6 +203,8 @@ export const Editor = forwardRef<
     cutBleedline?: boolean;
     guidesTopmost?: boolean;
     interactive?: boolean;
+    viewportScale?: number;
+    touchControls?: boolean;
     onChange: (elements: Element[]) => void;
     onSelect: (e: Element | null) => void;
     onTexture: (face: Face, c: HTMLCanvasElement) => void;
@@ -221,6 +230,23 @@ export const Editor = forwardRef<
     focused: globalThis.Element | null;
   } | null>(null);
   const textEditingFrame = useRef<number>();
+  const transformStart = useRef<{
+    object: FabricObject;
+    values: Record<string, unknown>;
+  } | null>(null);
+  const applyControls = (c: Canvas, object?: FabricObject) => {
+    const touch = latest.current.touchControls === true;
+    const scale = Math.max(0.001, latest.current.viewportScale || 1);
+    for (const item of object ? [object] : c.getObjects()) {
+      item.cornerSize = touch ? 12 / scale : 11;
+      item.touchCornerSize = touch ? 44 / scale : 24;
+      item.padding = touch ? 5 / scale : 3;
+      if (item.controls.mtr)
+        item.controls.mtr.offsetY = touch ? -36 / scale : -40;
+      item.setCoords();
+    }
+    c.requestRenderAll();
+  };
   const textInputContainer = (c: Canvas) =>
     c.upperCanvasEl.closest<HTMLElement>(".online-app") ||
     c.upperCanvasEl.parentElement!;
@@ -339,6 +365,28 @@ export const Editor = forwardRef<
     });
     canvas.current = c;
     applyDisplay(c);
+    c.on("before:transform", ({ transform }) => {
+      const target = transform.target;
+      transformStart.current = {
+        object: target,
+        values: {
+          left: target.left,
+          top: target.top,
+          width: target.width,
+          height: target.height,
+          scaleX: target.scaleX,
+          scaleY: target.scaleY,
+          angle: target.angle,
+          skewX: target.skewX,
+          skewY: target.skewY,
+          flipX: target.flipX,
+          flipY: target.flipY,
+        },
+      };
+    });
+    c.on("object:modified", () => {
+      transformStart.current = null;
+    });
     c.on("object:modified", commit);
     c.on("text:changed", commit);
     c.on("selection:created", () => {
@@ -393,6 +441,7 @@ export const Editor = forwardRef<
     if (!c) return;
     const gen = ++generation.current;
     invalidateFontUpdates();
+    transformStart.current = null;
     pendingTextEditing.current = null;
     loading.current = true;
     setBusy(true);
@@ -408,6 +457,7 @@ export const Editor = forwardRef<
         c.clear();
         applyDisplay(c);
         objects.forEach((o) => c.add(o));
+        applyControls(c);
         c.renderAll();
         loading.current = false;
         setBusy(false);
@@ -452,6 +502,10 @@ export const Editor = forwardRef<
       startTextEditing(pendingTextEditing.current.object);
     c.requestRenderAll();
   }, [props.interactive]);
+  useEffect(() => {
+    const c = canvas.current;
+    if (c) applyControls(c);
+  }, [props.viewportScale, props.touchControls]);
   useImperativeHandle(ref, () => ({
     add: async (e) => {
       if (loading.current)
@@ -464,6 +518,7 @@ export const Editor = forwardRef<
       if (gen !== generation.current)
         throw new Error("Yüz değişti. Lütfen görseli tekrar ekleyin.");
       c.add(o);
+      applyControls(c, o);
       c.setActiveObject(o);
       c.renderAll();
       commit();
@@ -591,6 +646,29 @@ export const Editor = forwardRef<
       canvas.current?.discardActiveObject();
       canvas.current?.requestRenderAll();
       latest.current.onSelect(null);
+    },
+    cancelTransform: () => {
+      const c = canvas.current;
+      const transform = c?._currentTransform;
+      if (!c || !transform) return;
+      const original = transformStart.current;
+      if (original?.object === transform.target)
+        transform.target.set(original.values);
+      // A second finger means viewport navigation, never an artwork edit.
+      // Restore any uncommitted first-finger movement before ending Fabric's
+      // transform; changing the CSS view while it is live changes its origin.
+      transform.actionPerformed = false;
+      c.endCurrentTransform();
+      transformStart.current = null;
+      transform.target.setCoords();
+      setSnap({ x: false, y: false });
+      c.requestRenderAll();
+      latest.current.onSelect(serialize(transform.target as Obj));
+      texture();
+    },
+    selectionBounds: () => {
+      const object = canvas.current?.getActiveObject();
+      return object ? object.getBoundingRect() : null;
     },
     select: (id) => {
       const c = canvas.current!,

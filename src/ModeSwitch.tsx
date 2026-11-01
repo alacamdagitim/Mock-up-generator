@@ -13,9 +13,9 @@ export function ModeSwitch({
 }: ModeSwitchProps) {
   const modes: { id: EditorMode; label: string; title: string }[] = hasMockups
     ? [
-        { id: "mockup", label: "Önizleme", title: "Hazır sahnelerde gör" },
-        { id: "2d", label: "2B", title: "Bıçak izini tasarla" },
         { id: "3d", label: "3B", title: "Ürünü döndürerek incele" },
+        { id: "2d", label: "2B", title: "Bıçak izini tasarla" },
+        { id: "mockup", label: "Mockup", title: "Mockup sahnesi seç" },
       ]
     : [
         { id: "3d", label: "3B", title: "Ürünü döndürerek incele" },

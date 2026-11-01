@@ -71,6 +71,12 @@ export function DesignCanvas({
   const viewport = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState(0.5);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [compact, setCompact] = useState(
+    () =>
+      matchMedia(
+        "(max-width: 700px), (max-width: 1100px) and (max-height: 500px)",
+      ).matches,
+  );
   const [surfaceOpen, setSurfaceOpen] = useState(false);
   const [zoom, setZoom] = useState<number | null>(null);
   const [rotation, setRotation] = useState(0);
@@ -121,6 +127,9 @@ export function DesignCanvas({
   const scale = zoom ?? fit;
   const fitRef = useRef(fit);
   fitRef.current = fit;
+  const maximumScale = compact ? Math.max(fit * 8, 1) : fit * 2;
+  const maximumScaleRef = useRef(maximumScale);
+  maximumScaleRef.current = maximumScale;
   const viewState = useRef({ scale, pan });
   viewState.current = { scale, pan };
   const isEditable = (target: EventTarget | null) =>
@@ -131,17 +140,15 @@ export function DesignCanvas({
     setZoom(nextScale);
     setPan(nextPan);
   };
-  // The paper keeps its 600 × 900 design coordinate system. Navigation applies
-  // only a screen-space transform, including while the paper is rotated.
+  // Navigation only changes the screen-space view, never artwork coordinates.
+  const boundedScale = (value: number) =>
+    Math.max(fitRef.current * 0.25, Math.min(maximumScaleRef.current, value));
   const zoomAt = (nextScale: number, clientX?: number, clientY?: number) => {
     const node = viewport.current;
     if (!node) return;
     const rect = node.getBoundingClientRect();
     const current = viewState.current;
-    const bounded = Math.max(
-      fitRef.current * 0.25,
-      Math.min(fitRef.current * 2, nextScale),
-    );
+    const bounded = boundedScale(nextScale);
     const ratio = bounded / current.scale;
     const x =
       (clientX ?? rect.left + rect.width / 2) - rect.left - rect.width / 2;
@@ -153,6 +160,7 @@ export function DesignCanvas({
     });
   };
   const fitCanvas = () => {
+    viewState.current = { scale: fitRef.current, pan: { x: 0, y: 0 } };
     setZoom(null);
     setPan({ x: 0, y: 0 });
     setRotation(0);
@@ -164,12 +172,48 @@ export function DesignCanvas({
     );
     const step =
       direction < 0 ? (percent <= 100 ? 25 : 50) : percent < 100 ? 25 : 50;
-    zoomAt(
-      (fitRef.current *
-        Math.max(25, Math.min(200, percent + direction * step))) /
-        100,
-    );
+    zoomAt((fitRef.current * Math.max(25, percent + direction * step)) / 100);
   };
+  const fitSelected = () => {
+    const bounds = editor.current?.selectionBounds();
+    const node = viewport.current;
+    if (!bounds || !node || !bounds.width || !bounds.height) return;
+    const angle = (rotation * Math.PI) / 180;
+    const cosine = Math.cos(angle),
+      sine = Math.sin(angle);
+    const horizontal =
+        Math.abs(bounds.width * cosine) + Math.abs(bounds.height * sine),
+      vertical =
+        Math.abs(bounds.width * sine) + Math.abs(bounds.height * cosine);
+    const margin = compact ? 64 : 96;
+    const nextScale = boundedScale(
+      Math.min(
+        (node.clientWidth - margin) / horizontal,
+        (node.clientHeight - margin) / vertical,
+      ),
+    );
+    const x = bounds.left + bounds.width / 2 - width / 2,
+      y = bounds.top + bounds.height / 2 - height / 2;
+    moveView(nextScale, {
+      x: -(x * cosine - y * sine) * nextScale,
+      y: -(x * sine + y * cosine) * nextScale,
+    });
+    setPopover(null);
+    setTool("select");
+    zoomTrigger.current?.focus({ preventScroll: true });
+  };
+  useEffect(() => {
+    const media = matchMedia(
+      "(max-width: 700px), (max-width: 1100px) and (max-height: 500px)",
+    );
+    const update = () => setCompact(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    if (viewState.current.scale > maximumScale) zoomAt(maximumScale);
+  }, [maximumScale]);
   useEffect(() => {
     if (!popover || !open) return;
     const control =
@@ -210,10 +254,12 @@ export function DesignCanvas({
       setViewportSize({ width: node.clientWidth, height: node.clientHeight });
       setFit(
         Math.max(
-          0.08,
+          compact ? 0.005 : 0.08,
           Math.min(
-            (node.clientWidth - 96) / (rotation % 180 ? height : width),
-            (node.clientHeight - 92) / (rotation % 180 ? width : height),
+            (node.clientWidth - (compact ? 24 : 96)) /
+              (rotation % 180 ? height : width),
+            (node.clientHeight - (compact ? 32 : 92)) /
+              (rotation % 180 ? width : height),
             1,
           ),
         ),
@@ -223,7 +269,7 @@ export function DesignCanvas({
     observer.observe(node);
     resize();
     return () => observer.disconnect();
-  }, [rotation, width, height]);
+  }, [rotation, width, height, compact]);
   useEffect(() => {
     const node = viewport.current!;
     const wheel = (event: WheelEvent) => {
@@ -336,28 +382,34 @@ export function DesignCanvas({
     setPopover(null);
   }, [open]);
   useEffect(() => setSurfaceOpen(false), [face, open]);
+  const cancelArtworkTouch = (pointerId: number, x: number, y: number) => {
+    editor.current?.cancelTransform();
+    artworkPointer.current = null;
+    // Release Fabric's document listeners before changing the canvas view.
+    // This event bypasses viewport capture so it cannot end our pinch gesture.
+    nodeDocument().dispatchEvent(
+      new PointerEvent("pointerup", {
+        pointerId,
+        pointerType: "touch",
+        isPrimary: true,
+        clientX: x,
+        clientY: y,
+        button: 0,
+      }),
+    );
+  };
+  const nodeDocument = () => viewport.current?.ownerDocument || document;
   const endPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
     const active = gesture.current;
     const belongedToArtwork = artworkPointer.current === event.pointerId;
     touches.current.delete(event.pointerId);
     if (belongedToArtwork) artworkPointer.current = null;
     if (belongedToArtwork && event.type === "pointercancel") {
-      // Fabric listens for pointer-up rather than pointer-cancel. Finish only
-      // this editor's primary touch transform if the OS cancels a gesture.
-      document.dispatchEvent(
-        new PointerEvent("pointerup", {
-          pointerId: event.pointerId,
-          pointerType: event.pointerType,
-          isPrimary: true,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          button: 0,
-        }),
-      );
+      cancelArtworkTouch(event.pointerId, event.clientX, event.clientY);
     }
     if (!active) return;
-    // Let the original primary artwork pointer-up reach Fabric so its pending
-    // transform finalizes. All navigation moves were captured before Fabric.
+    // A one-finger artwork drag ends in Fabric. Pinch/pan pointers have already
+    // released Fabric and must never be reinterpreted in the new view.
     if (!belongedToArtwork) {
       event.preventDefault();
       event.stopPropagation();
@@ -393,6 +445,7 @@ export function DesignCanvas({
     return dpi !== null && dpi < 300;
   });
   const zoomPercent = Math.round((scale / fit) * 100);
+  const maximumZoomPercent = Math.round((maximumScale / fit) * 100);
   const colorInset = Math.min(150, viewportSize.width / 2);
   const colorLeft = Math.max(
     colorInset,
@@ -401,7 +454,9 @@ export function DesignCanvas({
   // On phones a wide dieline sits near the viewport centre. Keep its color
   // controls at the top so the whole picker fits without scrolling its title
   // away when the HEX field receives focus.
-  const colorTop = matchMedia("(max-width: 700px)").matches
+  const colorTop = matchMedia(
+    "(max-width: 700px), (max-width: 1100px) and (max-height: 500px)",
+  ).matches
     ? 10
     : Math.max(
         10,
@@ -479,6 +534,13 @@ export function DesignCanvas({
             });
             event.currentTarget.setPointerCapture(event.pointerId);
             if (touches.current.size >= 2) {
+              const artworkTouch = artworkPointer.current;
+              const point =
+                artworkTouch === null
+                  ? null
+                  : touches.current.get(artworkTouch);
+              if (artworkTouch !== null && point)
+                cancelArtworkTouch(artworkTouch, point.x, point.y);
               const [a, b] = [...touches.current.values()];
               const rect = event.currentTarget.getBoundingClientRect();
               gesture.current = {
@@ -528,13 +590,8 @@ export function DesignCanvas({
             const [a, b] = [...touches.current.values()];
             if (!a || !b) return;
             const rect = event.currentTarget.getBoundingClientRect();
-            const nextScale = Math.max(
-              fitRef.current * 0.25,
-              Math.min(
-                fitRef.current * 2,
-                (start.scale * Math.hypot(b.x - a.x, b.y - a.y)) /
-                  start.distance,
-              ),
+            const nextScale = boundedScale(
+              (start.scale * Math.hypot(b.x - a.x, b.y - a.y)) / start.distance,
             );
             const ratio = nextScale / start.scale;
             moveView(nextScale, {
@@ -620,6 +677,8 @@ export function DesignCanvas({
             cutBleedline={cutBleedline}
             guidesTopmost={guidesTopmost}
             interactive={open}
+            viewportScale={scale}
+            touchControls={compact}
             onChange={onChange}
             onSelect={onSelect}
             onTexture={onTexture}
@@ -710,20 +769,40 @@ export function DesignCanvas({
               aria-label="Yakınlaştırma"
               onKeyDown={navigateZoomMenu}
             >
-              {[50, 100, 200].map((percent) => (
+              {(compact ? [50, 100, 200, 400, 800] : [50, 100, 200])
+                .filter((percent) => percent <= maximumZoomPercent)
+                .map((percent) => (
+                  <button
+                    key={percent}
+                    role="menuitemradio"
+                    aria-checked={zoomPercent === percent}
+                    onClick={() => {
+                      zoomAt((fitRef.current * percent) / 100);
+                      setPopover(null);
+                      zoomTrigger.current?.focus({ preventScroll: true });
+                    }}
+                  >
+                    {percent}%
+                  </button>
+                ))}
+              {compact && (
                 <button
-                  key={percent}
-                  role="menuitemradio"
-                  aria-checked={zoomPercent === percent}
+                  role="menuitem"
+                  aria-label="Tasarımı bire bir piksel boyutunda göster"
                   onClick={() => {
-                    zoomAt((fitRef.current * percent) / 100);
+                    zoomAt(1);
                     setPopover(null);
                     zoomTrigger.current?.focus({ preventScroll: true });
                   }}
                 >
-                  {percent}%
+                  1:1 piksel
                 </button>
-              ))}
+              )}
+              {compact && selected && (
+                <button role="menuitem" onClick={fitSelected}>
+                  Seçili öğeye büyüt
+                </button>
+              )}
               <button
                 role="menuitem"
                 aria-label="Tuvali ekrana sığdır"
@@ -740,7 +819,7 @@ export function DesignCanvas({
         <button
           aria-label="Tuvali yakınlaştır"
           title="Yakınlaştır"
-          disabled={zoomPercent >= 200}
+          disabled={scale >= maximumScale - 0.0001}
           onClick={() => stepZoom(1)}
         >
           <Plus size={20} />

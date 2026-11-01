@@ -135,7 +135,8 @@
   transform: translateX(100%);
 }
 
-.online-mode-switch.with-mockup-mode[data-mode="3d"] .online-mode-indicator {
+.online-mode-switch.with-mockup-mode[data-mode="mockup"]
+  .online-mode-indicator {
   transform: translateX(200%);
 }
 
