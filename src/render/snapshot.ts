@@ -20,6 +20,7 @@ export function captureRenderSnapshot(
   const extraTextures = new Set<THREE.Texture>();
   const extraGeometries = new Set<THREE.BufferGeometry>();
   const overrideMaps = new Map<string, THREE.Texture>();
+  let importedProduct = false;
   let disposed = false;
   const dispose = () => {
     if (disposed) return;
@@ -44,10 +45,12 @@ export function captureRenderSnapshot(
   const overridePrint = (
     face: "front" | "back",
     material: THREE.MeshStandardMaterial,
+    printMode: "color" | "black" | "blank",
   ) => {
     const source = printTextures?.[face];
     if (!source) return;
-    let texture = overrideMaps.get(face);
+    const key = `${face}:${printMode}`;
+    let texture = overrideMaps.get(key);
     if (!texture) {
       const canvas = document.createElement("canvas");
       canvas.width = source.width;
@@ -57,9 +60,8 @@ export function captureRenderSnapshot(
         throw new Error("Yüksek çözünürlüklü baskı dokusu hazırlanamadı.");
       context.fillStyle = "#ffffff";
       context.fillRect(0, 0, canvas.width, canvas.height);
-      if (settings.printMode !== "blank") {
-        context.filter =
-          settings.printMode === "black" ? "grayscale(1)" : "none";
+      if (printMode !== "blank") {
+        context.filter = printMode === "black" ? "grayscale(1)" : "none";
         context.drawImage(source, 0, 0);
       }
       context.getImageData(0, 0, 1, 1);
@@ -69,7 +71,7 @@ export function captureRenderSnapshot(
       texture.needsUpdate = true;
       images.push(canvas);
       extraTextures.add(texture);
-      overrideMaps.set(face, texture);
+      overrideMaps.set(key, texture);
     }
     material.map = texture;
   };
@@ -188,6 +190,7 @@ export function captureRenderSnapshot(
         !Array.isArray(declaredBindings)
           ? declaredBindings
           : undefined;
+      if (importedBindings) importedProduct = true;
       const objectMaterials = Array.isArray(object.material)
         ? object.material
         : [object.material];
@@ -206,7 +209,13 @@ export function captureRenderSnapshot(
           (face === "front" || face === "back") &&
           material instanceof THREE.MeshStandardMaterial
         )
-          overridePrint(face, material);
+          // Keep downloaded studio output consistent with the imported GLB's
+          // live, full-color artwork even when an old draft says black/blank.
+          overridePrint(
+            face,
+            material,
+            importedBindings ? "color" : settings.printMode || "color",
+          );
       }
     });
     // Close only this original pouch's unsealed perimeter in the offline copy.
@@ -302,7 +311,9 @@ export function captureRenderSnapshot(
       product: copy,
       camera: cameraCopy,
       target: target.clone(),
-      settings: { ...settings },
+      settings: importedProduct
+        ? { ...settings, printMode: "color" }
+        : { ...settings },
       dispose,
     };
   } catch (error) {

@@ -7,6 +7,7 @@ import {
 } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { createPreviewGestures } from "./previewGestures";
 import { createLiveStudioEnvironment, liveStudioLighting } from "./liveStudio";
 import { createPouchAsset } from "./pouchAsset";
 import { arrangeProduct, fittedDistance } from "./productLayout";
@@ -34,6 +35,7 @@ type SceneState = {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   controls: OrbitControls;
+  gestures: ReturnType<typeof createPreviewGestures>;
   maps: THREE.CanvasTexture[];
   printCanvases: HTMLCanvasElement[];
   materials: THREE.MeshPhysicalMaterial[];
@@ -95,6 +97,7 @@ export const Preview = forwardRef<
           throw new Error(
             "3D sahne henüz hazır değil. Birkaç saniye sonra tekrar deneyin.",
           );
+        s.flushInteraction();
         return captureRenderSnapshot(
           s.root,
           s.camera,
@@ -137,16 +140,13 @@ export const Preview = forwardRef<
         const s = state.current;
         if (s) {
           s.interaction = mode;
-          s.controls.enablePan = true;
-          s.controls.enableRotate = false;
-          s.controls.mouseButtons.LEFT =
-            mode === "pan" ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE;
-          s.controls.touches.ONE = mode === "pan" ? THREE.TOUCH.PAN : null;
+          s.gestures.setMode(mode);
         }
       },
       zoom: (delta) => {
         const s = state.current;
         if (s) {
+          s.gestures.stop();
           s.camera.position
             .sub(s.controls.target)
             .multiplyScalar(delta)
@@ -186,16 +186,10 @@ export const Preview = forwardRef<
     camera.position.set(3.2, 1.2, 9);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enabled = activeRef.current;
-    controls.enablePan = true;
-    controls.enableRotate = false;
-    // Product rotation owns one-finger drags. A disabled ROTATE mapping leaves
-    // OrbitControls in its two-touch state after one finger is lifted.
-    controls.touches.ONE = null;
-    controls.enableDamping = false;
     controls.minDistance = 3.5;
     controls.maxDistance = 36;
-    controls.maxPolarAngle = Math.PI * 0.8;
-    controls.minPolarAngle = Math.PI * 0.1;
+    controls.maxPolarAngle = Math.PI - 0.04;
+    controls.minPolarAngle = 0.04;
     // Neutral, locally generated photographic light cards. PMREM supplies
     // roughness-correct reflections without a heavy continuous render pass.
     const environmentTarget = createLiveStudioEnvironment(renderer, mobile);
@@ -241,8 +235,6 @@ export const Preview = forwardRef<
     const contactShadow = createContactShadow(renderer, mobile ? 512 : 1024);
     contacts.add(contactShadow.mesh);
     let disposed = false;
-    let dragFrame = 0;
-    let shadowDirty = false;
     const render = () => {
       if (
         activeRef.current &&
@@ -300,23 +292,18 @@ export const Preview = forwardRef<
       renderer.shadowMap.needsUpdate = true;
       if (settingsRef.current.shadows) contactShadow.update(root);
     };
-    const flushInteraction = () => {
-      if (dragFrame) cancelAnimationFrame(dragFrame);
-      dragFrame = 0;
-      if (shadowDirty) {
-        updateShadow();
-        shadowDirty = false;
-      }
-      render();
-    };
-    const renderInteraction = () => {
-      shadowDirty = true;
-      if (!dragFrame) dragFrame = requestAnimationFrame(flushInteraction);
-    };
+    const gestures = createPreviewGestures(
+      controls,
+      renderer.domElement,
+      render,
+      () => activeRef.current && !disposed,
+    );
+    const flushInteraction = gestures.flush;
     let fitted = false;
     let framing:
       { distance: number; center: THREE.Vector3; layout: string } | undefined;
     const fit = (view?: "front" | "back" | "perspective") => {
+      gestures.stop();
       if (view) {
         root.quaternion.identity();
         root.position.set(0, 0, 0);
@@ -358,7 +345,6 @@ export const Preview = forwardRef<
       if (view) updateShadow();
       render();
     };
-    controls.addEventListener("change", render);
     const resize = () => {
       if (!activeRef.current) return;
       const w = el.clientWidth,
@@ -393,6 +379,7 @@ export const Preview = forwardRef<
       scene,
       camera,
       controls,
+      gestures,
       maps,
       printCanvases,
       materials,
@@ -411,86 +398,6 @@ export const Preview = forwardRef<
       interaction: "rotate",
       resize,
     };
-    // Rotate the product around the dominant drag axis. OrbitControls handles
-    // wheel/pinch zoom and the explicit Hand mode, with no inertial movement.
-    const pointers = new Map<number, { x: number; y: number; type: string }>();
-    let drag: { id: number; x: number; y: number } | null = null;
-    const startProductDrag = (event: PointerEvent) => {
-      if (!activeRef.current) return;
-      pointers.set(event.pointerId, {
-        x: event.clientX,
-        y: event.clientY,
-        type: event.pointerType,
-      });
-      if (pointers.size > 1) {
-        drag = null;
-        return;
-      }
-      if (
-        event.button !== 0 ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.shiftKey ||
-        state.current?.interaction !== "rotate"
-      )
-        return;
-      drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
-      renderer.domElement.setPointerCapture(event.pointerId);
-    };
-    const moveProductDrag = (event: PointerEvent) => {
-      if (!activeRef.current) return;
-      if (pointers.has(event.pointerId))
-        pointers.set(event.pointerId, {
-          x: event.clientX,
-          y: event.clientY,
-          type: event.pointerType,
-        });
-      if (
-        !drag ||
-        drag.id !== event.pointerId ||
-        pointers.size !== 1 ||
-        state.current?.interaction !== "rotate"
-      )
-        return;
-      const dx = event.clientX - drag.x,
-        dy = event.clientY - drag.y;
-      drag.x = event.clientX;
-      drag.y = event.clientY;
-      const horizontal = Math.abs(dx) > Math.abs(dy);
-      const centerBefore = new THREE.Box3()
-        .setFromObject(root)
-        .getCenter(new THREE.Vector3());
-      root.rotateOnWorldAxis(
-        horizontal ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0),
-        ((horizontal ? dx : dy) * Math.PI * 2) / Math.max(1, el.clientHeight),
-      );
-      const centerAfter = new THREE.Box3()
-        .setFromObject(root)
-        .getCenter(new THREE.Vector3());
-      root.position.add(centerBefore.sub(centerAfter));
-      event.preventDefault();
-      renderInteraction();
-    };
-    const endProductDrag = (event: PointerEvent) => {
-      if (!pointers.delete(event.pointerId)) return;
-      if (drag?.id === event.pointerId) drag = null;
-      if (event.type === "pointercancel") {
-        pointers.clear();
-        drag = null;
-      } else if (
-        pointers.size === 1 &&
-        state.current?.interaction === "rotate"
-      ) {
-        const [id, point] = [...pointers][0];
-        if (point.type === "touch") drag = { id, x: point.x, y: point.y };
-      }
-      flushInteraction();
-    };
-    renderer.domElement.addEventListener("pointerdown", startProductDrag);
-    renderer.domElement.addEventListener("pointermove", moveProductDrag);
-    renderer.domElement.addEventListener("pointerup", endProductDrag);
-    renderer.domElement.addEventListener("pointercancel", endProductDrag);
-    renderer.domElement.addEventListener("lostpointercapture", endProductDrag);
     resize();
     setReady(true);
     const contextLost = (event: Event) => {
@@ -500,18 +407,9 @@ export const Preview = forwardRef<
     renderer.domElement.addEventListener("webglcontextlost", contextLost);
     return () => {
       disposed = true;
-      cancelAnimationFrame(dragFrame);
-      pointers.clear();
       observer.disconnect();
+      gestures.dispose();
       controls.dispose();
-      renderer.domElement.removeEventListener("pointerdown", startProductDrag);
-      renderer.domElement.removeEventListener("pointermove", moveProductDrag);
-      renderer.domElement.removeEventListener("pointerup", endProductDrag);
-      renderer.domElement.removeEventListener("pointercancel", endProductDrag);
-      renderer.domElement.removeEventListener(
-        "lostpointercapture",
-        endProductDrag,
-      );
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       asset.dispose();
       contactShadow.dispose();
@@ -526,7 +424,7 @@ export const Preview = forwardRef<
   }, []);
   useEffect(() => {
     const s = state.current;
-    if (s) s.controls.enabled = active;
+    if (s) s.gestures.setActive();
   }, [active, ready]);
   useEffect(() => {
     const s = state.current;
@@ -621,7 +519,9 @@ export const Preview = forwardRef<
   useEffect(() => {
     const s = state.current;
     if (!s || !active) return;
-    const printMode = settings.printMode || "color";
+    // Imported product artwork must match the 2D canvas. Older local drafts
+    // can retain the removed pouch Config's black/blank simulation controls.
+    const printMode = s.external ? "color" : settings.printMode || "color";
     (["front", "back"] as const).forEach((face, i) => {
       const source = textures[face];
       const output = s.printCanvases[i];
@@ -692,7 +592,7 @@ export const Preview = forwardRef<
         (settings.material === "glossy" ? "gloss" : "matte")
       }
       data-substrate={settings.substrate || "white"}
-      data-print-mode={settings.printMode || "color"}
+      data-print-mode={assetFactory ? "color" : settings.printMode || "color"}
       data-inflate={settings.inflate ?? 100}
     >
       {!ready && !error && (

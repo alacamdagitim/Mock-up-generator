@@ -224,7 +224,9 @@ export function DesignCanvas({
     const frame = requestAnimationFrame(() => {
       (
         panel?.querySelector<HTMLElement>('[aria-checked="true"]') ||
-        panel?.querySelector<HTMLElement>("button,input")
+        panel?.querySelector<HTMLElement>(
+          "button:not(:disabled),input:not(:disabled)",
+        )
       )?.focus();
     });
     const outside = (event: Event) => {
@@ -473,7 +475,9 @@ export function DesignCanvas({
     event.preventDefault();
     event.stopPropagation();
     const items = [
-      ...event.currentTarget.querySelectorAll<HTMLButtonElement>("button"),
+      ...event.currentTarget.querySelectorAll<HTMLButtonElement>(
+        "button:not(:disabled)",
+      ),
     ];
     const active = (event.currentTarget.getRootNode() as Document | ShadowRoot)
       .activeElement;
@@ -739,6 +743,7 @@ export function DesignCanvas({
         </button>
         <i />
         <button
+          className="canvas-zoom-step"
           aria-label="Tuvali uzaklaştır"
           title="Uzaklaştır"
           disabled={zoomPercent <= 25}
@@ -769,6 +774,27 @@ export function DesignCanvas({
               aria-label="Yakınlaştırma"
               onKeyDown={navigateZoomMenu}
             >
+              {compact && (
+                <div className="canvas-zoom-actions">
+                  <button
+                    role="menuitem"
+                    aria-label="Tuvali uzaklaştır"
+                    disabled={zoomPercent <= 25}
+                    onClick={() => stepZoom(-1)}
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <output>{zoomPercent}%</output>
+                  <button
+                    role="menuitem"
+                    aria-label="Tuvali yakınlaştır"
+                    disabled={scale >= maximumScale - 0.0001}
+                    onClick={() => stepZoom(1)}
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+              )}
               {(compact ? [50, 100, 200, 400, 800] : [50, 100, 200])
                 .filter((percent) => percent <= maximumZoomPercent)
                 .map((percent) => (
@@ -817,6 +843,7 @@ export function DesignCanvas({
           )}
         </div>
         <button
+          className="canvas-zoom-step"
           aria-label="Tuvali yakınlaştır"
           title="Yakınlaştır"
           disabled={scale >= maximumScale - 0.0001}
@@ -826,6 +853,7 @@ export function DesignCanvas({
         </button>
         <i />
         <button
+          className="canvas-rotate-control"
           aria-label="Tuvali 90 derece döndür"
           title="Tuvali 90° döndür"
           onClick={() => setRotation((rotation + 90) % 360)}
@@ -851,6 +879,14 @@ export function DesignCanvas({
               role="group"
               aria-label="Görünüm seçenekleri"
             >
+              {compact && (
+                <button
+                  className="canvas-view-action"
+                  onClick={() => setRotation((rotation + 90) % 360)}
+                >
+                  <InterfaceIcon name="rotate" size={20} /> Tuvali 90° döndür
+                </button>
+              )}
               {widthMm && heightMm && (
                 <label>
                   <input

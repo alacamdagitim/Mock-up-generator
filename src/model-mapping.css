@@ -1,7 +1,37 @@
 .product-model-note {
+  display: block;
+  pointer-events: auto;
+}
+.product-model-note summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 28px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+.product-model-note summary::-webkit-details-marker {
+  display: none;
+}
+.product-model-note summary svg {
+  transition: transform 0.15s ease;
+}
+.product-model-note[open] summary svg {
+  transform: rotate(180deg);
+}
+.product-model-note summary:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.product-model-details {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 6px 0 2px;
+  max-width: 280px;
 }
 .product-model-note small {
   font-size: 10px;

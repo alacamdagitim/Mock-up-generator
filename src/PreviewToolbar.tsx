@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent, RefObject } from "react";
-import { Box, Hand, Minus, MousePointer2, Plus } from "lucide-react";
+import { Box, Hand, Minus, MousePointer2, Plus, RotateCcw } from "lucide-react";
 import type { PreviewHandle } from "./Preview";
 
 export function PreviewToolbar({
@@ -80,7 +80,7 @@ export function PreviewToolbar({
 
   return (
     <div
-      className="online-camera-dock"
+      className={`online-camera-dock ${allowInflate ? "has-inflate" : "without-inflate"}`}
       role="toolbar"
       aria-label="3B araçları"
       ref={host}
@@ -92,38 +92,48 @@ export function PreviewToolbar({
     >
       <button
         type="button"
-        aria-label="3B yakınlaştır"
-        title="Yakınlaştır"
-        onClick={() => preview.current?.zoom(0.9)}
+        aria-label="3B uzaklaştır"
+        title="Uzaklaştır"
+        onClick={() => preview.current?.zoom(1.15)}
       >
-        <Plus size={18} />
+        <Minus size={20} />
       </button>
       <button
         type="button"
-        aria-label="3B uzaklaştır"
-        title="Uzaklaştır"
-        onClick={() => preview.current?.zoom(1.1)}
+        aria-label="3B yakınlaştır"
+        title="Yakınlaştır"
+        onClick={() => preview.current?.zoom(1 / 1.15)}
       >
-        <Minus size={18} />
+        <Plus size={20} />
       </button>
-      <i className="preview-toolbar-divider" aria-hidden="true" />
       {allowInflate && (
-        <label className="preview-inflate">
-          <span>Dolgunluk</span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            aria-label="Paket dolgunluğu"
-            aria-valuetext={`${inflate}%`}
-            value={inflate}
-            onChange={(event) => onInflate(Number(event.target.value))}
-          />
-          <output>{inflate}%</output>
-        </label>
+        <>
+          <i className="preview-toolbar-divider" aria-hidden="true" />
+          <label className="preview-inflate">
+            <span>Dolgunluk</span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              aria-label="Paket dolgunluğu"
+              aria-valuetext={`${inflate}%`}
+              value={inflate}
+              onChange={(event) => onInflate(Number(event.target.value))}
+            />
+            <output>{inflate}%</output>
+          </label>
+        </>
       )}
       <i className="preview-toolbar-divider" aria-hidden="true" />
+      <button
+        type="button"
+        aria-label="3B görünümünü sıfırla"
+        title="Görünümü sıfırla"
+        onClick={() => preview.current?.view("perspective")}
+      >
+        <RotateCcw size={20} />
+      </button>
       <button
         type="button"
         ref={viewTrigger}
@@ -144,6 +154,15 @@ export function PreviewToolbar({
           role="group"
           aria-label="3B görünüm seçenekleri"
         >
+          <p className="preview-gesture-hint">
+            <span className="preview-touch-hint">
+              Tek parmakla döndürün. İki parmakla yakınlaştırın ve kaydırın.
+            </span>
+            <span className="preview-pointer-hint">
+              Sürükleyerek döndürün. Tekerlekle yakınlaştırın. Sağ tuşla
+              kaydırın.
+            </span>
+          </p>
           <div className="preview-interaction-options">
             <button
               type="button"

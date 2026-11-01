@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type * as THREE from "three";
 import { Preview, type PreviewHandle } from "./Preview";
 import {
@@ -166,37 +167,51 @@ export const ProductPreview = forwardRef<
             return asset;
           }}
         />
-        <div className="product-model-note" role="status">
-          <span>
-            {mapping.length
-              ? `Canlı 3B · ${mapping.length === 1 ? "Sarım yüzeyi bağlı" : "Ön ve arka yüz bağlı"}`
-              : "Baskı yüzeyi henüz bağlı değil. Etiket veya gövde yüzeyini seç."}
-          </span>
-          {profile === "metal-can" && (
-            <small>GLB’de malzeme yok · Metal kutu önizleme profili</small>
-          )}
-          {warning && <small>{warning}</small>}
-          {onBindingChange && (
-            <button
-              type="button"
-              className="model-mapping-trigger"
-              onClick={(event) => {
-                const owner = event.currentTarget.getRootNode();
-                setDialogContainer(
-                  (owner instanceof ShadowRoot
-                    ? owner
-                    : document
-                  ).querySelector<HTMLElement>(".online-app") || document.body,
-                );
-                setMappingOpen(true);
-              }}
-            >
+        <details
+          className="product-model-note"
+          open={mapping.length ? undefined : true}
+        >
+          <summary>
+            {mapping.length ? "Baskı yüzeyi bağlı" : "Baskı yüzeyini seçin"}
+            <ChevronDown size={14} aria-hidden="true" />
+          </summary>
+          <div className="product-model-details">
+            <span>
               {mapping.length
-                ? "Baskı yüzeyini değiştir"
-                : "Baskı yüzeyini seç"}
-            </button>
-          )}
-        </div>
+                ? mapping.length === 1
+                  ? "Tasarım sarım yüzeyine uygulanıyor."
+                  : "Ön ve arka yüz tasarımları bağlı."
+                : "Baskı yüzeyi henüz bağlı değil. Etiket veya gövde yüzeyini seç."}
+            </span>
+            {profile === "metal-can" && (
+              <small>
+                Bu model için metal kutu önizleme malzemesi kullanılıyor.
+              </small>
+            )}
+            {warning && <small>{warning}</small>}
+            {onBindingChange && (
+              <button
+                type="button"
+                className="model-mapping-trigger"
+                onClick={(event) => {
+                  const owner = event.currentTarget.getRootNode();
+                  setDialogContainer(
+                    (owner instanceof ShadowRoot
+                      ? owner
+                      : document
+                    ).querySelector<HTMLElement>(".online-app") ||
+                      document.body,
+                  );
+                  setMappingOpen(true);
+                }}
+              >
+                {mapping.length
+                  ? "Baskı yüzeyini değiştir"
+                  : "Baskı yüzeyini seç"}
+              </button>
+            )}
+          </div>
+        </details>
         {mappingOpen && dialogContainer && onBindingChange && (
           <ModelMappingDialog
             container={dialogContainer}
