@@ -61,6 +61,8 @@ import {
 } from "./designLibrary";
 
 type Tool = "uploads" | "text" | "background" | "shapes" | "layout";
+const MOBILE_VIEW =
+  "(max-width:700px), (max-width:1100px) and (max-height:500px)";
 const TOOLS = [
   { id: "layout" as const, title: "Yerleşimler", symbol: null, icon: Boxes },
   {
@@ -115,6 +117,15 @@ export default function OnlineDesigner({
     d.product.mockupImages !== undefined;
   const tools = TOOLS;
   const root = useRef<HTMLDivElement>(null);
+  const [mobile, setMobile] = useState(() => matchMedia(MOBILE_VIEW).matches);
+  const [modelOpened, setModelOpened] = useState(false);
+  const [canvasKeyboard, setCanvasKeyboard] = useState(false);
+  useEffect(() => {
+    const media = matchMedia(MOBILE_VIEW);
+    const update = () => setMobile(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   const [selectionPosition, setSelectionPosition] = useState({
     left: 490,
     top: 84,
@@ -353,6 +364,10 @@ export default function OnlineDesigner({
     );
   const openTool = (value: Tool) => {
     setExportOpen(false);
+    if (mobile && panel && tool === value) {
+      setPanel(false);
+      return;
+    }
     if (value !== "layout") last2dTool.current = value;
     setTool(value);
     setPanel(true);
@@ -366,7 +381,7 @@ export default function OnlineDesigner({
   };
   const afterAdd = () => {
     changeMode("2d");
-    if (matchMedia("(max-width:700px)").matches) setPanel(false);
+    if (mobile) setPanel(false);
   };
   const add = async (element: Element) => {
     try {
@@ -390,6 +405,10 @@ export default function OnlineDesigner({
   };
   const changeMode = (value: "2d" | "mockup" | "3d") => {
     if (value === mode) return;
+    setMobileConfig(false);
+    setCanvasKeyboard(false);
+    if (value === "3d") setModelOpened(true);
+    if (mobile) setPanel(false);
     setExportOpen(false);
     setMode(value);
     if (value !== "2d") {
@@ -400,7 +419,7 @@ export default function OnlineDesigner({
       } else setPanel(false);
     } else {
       if (tool === "layout") setTool(last2dTool.current);
-      if (!matchMedia("(max-width:700px)").matches) setPanel(true);
+      if (!mobile) setPanel(true);
     }
   };
   const save = async () => {
@@ -481,14 +500,28 @@ export default function OnlineDesigner({
     );
   return (
     <div
-      className={`online-app ${hasMockups ? "mockup-product" : ""} mode-${mode} tool-${tool} ${panel ? "with-panel" : "without-panel"} ${mobileConfig ? "show-mobile-config" : ""}`}
+      className={`online-app ${hasMockups ? "mockup-product" : ""} mode-${mode} tool-${tool} ${panel ? "with-panel" : "without-panel"} ${mobileConfig ? "show-mobile-config" : ""} ${canvasKeyboard ? "canvas-keyboard" : ""}`}
       style={{ "--preview-size": `${previewSize}px` } as CSSProperties}
       ref={root}
       data-editor-scope={d.keyboardScope}
       tabIndex={-1}
+      onFocusCapture={(event) => {
+        const target = event.target;
+        setCanvasKeyboard(
+          target instanceof HTMLElement &&
+            target.getAttribute("data-fabric") === "textarea",
+        );
+      }}
+      onBlurCapture={(event) => {
+        if (
+          event.target instanceof HTMLElement &&
+          event.target.getAttribute("data-fabric") === "textarea"
+        )
+          setCanvasKeyboard(false);
+      }}
       onPointerDownCapture={(event) => {
         if (
-          !(event.target instanceof HTMLElement) ||
+          !(event.target instanceof globalThis.Element) ||
           !event.target.closest(
             "button,input,select,textarea,a,[contenteditable]",
           )
@@ -523,6 +556,17 @@ export default function OnlineDesigner({
         <ModeSwitch mode={mode} onChange={changeMode} hasMockups={hasMockups} />
         <div className="online-header-actions">
           <button
+            className="icon-button mobile-text-done"
+            aria-label="Yazı düzenlemeyi bitir"
+            onClick={() => {
+              d.editor.current?.deselect();
+              root.current?.focus({ preventScroll: true });
+              setCanvasKeyboard(false);
+            }}
+          >
+            <Check size={23} />
+          </button>
+          <button
             className="header-render"
             ref={exportTrigger}
             aria-busy={captureBusy}
@@ -530,6 +574,7 @@ export default function OnlineDesigner({
             disabled={
               d.busy ||
               captureBusy ||
+              (!mockupOutput && mobile && mode !== "3d" && !modelOpened) ||
               (mockupOutput ? !selectedScene : !manufacturerModel)
             }
             title={
@@ -549,6 +594,8 @@ export default function OnlineDesigner({
             aria-label="Sipariş seçeneklerini aç veya kapat"
             aria-expanded={mobileConfig}
             onClick={() => {
+              setPanel(false);
+              setExportOpen(false);
               setMobileConfig(!mobileConfig);
             }}
           >
@@ -569,6 +616,7 @@ export default function OnlineDesigner({
           )}
           <button
             className="outline-button header-upload"
+            aria-label="Görsel yükle"
             disabled={d.busy}
             onClick={() => {
               openTool("uploads");
@@ -997,8 +1045,12 @@ export default function OnlineDesigner({
           <div
             className={`online-selection-floating ${selectionPosition.top > window.innerHeight / 2 ? "popover-above" : ""}`}
             style={{
-              left: selectionPosition.left,
-              top: selectionPosition.top - 64,
+              ...(mobile
+                ? {}
+                : {
+                    left: selectionPosition.left,
+                    top: selectionPosition.top - 64,
+                  }),
             }}
             key={d.selected.id}
           >
@@ -1056,27 +1108,30 @@ export default function OnlineDesigner({
           )}
         </section>
         <section className="online-preview" aria-label="Canlı 3B önizleme">
-          <ProductPreview
-            modelUrl={manufacturerModel}
-            onFaces={setModelFaces}
-            binding={d.design.modelBinding}
-            onBindingChange={(modelBinding) => {
-              const next = {
-                ...d.state.current,
-                updatedAt: new Date().toISOString(),
-              };
-              if (modelBinding) next.modelBinding = modelBinding;
-              else delete next.modelBinding;
-              d.change(next);
-            }}
-            ref={d.preview}
-            textures={d.textures}
-            settings={
-              mode === "2d" || hasMockups
-                ? { ...d.settings, layout: "single", spacing: 1 }
-                : d.settings
-            }
-          />
+          {(!mobile || mode === "3d" || modelOpened) && (
+            <ProductPreview
+              active={!mobile || mode === "3d"}
+              modelUrl={manufacturerModel}
+              onFaces={setModelFaces}
+              binding={d.design.modelBinding}
+              onBindingChange={(modelBinding) => {
+                const next = {
+                  ...d.state.current,
+                  updatedAt: new Date().toISOString(),
+                };
+                if (modelBinding) next.modelBinding = modelBinding;
+                else delete next.modelBinding;
+                d.change(next);
+              }}
+              ref={d.preview}
+              textures={d.textures}
+              settings={
+                mode === "2d" || hasMockups
+                  ? { ...d.settings, layout: "single", spacing: 1 }
+                  : d.settings
+              }
+            />
+          )}
           {mode !== "3d" && manufacturerModel ? (
             <PreviewWindowControls
               size={previewSize}
@@ -1099,6 +1154,13 @@ export default function OnlineDesigner({
           ) : null}
         </section>
         <aside className="online-config" aria-label="Sipariş seçenekleri">
+          <button
+            className="icon-button mobile-order-close"
+            aria-label="Sipariş panelini kapat"
+            onClick={() => setMobileConfig(false)}
+          >
+            <X size={22} />
+          </button>
           <p className="order-panel-heading">Sipariş</p>
           <h2 className="config-product-title">{d.product.title}</h2>
           <OrderPanel

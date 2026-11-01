@@ -586,6 +586,8 @@ export const Editor = forwardRef<
       }
     },
     deselect: () => {
+      const active = canvas.current?.getActiveObject();
+      if (active instanceof Textbox && active.isEditing) active.exitEditing();
       canvas.current?.discardActiveObject();
       canvas.current?.requestRenderAll();
       latest.current.onSelect(null);

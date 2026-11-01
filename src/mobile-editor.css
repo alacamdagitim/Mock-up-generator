@@ -1,0 +1,491 @@
+.mobile-text-done,
+.mobile-order-close {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .online-save .black-button:enabled:hover {
+    background: #303030;
+    box-shadow: 0 4px 14px #0002;
+  }
+}
+.online-save button:enabled:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 700px), (max-width: 1100px) and (max-height: 500px) {
+  .online-app {
+    overflow: clip;
+    height: 100%;
+    --mobile-header: calc(100px + env(safe-area-inset-top, 0px));
+    --mobile-bottom: calc(94px + env(safe-area-inset-bottom, 0px));
+    --mobile-content-top: 80px;
+  }
+  .online-header {
+    height: var(--mobile-header);
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) 44px 44px;
+    grid-template-rows: 44px 44px;
+    align-items: center;
+    gap: 0 4px;
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 6px;
+  }
+  .online-brand {
+    grid-area: 1 / 1;
+    margin: 0;
+  }
+  .online-document {
+    grid-area: 1 / 2;
+    margin: 0;
+    min-width: 0;
+    gap: 4px;
+  }
+  .online-document > svg {
+    display: none;
+  }
+  .online-document input {
+    width: 100%;
+    max-width: 100%;
+    padding: 7px 2px;
+    font-size: 16px;
+  }
+  .online-header-actions {
+    display: contents;
+  }
+  .online-header .online-mode-switch,
+  .online-header .online-mode-switch.with-mockup-mode {
+    position: relative;
+    grid-area: 2 / 1 / 3 / 3;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin: 0;
+    transform: none;
+    width: 100%;
+    height: 44px;
+    min-width: 0;
+    flex-basis: auto;
+    --mode-cell: calc((100% - 6px) / 3);
+  }
+  .online-mode-switch button,
+  .online-mode-switch.with-mockup-mode button {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    height: 38px;
+    padding: 0 2px;
+    font-size: 12px;
+    line-height: 38px;
+  }
+  .online-mode-switch .online-mode-indicator {
+    width: calc((100% - 6px) / 2);
+    height: 38px;
+  }
+  .online-mode-switch.with-mockup-mode .online-mode-indicator {
+    width: var(--mode-cell);
+  }
+  .online-header-actions .header-render {
+    grid-area: 2 / 3;
+  }
+  .online-header-actions .mobile-config-toggle {
+    display: inline-flex;
+    grid-area: 2 / 4;
+    padding: 0;
+  }
+  .online-header-actions .online-export {
+    grid-area: 1 / 3;
+    position: relative;
+    margin: 0;
+    padding: 0;
+  }
+  .online-header-actions .online-close {
+    grid-area: 1 / 4;
+    position: static;
+    margin: 0;
+  }
+  .online-header-actions .header-render,
+  .online-header-actions .mobile-config-toggle,
+  .online-header-actions .online-close,
+  .online-export > .icon-button {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 10px;
+  }
+  .online-header-actions .header-render span,
+  .online-header-actions .mobile-config-toggle span,
+  .online-header-actions .header-upload,
+  .online-header-actions .template-link {
+    display: none;
+  }
+  .online-export-menu {
+    right: -48px;
+    top: 48px;
+    width: min(280px, calc(100vw - 20px));
+    z-index: 100;
+  }
+  .online-export-menu a,
+  .online-export-menu button {
+    min-height: 44px;
+  }
+  .online-stage {
+    overflow: clip;
+    height: calc(100% - var(--mobile-header));
+  }
+  .online-rail {
+    top: 8px;
+    left: 10px;
+    right: 10px;
+    height: 64px;
+    padding: 4px;
+  }
+  .online-rail button {
+    min-height: 56px;
+    height: 56px;
+    font-size: 10px;
+    gap: 4px;
+  }
+  .online-panel,
+  .show-mobile-config .online-config {
+    top: var(--mobile-content-top);
+    left: 10px;
+    right: 10px;
+    bottom: var(--mobile-bottom);
+    height: auto;
+    max-height: calc(100% - var(--mobile-content-top) - var(--mobile-bottom));
+    padding: 0 16px 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .online-panel-heading {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    min-height: 58px;
+    background: #fff;
+    margin: 0 0 12px;
+  }
+  .online-panel-heading .icon-button,
+  .mobile-order-close {
+    width: 44px;
+    height: 44px;
+  }
+  .online-config > .mobile-order-close {
+    display: inline-flex;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+  }
+  .online-config > .order-panel-heading {
+    margin: 20px 44px 12px 0;
+  }
+  .online-config > .config-product-title {
+    padding-right: 28px;
+  }
+  .online-app
+    input:not([type="color"]):not([type="range"]):not([type="checkbox"]),
+  .online-app textarea,
+  .online-app select {
+    font-size: 16px;
+  }
+  .mockup-scene-grid {
+    gap: 16px 12px;
+  }
+  .mockup-scene-card:active .mockup-scene-cover {
+    opacity: 0.8;
+  }
+  .mockup-scene-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .online-mockup-stage,
+  .with-panel .online-mockup-stage,
+  .design-workbench,
+  .without-panel .design-workbench,
+  .mode-3d .online-preview,
+  .mode-3d.with-panel .online-preview {
+    top: var(--mobile-content-top);
+    bottom: var(--mobile-bottom);
+    left: 10px;
+    right: 10px;
+  }
+  .online-save {
+    left: 10px;
+    right: 10px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .online-save button,
+  .mockup-product .online-save .mockup-primary-action,
+  .mockup-product .online-save .mockup-draft-save {
+    min-height: 44px;
+  }
+  .online-save > span {
+    font-size: 10px;
+    line-height: 1.4;
+  }
+  .online-selection-floating,
+  .without-panel .online-selection-floating {
+    top: var(--mobile-content-top);
+    left: 10px;
+    right: 10px;
+    width: auto;
+    transform: none;
+    z-index: 76;
+  }
+  .selection-inspector {
+    max-width: 100%;
+  }
+  .selection-toolbar {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 6px;
+  }
+  .selection-toolbar button {
+    width: 40px;
+    height: 44px;
+    min-width: 40px;
+  }
+  .selection-toolbar select {
+    flex: 1;
+    min-width: 90px;
+    max-width: 130px;
+    height: 44px;
+  }
+  .selection-toolbar input[type="number"] {
+    width: 58px;
+    height: 44px;
+  }
+  .selection-toolbar input[type="color"] {
+    width: 40px;
+    height: 44px;
+  }
+  .selection-more,
+  .popover-above .selection-more {
+    top: 100%;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    max-height: max(120px, calc(var(--alacam-viewport-height, 100dvh) - 360px));
+    overscroll-behavior: contain;
+  }
+  .design-canvas-dock {
+    position: fixed;
+    bottom: calc(var(--mobile-bottom) + 4px);
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+    height: 48px;
+    transform: none;
+    padding: 0 4px;
+  }
+  .design-canvas-dock > button,
+  .design-canvas-dock .canvas-tool-control > button {
+    height: 44px;
+    min-width: 26px;
+  }
+  .design-canvas-dock > i {
+    margin: 0 2px;
+  }
+  .design-face-bar {
+    position: absolute;
+    right: 0;
+    bottom: 56px;
+    height: 44px;
+  }
+  .design-face-bar select {
+    min-height: 44px;
+    max-width: 120px;
+  }
+  .mode-3d .online-camera-dock {
+    bottom: calc(var(--mobile-bottom) + 4px);
+    width: min(344px, calc(100vw - 20px));
+    height: 48px;
+  }
+  .online-camera-dock button {
+    min-height: 44px;
+  }
+  .canvas-keyboard {
+    --mobile-header: calc(52px + env(safe-area-inset-top, 0px));
+    --mobile-bottom: 8px;
+    --mobile-content-top: 8px;
+  }
+  .canvas-keyboard .online-header {
+    grid-template-rows: 44px;
+  }
+  .canvas-keyboard .online-mode-switch,
+  .canvas-keyboard .online-rail,
+  .canvas-keyboard .online-save,
+  .canvas-keyboard .online-selection-floating,
+  .canvas-keyboard .header-render,
+  .canvas-keyboard .mobile-config-toggle,
+  .canvas-keyboard .design-canvas-dock,
+  .canvas-keyboard .design-face-bar {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) and (max-height: 500px) and (orientation: landscape) {
+  .online-app {
+    --mobile-header: 52px;
+    --mobile-content-top: 8px;
+    --mobile-bottom: 8px;
+  }
+  .online-header {
+    grid-template-columns: 28px minmax(0, 1fr) 180px 44px 44px 44px;
+    grid-template-rows: 44px;
+    padding: 4px 8px;
+  }
+  .online-header .online-mode-switch,
+  .online-header .online-mode-switch.with-mockup-mode {
+    grid-area: 1 / 3;
+  }
+  .online-header-actions .header-render {
+    grid-area: 1 / 4;
+  }
+  .online-header-actions .mobile-config-toggle {
+    grid-area: 1 / 5;
+  }
+  .online-header-actions .online-close {
+    grid-area: 1 / 6;
+  }
+  .online-header-actions .online-export {
+    display: none;
+  }
+  .online-rail {
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    right: auto;
+    width: 64px;
+    height: auto;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .online-rail button {
+    width: 100%;
+    flex: 0 0 48px;
+    min-height: 48px;
+    height: 48px;
+  }
+  .online-mockup-stage,
+  .with-panel .online-mockup-stage,
+  .design-workbench,
+  .without-panel .design-workbench,
+  .mode-3d .online-preview,
+  .mode-3d.with-panel .online-preview {
+    left: 80px;
+    right: 8px;
+  }
+  .online-panel,
+  .show-mobile-config .online-config {
+    left: 80px;
+    right: 8px;
+    max-height: calc(100% - 16px);
+  }
+  .online-save {
+    left: auto;
+    right: 12px;
+    bottom: 12px;
+    width: 240px;
+  }
+  .online-save > span {
+    display: none;
+  }
+  .design-canvas-dock {
+    left: 80px;
+    right: auto;
+    width: 310px;
+    bottom: 8px;
+  }
+  .online-selection-floating,
+  .without-panel .online-selection-floating {
+    left: 80px;
+    right: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .online-save button:enabled:active {
+    transform: none;
+  }
+}
+
+@media (max-width: 700px), (max-width: 1100px) and (max-height: 500px) {
+  .online-preview,
+  .online-config {
+    display: none;
+  }
+  .mode-3d .online-preview {
+    display: block;
+  }
+  .show-mobile-config .online-config {
+    display: flex;
+  }
+  .online-rail {
+    width: auto;
+    flex-direction: row;
+  }
+  .online-rail button {
+    flex: 1;
+    min-width: 0;
+  }
+  .mockup-product .online-save {
+    width: auto;
+  }
+  .canvas-keyboard .online-header-actions .online-export {
+    display: none;
+  }
+  .canvas-keyboard .mobile-text-done {
+    display: inline-flex;
+    grid-area: 1 / 3;
+    width: 44px;
+    height: 44px;
+  }
+}
+@media (max-width: 1100px) and (max-height: 500px) and (orientation: landscape) {
+  .online-rail {
+    width: 64px;
+    flex-direction: column;
+  }
+  .online-rail button {
+    flex: 0 0 48px;
+  }
+  .mockup-product .online-save {
+    width: 240px;
+  }
+  .canvas-keyboard .online-header {
+    grid-template-columns: 28px minmax(0, 1fr) 44px 44px;
+  }
+  .canvas-keyboard .online-header-actions .online-close {
+    grid-area: 1 / 4;
+  }
+}
+
+@media (max-width: 700px), (max-width: 1100px) and (max-height: 500px) {
+  .studio-render-backdrop {
+    top: var(--alacam-viewport-top, 0px);
+    bottom: auto;
+    height: var(--alacam-viewport-height, 100dvh);
+  }
+  .studio-render-dialog {
+    height: calc(var(--alacam-viewport-height, 100dvh) - 20px);
+    max-height: calc(var(--alacam-viewport-height, 100dvh) - 20px);
+  }
+}
+
+@media (max-width: 700px), (max-width: 1100px) and (max-height: 500px) {
+  .with-panel .online-selection-floating,
+  .show-mobile-config .online-selection-floating,
+  .with-panel .design-canvas-dock,
+  .show-mobile-config .design-canvas-dock,
+  .with-panel .design-face-bar,
+  .show-mobile-config .design-face-bar {
+    display: none;
+  }
+}

@@ -83,6 +83,7 @@
       data-alacam-launcher-button
       data-alacam-open="{{ alacam_button_config_id | strip | escape }}"
       aria-haspopup="dialog"
+      aria-expanded="false"
     >
       <svg data-alacam-design-icon xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <path d="m15 5 4 4M4 20l4.5-1L20 7.5a2.8 2.8 0 0 0-4-4L4.5 15Z" />
@@ -106,6 +107,7 @@
 {% endif %}
 <style>
   [data-alacam-design-launcher] {
+    position: relative;
     display: grid;
     gap: 14px;
     width: 100%;
@@ -116,7 +118,10 @@
   }
   [data-alacam-design-launcher] button[data-alacam-launcher-button] {
     all: unset;
+    -webkit-appearance: none;
+    appearance: none;
     box-sizing: border-box;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -141,8 +146,12 @@
     text-decoration: none;
     box-shadow: none;
     cursor: pointer;
+    pointer-events: auto;
     touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
   }
   [data-alacam-design-launcher] button[data-alacam-launcher-button] [data-alacam-design-icon] {
     display: block;
@@ -159,13 +168,32 @@
     content: none;
     display: none;
   }
-  [data-alacam-design-launcher] button[data-alacam-launcher-button]:hover {
-    color: #191919;
-    filter: brightness(.985);
+  [data-alacam-design-launcher] button[data-alacam-launcher-button] > * {
+    pointer-events: none;
   }
-  [data-alacam-design-launcher] button[data-alacam-launcher-button]:disabled {
+  @media (hover: hover) and (pointer: fine) {
+    [data-alacam-design-launcher] button[data-alacam-launcher-button]:hover:not(:disabled):not([aria-disabled="true"]) {
+      color: #191919;
+      filter: brightness(.985);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgb(109 40 217 / 14%);
+    }
+  }
+  [data-alacam-design-launcher] button[data-alacam-launcher-button]:active:not(:disabled):not([aria-disabled="true"]) {
+    filter: brightness(.96);
+    transform: translateY(1px) scale(.99);
+    box-shadow: 0 1px 5px rgb(0 0 0 / 12%);
+  }
+  [data-alacam-design-launcher] button[data-alacam-launcher-button][aria-busy="true"] {
+    opacity: .75;
+    cursor: progress;
+  }
+  [data-alacam-design-launcher] button[data-alacam-launcher-button]:disabled,
+  [data-alacam-design-launcher] button[data-alacam-launcher-button][aria-disabled="true"] {
     opacity: .55;
-    cursor: wait;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
   [data-alacam-design-launcher] a[data-alacam-dieline-link] {
     all: unset;
@@ -200,7 +228,14 @@
   }
   @media (max-width: 749px) {
     [data-alacam-design-launcher] { gap: 8px; }
+    [data-alacam-design-launcher] button[data-alacam-launcher-button] { min-height: 50px; }
     [data-alacam-design-launcher] a[data-alacam-dieline-link] { min-height: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-alacam-design-launcher] button[data-alacam-launcher-button] {
+      transition: none;
+      transform: none !important;
+    }
   }
   @media (forced-colors: active) {
     [data-alacam-design-launcher] button[data-alacam-launcher-button] {

@@ -431,3 +431,72 @@
     animation-duration: 2s;
   }
 }
+
+@media (max-width: 700px) {
+  .studio-render-supplied-panel {
+    overflow-x: hidden;
+  }
+  .export-panel-stage {
+    height: clamp(150px, 32dvh, 300px);
+    min-height: 0;
+    max-height: none;
+  }
+  .export-panel-artwork-wrap {
+    min-height: 0;
+    padding: 24px 18px 8px;
+  }
+  .export-panel-empty {
+    min-height: 0;
+    padding: 16px;
+  }
+  .export-panel-view-switch button,
+  .export-panel-secondary,
+  .export-panel-original-link {
+    min-height: 44px;
+  }
+  .export-panel-link-label input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .export-panel-stage-meta {
+    gap: 4px 12px;
+    padding: 6px 14px 10px;
+  }
+  .export-panel-scroll {
+    padding: 18px 16px 8px;
+  }
+  .export-panel-footer {
+    padding: 10px 16px 20px;
+  }
+}
+
+@media (min-width: 701px) and (max-width: 1100px) and (max-height: 500px) {
+  .studio-render-body > .export-panel-settings {
+    padding: 0;
+    overflow: auto;
+  }
+  .export-panel-scroll {
+    flex: 0 0 auto;
+    overflow: visible;
+    padding: 14px 18px 8px;
+  }
+  .export-panel-footer {
+    padding: 8px 18px 14px;
+  }
+  .export-panel-artwork-wrap {
+    padding: 20px;
+  }
+  .export-panel-share-stage .export-panel-artwork-wrap {
+    padding-top: 62px;
+  }
+  .export-panel-stage-meta {
+    padding: 6px 14px 10px;
+    font-size: 11px;
+  }
+  .export-panel-fieldset {
+    margin-bottom: 16px;
+  }
+  .export-panel-approval-note {
+    margin-bottom: 12px;
+  }
+}

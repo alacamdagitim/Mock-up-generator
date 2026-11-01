@@ -14,6 +14,7 @@ type Session = {
   scrollX: number;
   scrollY: number;
   restoreScroll: () => void;
+  releaseViewport: () => void;
   source: () => EditorConfig;
   promise: Promise<void>;
   dispose?: () => void;
@@ -112,6 +113,47 @@ function scrollLock() {
   };
 }
 
+/** Match the modal to the visible keyboard viewport without scaling a pinch gesture. */
+function fitVisualViewport(dialog: HTMLDialogElement) {
+  const viewport = window.visualViewport;
+  if (!viewport) return () => {};
+  let frame = 0;
+  const update = () => {
+    frame = 0;
+    if (viewport.scale > 1.01 || !dialog.isConnected) return;
+    const height = `${Math.max(1, Math.round(viewport.height))}px`;
+    const top = `${Math.max(0, Math.round(viewport.offsetTop))}px`;
+    dialog.style.setProperty("height", height, "important");
+    dialog.style.setProperty("top", top, "important");
+    dialog.style.setProperty("bottom", "auto", "important");
+    dialog.style.setProperty("--alacam-viewport-height", height, "important");
+    dialog.style.setProperty("--alacam-viewport-top", top, "important");
+  };
+  const schedule = () => {
+    if (!frame) frame = requestAnimationFrame(update);
+  };
+  viewport.addEventListener("resize", schedule);
+  viewport.addEventListener("scroll", schedule);
+  window.addEventListener("resize", schedule);
+  update();
+  return () => {
+    cancelAnimationFrame(frame);
+    viewport.removeEventListener("resize", schedule);
+    viewport.removeEventListener("scroll", schedule);
+    window.removeEventListener("resize", schedule);
+  };
+}
+
+function launcherTrigger(event: Event): HTMLElement | null {
+  for (const node of event.composedPath()) {
+    if (node instanceof HTMLElement && node.matches("[data-alacam-open]"))
+      return node;
+  }
+  return event.target instanceof Element
+    ? event.target.closest<HTMLElement>("[data-alacam-open]")
+    : null;
+}
+
 // No React/Three/Fabric request is made until the first open. The stable entry
 // also supports transient entry-fetch retry without reusing a failed ESM URL.
 let moduleApi: EditorModule | undefined;
@@ -162,6 +204,7 @@ function install(): Launcher {
     if (active !== session) return;
     active = undefined;
     session.controller.abort();
+    session.releaseViewport();
     try {
       session.dispose?.();
     } finally {
@@ -279,6 +322,8 @@ function install(): Launcher {
       inset: "0",
       width: "100dvw",
       height: "100dvh",
+      "--alacam-viewport-height": "100dvh",
+      "--alacam-viewport-top": "0px",
       "max-width": "none",
       "max-height": "none",
       margin: "0",
@@ -324,6 +369,7 @@ function install(): Launcher {
       scrollX: window.scrollX,
       scrollY: window.scrollY,
       restoreScroll: scrollLock(),
+      releaseViewport: () => {},
       source,
       promise: Promise.resolve(),
       controller: new AbortController(),
@@ -332,6 +378,7 @@ function install(): Launcher {
     active = session;
     document.body.append(dialog);
     dialog.showModal();
+    session.releaseViewport = fitVisualViewport(dialog);
     trigger?.setAttribute("aria-expanded", "true");
     loading
       .querySelector(".close")!
@@ -357,20 +404,101 @@ function install(): Launcher {
       begin(() => validateLaunchConfig(config), trigger),
     close,
   };
-  document.addEventListener("click", (event) => {
-    if (
-      event.defaultPrevented ||
-      (event instanceof MouseEvent && event.button !== 0)
-    )
-      return;
-    const target =
-      event.target instanceof Element
-        ? event.target.closest<HTMLElement>("[data-alacam-open]")
-        : null;
-    if (!target || target.matches(":disabled,[aria-disabled='true']")) return;
-    event.preventDefault();
-    void begin(() => configFromButton(target), target);
-  });
+  let touch:
+    | {
+        target: HTMLElement;
+        pointer: number;
+        x: number;
+        y: number;
+        scrollX: number;
+        scrollY: number;
+        moved: boolean;
+      }
+    | undefined;
+  let cancelledTouch: { target: HTMLElement; until: number } | undefined;
+  const cancelTouch = () => {
+    if (touch)
+      cancelledTouch = { target: touch.target, until: Date.now() + 1000 };
+    touch = undefined;
+  };
+  document.addEventListener(
+    "pointerdown",
+    (event) => {
+      if (touch && touch.pointer !== event.pointerId) cancelTouch();
+      if (event.pointerType === "mouse") {
+        cancelledTouch = undefined;
+        return;
+      }
+      if (!event.isPrimary || event.button !== 0) return;
+      const target = launcherTrigger(event);
+      if (!target || target.matches(":disabled,[aria-disabled='true']")) return;
+      cancelledTouch = undefined;
+      touch = {
+        target,
+        pointer: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+        moved: false,
+      };
+    },
+    { capture: true, passive: true },
+  );
+  document.addEventListener(
+    "pointermove",
+    (event) => {
+      if (touch?.pointer !== event.pointerId) return;
+      if (Math.hypot(event.clientX - touch.x, event.clientY - touch.y) > 12)
+        touch.moved = true;
+    },
+    { capture: true, passive: true },
+  );
+  document.addEventListener(
+    "pointercancel",
+    (event) => {
+      if (touch?.pointer === event.pointerId) cancelTouch();
+    },
+    { capture: true, passive: true },
+  );
+  document.addEventListener(
+    "pointerup",
+    (event) => {
+      if (touch?.pointer !== event.pointerId) return;
+      if (
+        touch.moved ||
+        Math.hypot(event.clientX - touch.x, event.clientY - touch.y) > 12 ||
+        Math.abs(window.scrollX - touch.scrollX) > 4 ||
+        Math.abs(window.scrollY - touch.scrollY) > 4
+      )
+        cancelTouch();
+      else touch = undefined;
+    },
+    { capture: true, passive: true },
+  );
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (
+        event.defaultPrevented ||
+        (event instanceof MouseEvent && event.button !== 0)
+      )
+        return;
+      const target = launcherTrigger(event);
+      if (!target || target.matches(":disabled,[aria-disabled='true']")) return;
+      if (
+        event.detail !== 0 &&
+        cancelledTouch?.target === target &&
+        cancelledTouch.until > Date.now()
+      ) {
+        event.preventDefault();
+        return;
+      }
+      event.preventDefault();
+      void begin(() => configFromButton(target), target);
+    },
+    { capture: true },
+  );
   document.addEventListener("shopify:section:unload", (event) => {
     const target = event.target;
     if (

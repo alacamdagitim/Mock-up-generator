@@ -20,6 +20,7 @@ type Loaded = {
 export const ProductPreview = forwardRef<
   PreviewHandle,
   {
+    active?: boolean;
     modelUrl?: string | null;
     onFaces?: (faces: string[]) => void;
     binding?: ModelBinding;
@@ -29,7 +30,15 @@ export const ProductPreview = forwardRef<
   }
 >(
   (
-    { modelUrl, textures, settings, onFaces, binding, onBindingChange },
+    {
+      active = true,
+      modelUrl,
+      textures,
+      settings,
+      onFaces,
+      binding,
+      onBindingChange,
+    },
     ref,
   ) => {
     const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -134,6 +143,7 @@ export const ProductPreview = forwardRef<
         <Preview
           key={requestKey}
           ref={ref}
+          active={active}
           textures={textures}
           settings={settings}
           assetFactory={(renderer) => {

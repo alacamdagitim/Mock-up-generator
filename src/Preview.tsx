@@ -57,15 +57,20 @@ type SceneState = {
 export const Preview = forwardRef<
   PreviewHandle,
   {
+    active?: boolean;
     textures: Record<"front" | "back", HTMLCanvasElement | null>;
     settings: Presentation;
     assetFactory?: (renderer: THREE.WebGLRenderer) => PreviewAsset;
   }
->(({ textures, settings, assetFactory }, ref) => {
+>(({ active = true, textures, settings, assetFactory }, ref) => {
   const host = useRef<HTMLDivElement>(null),
     state = useRef<SceneState | null>(null);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
+  // Pause hidden mobile previews without losing their loaded GLB or camera.
+  // The update effects replay the latest props when active becomes true.
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const [error, setError] = useState(false),
     [ready, setReady] = useState(false);
   useImperativeHandle(
@@ -180,6 +185,7 @@ export const Preview = forwardRef<
       camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
     camera.position.set(3.2, 1.2, 9);
     const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enabled = activeRef.current;
     controls.enablePan = true;
     controls.enableRotate = false;
     // Product rotation owns one-finger drags. A disabled ROTATE mapping leaves
@@ -238,11 +244,20 @@ export const Preview = forwardRef<
     let dragFrame = 0;
     let shadowDirty = false;
     const render = () => {
-      if (!disposed && !renderer.getContext().isContextLost())
+      if (
+        activeRef.current &&
+        !disposed &&
+        !renderer.getContext().isContextLost()
+      )
         renderer.render(scene, camera);
     };
     const updateShadow = () => {
-      if (disposed || renderer.getContext().isContextLost()) return;
+      if (
+        !activeRef.current ||
+        disposed ||
+        renderer.getContext().isContextLost()
+      )
+        return;
       const bounds = new THREE.Box3().setFromObject(root);
       if (bounds.isEmpty()) return;
       const center = bounds.getCenter(new THREE.Vector3());
@@ -345,6 +360,7 @@ export const Preview = forwardRef<
     };
     controls.addEventListener("change", render);
     const resize = () => {
+      if (!activeRef.current) return;
       const w = el.clientWidth,
         h = el.clientHeight;
       if (!w || !h) return;
@@ -400,6 +416,7 @@ export const Preview = forwardRef<
     const pointers = new Map<number, { x: number; y: number; type: string }>();
     let drag: { id: number; x: number; y: number } | null = null;
     const startProductDrag = (event: PointerEvent) => {
+      if (!activeRef.current) return;
       pointers.set(event.pointerId, {
         x: event.clientX,
         y: event.clientY,
@@ -421,6 +438,7 @@ export const Preview = forwardRef<
       renderer.domElement.setPointerCapture(event.pointerId);
     };
     const moveProductDrag = (event: PointerEvent) => {
+      if (!activeRef.current) return;
       if (pointers.has(event.pointerId))
         pointers.set(event.pointerId, {
           x: event.clientX,
@@ -508,7 +526,11 @@ export const Preview = forwardRef<
   }, []);
   useEffect(() => {
     const s = state.current;
-    if (!s) return;
+    if (s) s.controls.enabled = active;
+  }, [active, ready]);
+  useEffect(() => {
+    const s = state.current;
+    if (!s || !active) return;
     s.root.clear();
     arrangeProduct(
       s.root,
@@ -529,10 +551,10 @@ export const Preview = forwardRef<
       s.camera.updateProjectionMatrix();
     }
     s.fit();
-  }, [settings.layout, settings.spacing, ready]);
+  }, [settings.layout, settings.spacing, ready, active]);
   useEffect(() => {
     const s = state.current;
-    if (!s) return;
+    if (!s || !active) return;
     if (s.external) return;
     const depth = 0.08 + (settings.inflate ?? 100) * 0.0092;
     s.root.children.forEach((model) => {
@@ -540,10 +562,10 @@ export const Preview = forwardRef<
     });
     s.updateShadow();
     s.render();
-  }, [settings.inflate, ready]);
+  }, [settings.inflate, ready, active]);
   useEffect(() => {
     const s = state.current;
-    if (!s) return;
+    if (!s || !active) return;
     s.backgroundMap?.dispose();
     s.backgroundMap = undefined;
     if (settings.backgroundStyle === "transparent") s.exportBackground = null;
@@ -594,10 +616,11 @@ export const Preview = forwardRef<
     settings.lighting,
     settings.quality,
     ready,
+    active,
   ]);
   useEffect(() => {
     const s = state.current;
-    if (!s) return;
+    if (!s || !active) return;
     const printMode = settings.printMode || "color";
     (["front", "back"] as const).forEach((face, i) => {
       const source = textures[face];
@@ -652,7 +675,7 @@ export const Preview = forwardRef<
       }
     }
     s.render();
-  }, [textures, settings.printMode, settings.substrate, ready]);
+  }, [textures, settings.printMode, settings.substrate, ready, active]);
   return (
     <div
       className="preview-render"
