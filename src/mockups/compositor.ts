@@ -2,7 +2,12 @@ import { mockupSceneSchema } from "../../shared/mockup-scenes.mjs";
 import { checkAbort, createAssetStore, MAX_SCENE_PIXELS } from "./assets";
 import type { AssetStore } from "./assets";
 import type { MockupScene, MockupTextures } from "./types";
-import { sampleBilinear, sampleMinified, sampleUv16 } from "./sampling";
+import {
+  chooseUvDerivative,
+  sampleAnisotropic,
+  sampleBilinear,
+  sampleUv16,
+} from "./sampling";
 import type { PixelLevel } from "./sampling";
 import { blurMockupLayer } from "./focus-blur";
 
@@ -316,8 +321,11 @@ export async function composeMockup(
           : null;
       const sampled = new Float64Array(4),
         scratch = new Float64Array(4),
+        tap = new Float64Array(4),
         uv = new Float64Array(2),
         adjacent = new Float64Array(2),
+        derivative = new Float64Array(2),
+        gradients = new Float64Array(4),
         nativeStepX = scene.width / width,
         nativeStepY = scene.height / height;
       const readUv = (x: number, y: number, result: Float64Array) => {
@@ -347,6 +355,14 @@ export async function composeMockup(
           result[1] = uv8[offset + 1] / 255;
         } else throw new Error("Mockup baskı eşlemesi eksik.");
       };
+      const coveredNeighbor = (x: number, y: number) => {
+        if (x < 0 || x >= width || y < 0 || y >= height) return false;
+        const offset = (y * width + x) * 4;
+        return (
+          (!mask || mask[offset] * mask[offset + 3] >= 0.25 * 255 * 255) &&
+          (!uv8 || uv8[offset + 3] >= 64)
+        );
+      };
       for (let y = 0; y < height; y++) {
         if (y % 64 === 0) {
           checkAbort(options.signal);
@@ -372,41 +388,61 @@ export async function composeMockup(
             continue;
           if (uv8) coverage *= uv8[offset + 3] / 255;
           if (options.antialias) {
-            let footprint = 1;
             for (let axis = 0; axis < 2; axis++) {
-              readUv(
-                x + (axis === 0 ? 1 : 0),
-                y + (axis === 1 ? 1 : 0),
-                adjacent,
-              );
-              let du = adjacent[0] - u,
-                dv = adjacent[1] - v;
-              // Outside a masked surface a UV map may contain zero/sentinel values.
-              // A backwards derivative avoids smearing that discontinuity into the art.
-              if (
-                !Number.isFinite(du + dv) ||
-                Math.abs(du) > 0.25 ||
-                Math.abs(dv) > 0.25
-              ) {
-                readUv(
-                  x - (axis === 0 ? 1 : 0),
-                  y - (axis === 1 ? 1 : 0),
-                  adjacent,
-                );
-                du = u - adjacent[0];
-                dv = v - adjacent[1];
+              const dx = axis === 0 ? 1 : 0,
+                dy = axis === 1 ? 1 : 0;
+              let fu = NaN,
+                fv = NaN,
+                bu = NaN,
+                bv = NaN;
+              if (coveredNeighbor(x + dx, y + dy)) {
+                readUv(x + dx, y + dy, adjacent);
+                if (
+                  adjacent[0] >= 0 &&
+                  adjacent[0] <= 1 &&
+                  adjacent[1] >= 0 &&
+                  adjacent[1] <= 1
+                ) {
+                  fu = adjacent[0] - u;
+                  fv = adjacent[1] - v;
+                }
               }
-              if (
-                Number.isFinite(du + dv) &&
-                Math.abs(du) <= 0.25 &&
-                Math.abs(dv) <= 0.25
-              )
-                footprint = Math.max(
-                  footprint,
-                  Math.hypot(du * sourceWidth, dv * sourceHeight),
-                );
+              if (coveredNeighbor(x - dx, y - dy)) {
+                readUv(x - dx, y - dy, adjacent);
+                if (
+                  adjacent[0] >= 0 &&
+                  adjacent[0] <= 1 &&
+                  adjacent[1] >= 0 &&
+                  adjacent[1] <= 1
+                ) {
+                  bu = u - adjacent[0];
+                  bv = v - adjacent[1];
+                }
+              }
+              chooseUvDerivative(
+                fu,
+                fv,
+                bu,
+                bv,
+                sourceWidth,
+                sourceHeight,
+                derivative,
+              );
+              gradients[axis * 2] = derivative[0];
+              gradients[axis * 2 + 1] = derivative[1];
             }
-            sampleMinified(levels, u, v, footprint, sampled, scratch);
+            sampleAnisotropic(
+              levels,
+              u,
+              v,
+              gradients[0],
+              gradients[1],
+              gradients[2],
+              gradients[3],
+              sampled,
+              scratch,
+              tap,
+            );
           } else {
             sampleBilinear(
               levels[0],

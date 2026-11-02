@@ -123,6 +123,101 @@ export function sampleMinified(
   out[3] = alpha;
 }
 
+/** Prefer the continuous side of a UV chart instead of differentiating across a seam. */
+export function chooseUvDerivative(
+  forwardU: number,
+  forwardV: number,
+  backwardU: number,
+  backwardV: number,
+  sourceWidth: number,
+  sourceHeight: number,
+  out: Float64Array,
+) {
+  const forward = Math.hypot(forwardU * sourceWidth, forwardV * sourceHeight),
+    backward = Math.hypot(backwardU * sourceWidth, backwardV * sourceHeight);
+  const hasForward = Number.isFinite(forward),
+    hasBackward = Number.isFinite(backward);
+  // A copied exterior fringe can be constant; use a real interior gradient if present.
+  const useForward =
+    hasForward &&
+    (!hasBackward ||
+      (forward > 1e-6 && backward <= 1e-6) ||
+      (forward > 1e-6 && backward > 1e-6 && forward <= backward));
+  out[0] = useForward ? forwardU : hasBackward ? backwardU : 0;
+  out[1] = useForward ? forwardV : hasBackward ? backwardV : 0;
+}
+
+/** Filter the long footprint direction without discarding detail on its short axis. */
+export function sampleAnisotropic(
+  levels: PixelLevel[],
+  u: number,
+  v: number,
+  duDx: number,
+  dvDx: number,
+  duDy: number,
+  dvDy: number,
+  out: Float64Array,
+  scratch: Float64Array,
+  tap: Float64Array,
+) {
+  const sw = levels[0].width,
+    sh = levels[0].height;
+  const ux = duDx * sw,
+    vx = dvDx * sh,
+    uy = duDy * sw,
+    vy = dvDy * sh;
+  const a = ux * ux + uy * uy,
+    b = vx * vx + vy * vy,
+    c = ux * vx + uy * vy;
+  const discriminant = Math.hypot(a - b, 2 * c);
+  const majorSquared = Math.max(0, (a + b + discriminant) / 2),
+    major = Math.sqrt(majorSquared),
+    minor = Math.sqrt(Math.max(0, (a + b - discriminant) / 2));
+  const footprint = Math.max(1, minor, major / 8);
+  const count = Math.min(8, Math.max(1, Math.ceil(major / footprint)));
+  if (count === 1) {
+    sampleMinified(levels, u, v, footprint, out, scratch);
+    return;
+  }
+  // Principal eigenvector of J Jᵀ, in source texel space.
+  let axisU: number, axisV: number;
+  if (Math.abs(c) > 1e-10) {
+    axisU = c;
+    axisV = majorSquared - a;
+    const length = Math.hypot(axisU, axisV);
+    axisU /= length;
+    axisV /= length;
+  } else {
+    axisU = a >= b ? 1 : 0;
+    axisV = a >= b ? 0 : 1;
+  }
+  let red = 0,
+    green = 0,
+    blue = 0,
+    alpha = 0;
+  for (let index = 0; index < count; index++) {
+    // Each mip tap already covers the minor footprint. Its center only needs
+    // to travel the remaining extent; otherwise near-isotropic pixels blur twice.
+    const distance = (index / (count - 1) - 0.5) * (major - footprint);
+    sampleMinified(
+      levels,
+      u + (axisU * distance) / sw,
+      v + (axisV * distance) / sh,
+      footprint,
+      tap,
+      scratch,
+    );
+    red += tap[0] * tap[3];
+    green += tap[1] * tap[3];
+    blue += tap[2] * tap[3];
+    alpha += tap[3];
+  }
+  out[0] = alpha ? red / alpha : 0;
+  out[1] = alpha ? green / alpha : 0;
+  out[2] = alpha ? blue / alpha : 0;
+  out[3] = alpha / count;
+}
+
 /** Match the displayed photo and Retina density, with bounded temporary canvases. */
 export function previewResolution(
   sceneWidth: number,

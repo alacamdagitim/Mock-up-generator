@@ -19,7 +19,7 @@
       "backgroundMode": "design",
       "mapping": {
         "type": "uv-rg16le",
-        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-size-trio-r1/front.uv.bin.br?v=20261102-r2"
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-size-trio-r1/front.uv.bin.br?v=20261102-r3"
       },
       "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-size-trio-r1/front-mask.png?v=20261102-r2",
       "blend": "multiply"
