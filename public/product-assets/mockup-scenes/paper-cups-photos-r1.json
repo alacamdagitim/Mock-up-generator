@@ -1,0 +1,289 @@
+{
+  "schemaVersion": 1,
+  "scenes": [
+    {
+      "id": "paper-cups-carra-duo-r1",
+      "title": "Zeytin fon · İki açık bardak",
+      "width": 1254,
+      "height": 1254,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-duo-r1/base.webp",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-duo-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı fotoğraftan imagegen ile baskısız taban hazırlandı. Kaynak hakları ilgili sahibine aittir; CC0 veya ek kullanım izni iddiası yoktur. Elle kalibre edilmiş sabit görünüm UV yaklaşımıdır; üretim ölçüsü değildir.",
+      "artboard": {
+        "canvasWidth": 1800,
+        "canvasHeight": 900
+      },
+      "surfaces": [
+        {
+          "id": "cup-bodies",
+          "title": "Görünen bardak gövdeleri",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-duo-r1/front.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-duo-r1/front-mask.png",
+          "blend": "multiply"
+        }
+      ]
+    },
+    {
+      "id": "paper-cups-carra-collage-r1",
+      "title": "Karton bardak · Çoklu stüdyo kolajı",
+      "width": 1254,
+      "height": 1254,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-collage-r1/base.webp",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-collage-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı fotoğraftan hazırlanmış web önizlemesi. Kaynak görselin hakları sahibine aittir; lisans veya ek izin devri beyan edilmez. AI ile baskılar temizlendi. Elle kalibre edilmiş yaklaşık sabit görünüm eşlemesidir; üretim dosyası değildir.",
+      "artboard": {
+        "canvasWidth": 1800,
+        "canvasHeight": 900
+      },
+      "surfaces": [
+        {
+          "id": "all-cup-walls",
+          "title": "Bardak gövdeleri",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-collage-r1/front.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-collage-r1/front-mask.png",
+          "blend": "multiply"
+        }
+      ]
+    },
+    {
+      "id": "paper-cups-wall-comparison-r1",
+      "title": "Tek ve çift duvar · İki bardak",
+      "width": 1254,
+      "height": 1254,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-wall-comparison-r1/base.webp",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-wall-comparison-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı ürün fotoğrafından AI ile baskısız taban hazırlandı. Kaynak hakları ilgili sahibine aittir; CC0 veya açık kaynak lisans iddiası yoktur. Silindirik UV eşlemesi elle kalibre edilmiş sabit görünüm yaklaşımıdır; fiziksel üretim ölçüsü değildir.",
+      "artboard": {
+        "canvasWidth": 1800,
+        "canvasHeight": 900
+      },
+      "surfaces": [
+        {
+          "id": "all-cup-bodies",
+          "title": "Görünen tüm bardak gövdeleri",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-wall-comparison-r1/front.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-wall-comparison-r1/front-mask.png",
+          "blend": "multiply"
+        }
+      ]
+    },
+    {
+      "id": "paper-cups-dental-hand-r1",
+      "title": "Banyo · Elde bardak ve arka yığınlar",
+      "width": 1254,
+      "height": 1254,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/base.webp",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı referans fotoğraftan AI ile baskısızlaştırılmış sabit açılı mockup. Kaynak hakları sahibine aittir; CC0 değildir. Sayısal eşleme yaklaşık görselleştirme içindir; üretim ölçüsü içermez.",
+      "artboard": {
+        "canvasWidth": 1800,
+        "canvasHeight": 900
+      },
+      "surfaces": [
+        {
+          "id": "held-cup",
+          "title": "Eldeki bardak",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/held-cup.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/held-cup-mask.png",
+          "blend": "multiply"
+        },
+        {
+          "id": "rear-stack-cup",
+          "title": "Arkadaki uzun yığının alt bardağı",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/rear-stack-cup.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/rear-stack-cup-mask.png",
+          "blend": "multiply"
+        },
+        {
+          "id": "right-stack-cup",
+          "title": "Sağdaki kısmen görünen bardak",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/right-stack-cup.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/right-stack-cup-mask.png",
+          "blend": "multiply"
+        },
+        {
+          "id": "nested-paper-bands",
+          "title": "Yığındaki görünen dar kağıt şeritler",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/nested-paper-bands.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/nested-paper-bands-mask.png",
+          "blend": "multiply"
+        }
+      ]
+    },
+    {
+      "id": "paper-cups-double-wall-stack-r1",
+      "title": "Çift duvar · İç içe bardak yığınları",
+      "width": 1254,
+      "height": 1254,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-double-wall-stack-r1/base.webp",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-double-wall-stack-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı ürün fotoğrafından AI ile baskısız taban hazırlandı. Kaynak hakları ilgili sahibine aittir; CC0 veya açık kaynak lisans iddiası yoktur. Silindirik UV eşlemesi elle kalibre edilmiş sabit görünüm yaklaşımıdır; fiziksel üretim ölçüsü değildir.",
+      "artboard": {
+        "canvasWidth": 1800,
+        "canvasHeight": 900
+      },
+      "surfaces": [
+        {
+          "id": "all-cup-bodies",
+          "title": "Görünen tüm bardak gövdeleri",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-double-wall-stack-r1/front.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-double-wall-stack-r1/front-mask.png",
+          "blend": "multiply"
+        }
+      ]
+    },
+    {
+      "id": "paper-cups-size-trio-r1",
+      "title": "Üç boy · Kapaklı bardaklar",
+      "width": 1254,
+      "height": 1254,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-size-trio-r1/base.webp",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-size-trio-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı ürün fotoğrafından AI ile baskısız taban hazırlandı. Kaynak hakları ilgili sahibine aittir; CC0 veya açık kaynak lisans iddiası yoktur. Silindirik UV eşlemesi elle kalibre edilmiş sabit görünüm yaklaşımıdır; fiziksel üretim ölçüsü değildir.",
+      "artboard": {
+        "canvasWidth": 1800,
+        "canvasHeight": 900
+      },
+      "surfaces": [
+        {
+          "id": "all-cup-bodies",
+          "title": "Görünen tüm bardak gövdeleri",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-size-trio-r1/front.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-size-trio-r1/front-mask.png",
+          "blend": "multiply"
+        }
+      ]
+    },
+    {
+      "id": "paper-cups-green-stack-r1",
+      "title": "Yeşil fon · Elde bardak yığını",
+      "width": 1254,
+      "height": 1254,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/base.webp",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı referans fotoğraftan AI ile baskısızlaştırılmış sabit açılı mockup. Kaynak hakları sahibine aittir; CC0 değildir. Sayısal eşleme yaklaşık görselleştirme içindir; üretim ölçüsü içermez.",
+      "artboard": {
+        "canvasWidth": 1800,
+        "canvasHeight": 900
+      },
+      "surfaces": [
+        {
+          "id": "upper-held-cup",
+          "title": "Üstteki eğik bardak",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/upper-held-cup.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/upper-held-cup-mask.png",
+          "blend": "multiply"
+        },
+        {
+          "id": "lower-held-cup",
+          "title": "Alttaki elde tutulan bardak",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/lower-held-cup.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/lower-held-cup-mask.png",
+          "blend": "multiply"
+        },
+        {
+          "id": "nested-paper-bands",
+          "title": "Yığındaki görünen dar kağıt şeritler",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/nested-paper-bands.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/nested-paper-bands-mask.png",
+          "blend": "multiply"
+        }
+      ]
+    },
+    {
+      "id": "paper-cups-pizzeria-counter-r1",
+      "title": "Karton bardak · Pizzacı tezgahı",
+      "width": 1254,
+      "height": 1254,
+      "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-pizzeria-counter-r1/base.webp",
+      "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-pizzeria-counter-r1/thumbnail.jpg",
+      "distribution": "public-web",
+      "license": "Kullanıcının sağladığı fotoğraftan hazırlanmış web önizlemesi. Kaynak görselin hakları sahibine aittir; lisans veya ek izin devri beyan edilmez. AI ile baskılar temizlendi. Elle kalibre edilmiş yaklaşık sabit görünüm eşlemesidir; üretim dosyası değildir.",
+      "artboard": {
+        "canvasWidth": 1800,
+        "canvasHeight": 900
+      },
+      "surfaces": [
+        {
+          "id": "all-cup-walls",
+          "title": "Bardak gövdeleri",
+          "face": "front",
+          "backgroundMode": "design",
+          "mapping": {
+            "type": "uv-rg16le",
+            "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-pizzeria-counter-r1/front.uv.bin.br"
+          },
+          "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-pizzeria-counter-r1/front-mask.png",
+          "blend": "multiply"
+        }
+      ]
+    }
+  ]
+}

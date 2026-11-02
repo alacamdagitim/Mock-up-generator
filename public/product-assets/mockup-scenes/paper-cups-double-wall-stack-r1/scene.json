@@ -1,0 +1,28 @@
+{
+  "id": "paper-cups-double-wall-stack-r1",
+  "title": "Çift duvar · İç içe bardak yığınları",
+  "width": 1254,
+  "height": 1254,
+  "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-double-wall-stack-r1/base.webp",
+  "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-double-wall-stack-r1/thumbnail.jpg",
+  "distribution": "public-web",
+  "license": "Kullanıcının sağladığı ürün fotoğrafından AI ile baskısız taban hazırlandı. Kaynak hakları ilgili sahibine aittir; CC0 veya açık kaynak lisans iddiası yoktur. Silindirik UV eşlemesi elle kalibre edilmiş sabit görünüm yaklaşımıdır; fiziksel üretim ölçüsü değildir.",
+  "artboard": {
+    "canvasWidth": 1800,
+    "canvasHeight": 900
+  },
+  "surfaces": [
+    {
+      "id": "all-cup-bodies",
+      "title": "Görünen tüm bardak gövdeleri",
+      "face": "front",
+      "backgroundMode": "design",
+      "mapping": {
+        "type": "uv-rg16le",
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-double-wall-stack-r1/front.uv.bin.br"
+      },
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-double-wall-stack-r1/front-mask.png",
+      "blend": "multiply"
+    }
+  ]
+}

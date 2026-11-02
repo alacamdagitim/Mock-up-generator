@@ -1,0 +1,28 @@
+{
+  "id": "paper-cups-carra-collage-r1",
+  "title": "Karton bardak · Çoklu stüdyo kolajı",
+  "width": 1254,
+  "height": 1254,
+  "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-collage-r1/base.webp",
+  "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-collage-r1/thumbnail.jpg",
+  "distribution": "public-web",
+  "license": "Kullanıcının sağladığı fotoğraftan hazırlanmış web önizlemesi. Kaynak görselin hakları sahibine aittir; lisans veya ek izin devri beyan edilmez. AI ile baskılar temizlendi. Elle kalibre edilmiş yaklaşık sabit görünüm eşlemesidir; üretim dosyası değildir.",
+  "artboard": {
+    "canvasWidth": 1800,
+    "canvasHeight": 900
+  },
+  "surfaces": [
+    {
+      "id": "all-cup-walls",
+      "title": "Bardak gövdeleri",
+      "face": "front",
+      "backgroundMode": "design",
+      "mapping": {
+        "type": "uv-rg16le",
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-collage-r1/front.uv.bin.br"
+      },
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-collage-r1/front-mask.png",
+      "blend": "multiply"
+    }
+  ]
+}

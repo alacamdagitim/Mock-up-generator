@@ -6,7 +6,7 @@ const compressedMockupMaps: Plugin = {
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
       if (
-        /^\/product-assets\/mockup-scenes\/tin-can-r1\/(body|lid)\.uv\.bin\.br(?:\?|$)/.test(
+        /^\/product-assets\/mockup-scenes\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.uv\.bin\.br(?:\?|$)/.test(
           req.url || "",
         )
       ) {
@@ -19,7 +19,7 @@ const compressedMockupMaps: Plugin = {
   configurePreviewServer(server) {
     server.middlewares.use((req, res, next) => {
       if (
-        /^\/product-assets\/mockup-scenes\/tin-can-r1\/(body|lid)\.uv\.bin\.br(?:\?|$)/.test(
+        /^\/product-assets\/mockup-scenes\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\.uv\.bin\.br(?:\?|$)/.test(
           req.url || "",
         )
       ) {

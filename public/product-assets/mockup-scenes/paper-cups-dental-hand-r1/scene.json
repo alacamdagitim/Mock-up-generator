@@ -1,0 +1,64 @@
+{
+  "id": "paper-cups-dental-hand-r1",
+  "title": "Banyo · Elde bardak ve arka yığınlar",
+  "width": 1254,
+  "height": 1254,
+  "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/base.webp",
+  "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/thumbnail.jpg",
+  "distribution": "public-web",
+  "license": "Kullanıcının sağladığı referans fotoğraftan AI ile baskısızlaştırılmış sabit açılı mockup. Kaynak hakları sahibine aittir; CC0 değildir. Sayısal eşleme yaklaşık görselleştirme içindir; üretim ölçüsü içermez.",
+  "artboard": {
+    "canvasWidth": 1800,
+    "canvasHeight": 900
+  },
+  "surfaces": [
+    {
+      "id": "held-cup",
+      "title": "Eldeki bardak",
+      "face": "front",
+      "backgroundMode": "design",
+      "mapping": {
+        "type": "uv-rg16le",
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/held-cup.uv.bin.br"
+      },
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/held-cup-mask.png",
+      "blend": "multiply"
+    },
+    {
+      "id": "rear-stack-cup",
+      "title": "Arkadaki uzun yığının alt bardağı",
+      "face": "front",
+      "backgroundMode": "design",
+      "mapping": {
+        "type": "uv-rg16le",
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/rear-stack-cup.uv.bin.br"
+      },
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/rear-stack-cup-mask.png",
+      "blend": "multiply"
+    },
+    {
+      "id": "right-stack-cup",
+      "title": "Sağdaki kısmen görünen bardak",
+      "face": "front",
+      "backgroundMode": "design",
+      "mapping": {
+        "type": "uv-rg16le",
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/right-stack-cup.uv.bin.br"
+      },
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/right-stack-cup-mask.png",
+      "blend": "multiply"
+    },
+    {
+      "id": "nested-paper-bands",
+      "title": "Yığındaki görünen dar kağıt şeritler",
+      "face": "front",
+      "backgroundMode": "design",
+      "mapping": {
+        "type": "uv-rg16le",
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/nested-paper-bands.uv.bin.br"
+      },
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-dental-hand-r1/nested-paper-bands-mask.png",
+      "blend": "multiply"
+    }
+  ]
+}
