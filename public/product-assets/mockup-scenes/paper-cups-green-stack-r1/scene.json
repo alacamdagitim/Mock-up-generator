@@ -19,9 +19,9 @@
       "backgroundMode": "design",
       "mapping": {
         "type": "uv-rg16le",
-        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/upper-held-cup.uv.bin.br"
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/upper-held-cup.uv.bin.br?v=20261102-r2"
       },
-      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/upper-held-cup-mask.png",
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/upper-held-cup-mask.png?v=20261102-r2",
       "blend": "multiply"
     },
     {
@@ -31,9 +31,9 @@
       "backgroundMode": "design",
       "mapping": {
         "type": "uv-rg16le",
-        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/lower-held-cup.uv.bin.br"
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/lower-held-cup.uv.bin.br?v=20261102-r2"
       },
-      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/lower-held-cup-mask.png",
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/lower-held-cup-mask.png?v=20261102-r2",
       "blend": "multiply"
     },
     {
@@ -43,9 +43,9 @@
       "backgroundMode": "design",
       "mapping": {
         "type": "uv-rg16le",
-        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/nested-paper-bands.uv.bin.br"
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/nested-paper-bands.uv.bin.br?v=20261102-r2"
       },
-      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/nested-paper-bands-mask.png",
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-green-stack-r1/nested-paper-bands-mask.png?v=20261102-r2",
       "blend": "multiply"
     }
   ]

@@ -19,9 +19,9 @@
       "backgroundMode": "design",
       "mapping": {
         "type": "uv-rg16le",
-        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-duo-r1/front.uv.bin.br"
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-duo-r1/front.uv.bin.br?v=20261102-r2"
       },
-      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-duo-r1/front-mask.png",
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-carra-duo-r1/front-mask.png?v=20261102-r2",
       "blend": "multiply"
     }
   ]

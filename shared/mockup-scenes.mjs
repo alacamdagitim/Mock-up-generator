@@ -128,6 +128,8 @@ export const mockupSurfaceSchema = z
     mapping,
     maskUrl: rasterUrl.optional(),
     shadingUrl: rasterUrl.optional(),
+    // Gaussian sigma in native scene pixels; matches out-of-focus photo surfaces.
+    focusBlur: finite.min(0).max(8).optional(),
     opacity: finite.min(0).max(1).optional(),
     blend: z.enum(["source-over", "multiply"]).optional(),
   })

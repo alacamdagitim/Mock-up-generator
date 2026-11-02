@@ -4,6 +4,7 @@ import type { AssetStore } from "./assets";
 import type { MockupScene, MockupTextures } from "./types";
 import { sampleBilinear, sampleMinified, sampleUv16 } from "./sampling";
 import type { PixelLevel } from "./sampling";
+import { blurMockupLayer } from "./focus-blur";
 
 export type ArtworkProvider = (
   face: "front" | "back",
@@ -264,7 +265,7 @@ export async function composeMockup(
       ];
       let previous = source;
       // Browser downsampling averages the full footprint before the nonlinear warp.
-      // Native export keeps its original one-level path and dimensions.
+      // Export uses the same footprint filtering without changing its dimensions.
       if (options.antialias) {
         while (previous.width > 1 || previous.height > 1) {
           checkAbort(options.signal);
@@ -429,6 +430,14 @@ export async function composeMockup(
         }
       }
       checkAbort(options.signal);
+      if (surface.focusBlur)
+        await blurMockupLayer(
+          mapped.data,
+          width,
+          height,
+          surface.focusBlur * scale,
+          options.signal,
+        );
       overlayContext.putImageData(mapped, 0, 0);
       ctx.globalCompositeOperation = surface.blend || "multiply";
       ctx.drawImage(overlay, 0, 0);

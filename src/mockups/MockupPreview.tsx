@@ -383,6 +383,7 @@ export const MockupPreview = forwardRef<
           frozen.set(key, copy);
         }
         output = await composeMockup(current, currentTextures, {
+          antialias: true,
           backgroundColor: currentProps.backgroundColor,
           signal: controller.signal,
           artworkProvider: (face, mode) =>
