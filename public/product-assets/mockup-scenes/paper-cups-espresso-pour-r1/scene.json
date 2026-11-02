@@ -1,0 +1,28 @@
+{
+  "id": "paper-cups-espresso-pour-r1",
+  "title": "Espresso makinesi · Kahve dolumu",
+  "width": 1448,
+  "height": 1086,
+  "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-espresso-pour-r1/base.webp",
+  "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-espresso-pour-r1/thumbnail.jpg",
+  "distribution": "public-web",
+  "license": "Kullanıcının sağladığı fotoğraftan imagegen ile baskısız taban hazırlandı. Kaynak hakları sahibine aittir. Elle kalibre edilmiş sabit görünüm eşlemesidir; üretim ölçüsü içermez.",
+  "artboard": {
+    "canvasWidth": 1800,
+    "canvasHeight": 900
+  },
+  "surfaces": [
+    {
+      "id": "cup-wall",
+      "title": "Bardağın baskı gövdesi",
+      "face": "front",
+      "backgroundMode": "design",
+      "mapping": {
+        "type": "uv-rg16le",
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-espresso-pour-r1/front.uv.bin.br?v=20261102-r1"
+      },
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-espresso-pour-r1/front-mask.png?v=20261102-r1",
+      "blend": "multiply"
+    }
+  ]
+}

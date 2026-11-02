@@ -1,0 +1,42 @@
+{
+  "id": "paper-cups-rain-car-r1",
+  "title": "Yağmur · Otomobil üzerinde bardak",
+  "width": 1448,
+  "height": 1086,
+  "baseImageUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-rain-car-r1/base.webp",
+  "plainThumbnailUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-rain-car-r1/thumbnail.jpg",
+  "distribution": "public-web",
+  "license": "Kullanıcının sağladığı fotoğraftan imagegen ile baskısız taban hazırlandı. Kaynak hakları ilgili sahibine aittir. Elle kalibre edilmiş sabit görünüm UV yaklaşımıdır; üretim ölçüsü değildir.",
+  "artboard": {
+    "canvasWidth": 1800,
+    "canvasHeight": 900
+  },
+  "surfaces": [
+    {
+      "id": "reflection",
+      "title": "Kaput üzerindeki yumuşak yansıma",
+      "face": "front",
+      "backgroundMode": "design",
+      "mapping": {
+        "type": "uv-rg16le",
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-rain-car-r1/reflection.uv.bin.br"
+      },
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-rain-car-r1/reflection-mask.png",
+      "blend": "multiply",
+      "opacity": 0.28,
+      "focusBlur": 2.5
+    },
+    {
+      "id": "front",
+      "title": "Yağmur damlalı bardak gövdesi",
+      "face": "front",
+      "backgroundMode": "design",
+      "mapping": {
+        "type": "uv-rg16le",
+        "url": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-rain-car-r1/front.uv.bin.br"
+      },
+      "maskUrl": "https://mock-up-generator-y265.vercel.app/product-assets/mockup-scenes/paper-cups-rain-car-r1/front-mask.png",
+      "blend": "multiply"
+    }
+  ]
+}
