@@ -1,5 +1,7 @@
 .mobile-text-done,
-.mobile-order-close {
+.mobile-order-close,
+.design-face-caption,
+.preview-view-label {
   display: none;
 }
 
@@ -20,6 +22,7 @@
     --mobile-header: calc(100px + env(safe-area-inset-top, 0px));
     --mobile-bottom: calc(94px + env(safe-area-inset-bottom, 0px));
     --mobile-content-top: 80px;
+    --mobile-toolbar-edge: max(10px, env(safe-area-inset-left, 0px));
   }
   .online-header {
     height: var(--mobile-header);
@@ -245,9 +248,9 @@
     padding: 6px;
   }
   .selection-toolbar button {
-    width: 40px;
+    width: 44px;
     height: 44px;
-    min-width: 40px;
+    min-width: 44px;
   }
   .selection-toolbar select {
     flex: 1;
@@ -260,8 +263,20 @@
     height: 44px;
   }
   .selection-toolbar input[type="color"] {
-    width: 40px;
+    width: 44px;
     height: 44px;
+  }
+  .selection-inspector .inspector-row input,
+  .selection-inspector .inspector-layers button,
+  .selection-inspector .object-actions button {
+    min-height: 44px;
+  }
+  .selection-inspector .opacity-field input[type="range"] {
+    height: 44px;
+  }
+  .selection-inspector textarea {
+    min-height: 96px;
+    line-height: 1.5;
   }
   .selection-more,
   .popover-above .selection-more {
@@ -276,8 +291,8 @@
   .design-canvas-dock {
     position: fixed;
     bottom: calc(var(--mobile-bottom) + 4px);
-    left: 10px;
-    right: 10px;
+    left: var(--mobile-toolbar-edge);
+    right: max(10px, env(safe-area-inset-right, 0px));
     width: auto;
     max-width: none;
     height: 48px;
@@ -289,6 +304,9 @@
         1fr
       );
     gap: 0;
+    border: 1px solid #e4e4e7;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px #00000012;
   }
   .design-canvas-dock > button,
   .design-canvas-dock .canvas-tool-control > button {
@@ -309,6 +327,7 @@
   .design-canvas-dock .canvas-tool-control > .zoom-reset {
     min-width: 0;
     width: 100%;
+    font-variant-numeric: tabular-nums;
   }
   .design-canvas-dock .canvas-zoom-actions {
     display: grid;
@@ -335,18 +354,97 @@
   .canvas-zoom-menu {
     width: 228px;
     left: auto;
-    right: -44px;
+    right: 0;
     transform: none;
   }
   .design-face-bar {
-    position: absolute;
-    right: 0;
-    bottom: 56px;
-    height: 44px;
+    position: fixed;
+    left: var(--mobile-toolbar-edge);
+    right: max(10px, env(safe-area-inset-right, 0px));
+    top: auto;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    height: 48px;
+    padding: 0 10px;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+    z-index: 75;
+    border: 1px solid #e4e4e7;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 10px #00000008;
+  }
+  .design-face-bar > .design-face-caption {
+    display: block;
+    flex: 0 0 auto;
+    color: #66666e;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+  .design-face-bar .face-switch {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    padding: 0;
+    background: transparent;
   }
   .design-face-bar select {
+    display: block;
+    width: 100%;
     min-height: 44px;
-    max-width: 120px;
+    height: 44px;
+    max-width: none;
+    padding: 8px 28px 8px 10px;
+    border: 0;
+    background-color: #f3f3f5;
+    color: #171719;
+    -webkit-text-fill-color: #171719;
+    font-size: 16px;
+    line-height: 24px;
+    opacity: 1;
+    cursor: pointer;
+    text-overflow: ellipsis;
+  }
+  .design-face-bar select:focus-visible {
+    outline: 2px solid #171719;
+    outline-offset: 2px;
+  }
+  .design-canvas-dock button {
+    touch-action: manipulation;
+  }
+  .design-canvas-dock button[aria-pressed="true"],
+  .design-canvas-dock button[aria-expanded="true"] {
+    color: #111;
+    background: #ebebee;
+  }
+  .design-canvas-dock button:enabled:active {
+    background: #dedee4;
+  }
+  .canvas-view-menu {
+    left: auto;
+    right: 0;
+    bottom: calc(100% + 12px);
+    width: min(300px, calc(100vw - 24px));
+    max-height: min(65dvh, 420px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .canvas-view-menu::after {
+    left: auto;
+    right: 15px;
+  }
+  .canvas-view-menu label {
+    white-space: normal;
+    min-height: 48px;
+    padding: 12px;
+    line-height: 1.4;
+  }
+  .canvas-view-menu input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
   }
   .online-app.mode-3d .online-camera-dock {
     position: absolute;
@@ -367,6 +465,43 @@
   }
   .online-camera-dock button {
     min-height: 44px;
+    touch-action: manipulation;
+  }
+  .online-app.mode-3d .online-camera-dock > .preview-view-trigger {
+    width: auto;
+    min-width: 112px;
+    flex: 1 0 auto;
+    display: flex;
+    gap: 6px;
+    padding: 0 10px;
+    background: #f1f1f3;
+    color: #171719;
+  }
+  .preview-view-label {
+    display: inline;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .online-app.mode-3d .online-camera-dock.has-inflate {
+    flex-wrap: wrap;
+    width: min(360px, calc(100% - 16px));
+    height: auto;
+  }
+  .online-app.mode-3d .online-camera-dock.has-inflate > .preview-toolbar-divider {
+    display: none;
+  }
+  .online-app.mode-3d .preview-inflate {
+    flex: 0 0 100%;
+    order: 1;
+    min-height: 44px;
+    padding: 0 6px;
+  }
+  .online-app.mode-3d .preview-inflate input {
+    height: 44px;
+  }
+  .online-app.mode-3d .preview-view-popover {
+    bottom: calc(100% + 8px);
   }
   .online-app.mode-3d .product-model-note {
     top: 8px;
@@ -574,12 +709,40 @@
 }
 
 .mobile-properties-toggle,
-.mobile-properties-heading {
+.mobile-properties-heading,
+.mobile-selection-actions {
   display: none;
 }
 @media (max-width: 700px), (max-width: 1100px) and (max-height: 500px) {
   .online-app.mode-2d {
-    --mobile-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    --mobile-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  }
+  .mode-2d .online-toast {
+    bottom: calc(124px + env(safe-area-inset-bottom, 0px));
+  }
+  .online-toast button {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 8px;
+    margin: -8px -8px -8px 0;
+  }
+  .mode-2d .surface-color-trigger {
+    min-height: 44px;
+  }
+  .mode-2d .surface-color-heading button,
+  .mode-2d .surface-color-swatches button,
+  .mode-2d .surface-color-eyedropper {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+  .mode-2d .surface-color-swatches {
+    gap: 10px;
+  }
+  .mode-2d .surface-color-hex {
+    height: 44px;
   }
   .mode-2d .online-save {
     display: none;
@@ -588,28 +751,72 @@
     bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   }
   .mode-2d .design-face-bar {
-    top: 0;
-    bottom: auto;
-    z-index: 6;
+    top: auto;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
   .mode-2d .design-viewport {
-    margin-top: 50px;
+    margin-top: 0;
   }
   .mode-2d .mobile-properties-toggle {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid #dedee3;
+    background: #fff;
+    color: #111;
+    font-size: 13px;
+    line-height: 18px;
+    touch-action: manipulation;
+  }
+  .mode-2d .mobile-selection-actions {
     position: absolute;
     z-index: 25;
     top: var(--mobile-content-top);
-    left: 10px;
+    left: var(--mobile-toolbar-edge);
+    right: max(10px, env(safe-area-inset-right, 0px));
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    min-height: 44px;
+  }
+  .mobile-selection-actions > button:only-child {
+    grid-column: 1 / -1;
+    width: max-content;
+    max-width: 100%;
+    padding-inline: 12px;
+  }
+  .mobile-selection-actions .mobile-text-edit-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
     min-height: 44px;
-    padding: 8px 12px;
+    padding: 8px;
+    border: 1px solid #111;
     border-radius: 10px;
-    background: #fff;
-    color: #111;
-    box-shadow: 0 2px 8px #0001;
+    background: #111;
+    color: #fff;
     font-size: 13px;
+    line-height: 18px;
+    touch-action: manipulation;
+  }
+  .mobile-selection-actions .mobile-text-edit-toggle:active {
+    background: #343438;
+  }
+  .has-mobile-selection-actions.mode-2d .design-viewport {
+    margin-top: 52px;
+  }
+  .canvas-keyboard .mobile-selection-actions,
+  .with-panel .mobile-selection-actions,
+  .show-mobile-config .mobile-selection-actions {
+    display: none;
   }
   .mode-2d .online-selection-floating,
   .mode-2d.without-panel .online-selection-floating {
@@ -661,6 +868,7 @@
     height: auto;
     max-height: min(70dvh, 420px);
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .canvas-keyboard.mode-2d {
     --mobile-bottom: 8px;
@@ -670,11 +878,34 @@
   }
 }
 @media (max-width: 1100px) and (max-height: 500px) and (orientation: landscape) {
-  .mode-2d .mobile-properties-toggle {
+  .mode-2d .mobile-selection-actions {
     left: 80px;
+    right: auto;
+    width: min(300px, calc(100% - var(--mobile-landscape-face-width) - 96px));
   }
   .online-app.mode-2d {
     --mobile-bottom: 60px;
+    --mobile-landscape-face-width: min(300px, calc(45vw - 43px));
+  }
+  .mode-2d .online-toast {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+  .mode-2d .design-face-bar {
+    position: absolute;
+    top: 0;
+    bottom: auto;
+    left: auto;
+    right: 0;
+    width: var(--mobile-landscape-face-width);
+    max-width: calc(100% - 140px);
+    padding: 0 6px;
+    gap: 6px;
+  }
+  .mode-2d .design-face-bar > .design-face-caption {
+    display: none;
+  }
+  .mode-2d .design-viewport {
+    margin-top: 52px;
   }
   .mode-2d .online-selection-floating,
   .mode-2d.without-panel .online-selection-floating {
@@ -688,5 +919,14 @@
   }
   .canvas-keyboard.mode-2d {
     --mobile-bottom: 8px;
+  }
+  .canvas-keyboard.mode-2d .design-viewport {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .mode-2d .design-face-bar > .design-face-caption {
+    display: none;
   }
 }

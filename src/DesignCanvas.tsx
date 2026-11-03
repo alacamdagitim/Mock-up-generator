@@ -45,6 +45,7 @@ export function DesignCanvas({
   onTexture,
   onError,
   onBackground,
+  onEditText,
 }: {
   open: boolean;
   templateUrl?: string;
@@ -66,6 +67,7 @@ export function DesignCanvas({
   onTexture: (face: Face, canvas: HTMLCanvasElement) => void;
   onError: (message: string) => void;
   onBackground?: (color: string, record?: boolean) => void;
+  onEditText?: (element: Element) => void;
 }) {
   const workbench = useRef<HTMLElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
@@ -499,6 +501,7 @@ export function DesignCanvas({
       aria-hidden={!open}
     >
       <div className="design-face-bar">
+        <span className="design-face-caption">Baskı yüzü</span>
         <div className="face-switch" role="group" aria-label="Baskı yüzü">
           <select
             aria-label="Baskı yüzü"
@@ -687,6 +690,7 @@ export function DesignCanvas({
             onSelect={onSelect}
             onTexture={onTexture}
             onError={onError}
+            onEditText={onEditText}
           />
         </div>
       </div>

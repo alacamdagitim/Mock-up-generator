@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 import type { RenderOptions, RenderSnapshot } from "./render/types";
+import { downloadExport } from "./download";
 
 type RenderDialogProps = {
   open: boolean;
@@ -236,16 +237,11 @@ function RenderDialogContent({
         generation.current !== requestId
       )
         return;
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `alacam-${artworkOnly ? "2b-onizleme" : allowStudio ? "canli-gorunum" : "mockup"}.${liveFormat === "jpeg" ? "jpg" : "png"}`;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      // Keep the actual PNG bytes; JPG encoding preserves the source dimensions.
-      // Safari can start reading a download after click() has returned.
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      downloadExport(
+        blob,
+        `alacam-${artworkOnly ? "2b-onizleme" : allowStudio ? "canli-gorunum" : "mockup"}.${liveFormat === "jpeg" ? "jpg" : "png"}`,
+        dialog.current,
+      );
       setLiveNotice("Görsel indirildi.");
     } catch (cause) {
       if (

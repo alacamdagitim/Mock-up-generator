@@ -17,6 +17,7 @@ import mockupWorkflowCss from "./mockup-workflow.css?inline";
 import modelMappingCss from "./model-mapping.css?inline";
 import orderPanelCss from "./order-panel.css?inline";
 import mobileEditorCss from "./mobile-editor.css?inline";
+import mobileTextEditorCss from "./mobile-text-editor.css?inline";
 import mockupGalleryCss from "./mockups/gallery.css?inline";
 import latinFont from "@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2?url";
 import extendedFont from "@fontsource-variable/dm-sans/files/dm-sans-latin-ext-wght-normal.woff2?url";
@@ -99,6 +100,7 @@ export function mountEditor(host: HTMLElement, options: MountOptions = {}) {
     mockupWorkflowCss,
     orderPanelCss,
     mobileEditorCss,
+    mobileTextEditorCss,
     mockupGalleryCss,
     options.fullscreen
       ? ".alacam-app,.online-app{height:100%;min-height:0;}"

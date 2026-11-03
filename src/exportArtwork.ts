@@ -2,6 +2,8 @@ import DOMPurify from "dompurify";
 import { renderFace } from "./Editor";
 import type { Design, Face } from "./types";
 import { faceBackground } from "../shared/surface-colors.mjs";
+import { downloadExport } from "./download";
+export { downloadExport } from "./download";
 
 export type ArtworkExportFormat = "svg" | "png" | "pdf";
 export type ArtworkExportKind = "artwork" | "dieline";
@@ -247,22 +249,14 @@ export async function createArtworkExport(
   }
 }
 
-export function downloadExport(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  // Safari may start reading the object URL after click() returns.
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
-
-export function downloadEditableDesign(design: Design) {
+export function downloadEditableDesign(
+  design: Design,
+  container?: HTMLElement | null,
+) {
   downloadExport(
     new Blob([JSON.stringify(design, null, 2)], { type: "application/json" }),
     `${exportFilename(design.name)}.json`,
+    container,
   );
 }
 

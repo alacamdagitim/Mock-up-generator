@@ -22,6 +22,7 @@ import {
   Square,
   ShoppingBag,
   Type,
+  Pencil,
   Upload,
   X,
 } from "lucide-react";
@@ -36,6 +37,11 @@ import { OrderPanel } from "./OrderPanel";
 import { LayoutPanel } from "./LayoutPanel";
 import { useDesigner, newElement } from "./useDesigner";
 import { SelectionInspector } from "./SelectionInspector";
+import { MobileTextEditor } from "./MobileTextEditor";
+import type {
+  MobileTextEditorHandle,
+  MobileTextResult,
+} from "./MobileTextEditor";
 import { manufacturerDielineUrl } from "../shared/storefront.mjs";
 import { pngBlob } from "./files";
 import { PackagingSymbols } from "./PackagingSymbols";
@@ -126,6 +132,10 @@ export default function OnlineDesigner({
   const [modelOpened, setModelOpened] = useState(Boolean(manufacturerModel));
   const [propertiesOpen, setPropertiesOpen] = useState(false);
   const [canvasKeyboard, setCanvasKeyboard] = useState(false);
+  const mobileText = useRef<MobileTextEditorHandle>(null);
+  const textContext = useRef<{ productId: string; face: typeof d.face } | null>(
+    null,
+  );
   useEffect(() => {
     const media = matchMedia(MOBILE_VIEW);
     const update = () => setMobile(media.matches);
@@ -160,6 +170,14 @@ export default function OnlineDesigner({
     (scene) => scene.id === d.settings.mockupSceneId,
   );
   const photoActive = hasMockups && mode === "mockup";
+  const showSelectionActions =
+    mobile &&
+    Boolean(d.selected) &&
+    mode === "2d" &&
+    !panel &&
+    !mobileConfig &&
+    !canvasKeyboard &&
+    !propertiesOpen;
   const captureScene = selectedScene || mockupScenes[0];
   const mockupOutput = photoActive && Boolean(captureScene);
   const flatOutput = mode === "2d";
@@ -399,6 +417,10 @@ export default function OnlineDesigner({
   const openTool = (value: Tool) => {
     setExportOpen(false);
     setPropertiesOpen(false);
+    if (mobile && value === "text") {
+      openTextEditor();
+      return;
+    }
     if (value === "layout" && mockupScenes.length) {
       d.editor.current?.deselect();
       setCanvasKeyboard(false);
@@ -470,6 +492,66 @@ export default function OnlineDesigner({
       if (tool === "layout") setTool(last2dTool.current);
       if (!mobile) setPanel(true);
     }
+  };
+  const openTextEditor = (element?: Element) => {
+    if (element?.locked) {
+      d.notify("Yazıyı düzenlemek için önce öğenin kilidini açın.");
+      return;
+    }
+    changeMode("2d");
+    setTool("text");
+    setPanel(false);
+    setPropertiesOpen(false);
+    setMobileConfig(false);
+    setCanvasKeyboard(false);
+    textContext.current = { productId: d.product.id, face: d.face };
+    mobileText.current?.open({
+      initialText: element?.text || "",
+      elementId: element?.id,
+      title: element ? "Yazıyı düzenle" : "Yazı ekle",
+    });
+  };
+  const applyMobileText = async ({ text, elementId }: MobileTextResult) => {
+    const context = textContext.current;
+    if (
+      !context ||
+      context.productId !== d.product.id ||
+      context.face !== d.face
+    )
+      throw new Error("Baskı yüzü değişti. Yazıyı bu yüzde yeniden açın.");
+    if (!d.editor.current) throw new Error("Düzenleyici henüz hazır değil.");
+    if (elementId) {
+      const existing = d.state.current.faces[d.face].find(
+        (el) => el.id === elementId,
+      );
+      if (!existing || existing.kind !== "text")
+        throw new Error("Bu yazı artık tasarımda bulunmuyor.");
+      if (existing.locked)
+        throw new Error("Yazıyı düzenlemek için kilidini açın.");
+      d.editor.current.select(elementId);
+      d.editor.current.update({ text });
+    } else {
+      const width = d.state.current.artboard?.canvasWidth || 600;
+      const fontSize = Math.min(240, Math.max(24, Math.round(width * 0.075)));
+      await d.editor.current.add(
+        {
+          ...newElement(
+            "text",
+            text.trim().split("\n")[0].slice(0, 60) || "Yazı",
+          ),
+          text,
+          width: width * 0.65,
+          height: fontSize * 1.3,
+          fontSize,
+          fontFamily: "DM Sans",
+          textAlign: "center",
+          fill: "#191919",
+        },
+        { fitTextToArtboard: true },
+      );
+    }
+    setPanel(false);
+    setPropertiesOpen(false);
   };
   const save = async () => {
     const result = await d.save();
@@ -549,7 +631,7 @@ export default function OnlineDesigner({
     );
   return (
     <div
-      className={`online-app ${hasMockups ? "mockup-product" : ""} ${mockupScenes.length ? "has-mockup-gallery" : ""} ${manufacturerModel ? "has-product-model" : ""} mode-${mode} tool-${tool} ${panel ? "with-panel" : "without-panel"} ${mobileConfig ? "show-mobile-config" : ""} ${canvasKeyboard ? "canvas-keyboard" : ""}`}
+      className={`online-app ${hasMockups ? "mockup-product" : ""} ${mockupScenes.length ? "has-mockup-gallery" : ""} ${manufacturerModel ? "has-product-model" : ""} ${showSelectionActions ? "has-mobile-selection-actions" : ""} mode-${mode} tool-${tool} ${panel ? "with-panel" : "without-panel"} ${mobileConfig ? "show-mobile-config" : ""} ${canvasKeyboard ? "canvas-keyboard" : ""}`}
       style={{ "--preview-size": `${previewSize}px` } as CSSProperties}
       ref={root}
       data-editor-scope={d.keyboardScope}
@@ -578,6 +660,7 @@ export default function OnlineDesigner({
           root.current?.focus({ preventScroll: true });
       }}
     >
+      <MobileTextEditor ref={mobileText} onApply={applyMobileText} />
       <header className="online-header">
         <div className="online-brand" aria-label="Alaçam Dağıtım">
           <span>
@@ -630,10 +713,10 @@ export default function OnlineDesigner({
               photoActive
                 ? "Büyütmek veya indirmek için mockup sahnesini aç"
                 : flatOutput
-                ? "2B tasarımı indir"
-                : mockupOutput
-                  ? "Seçili hazır mockupı indir"
-                  : "3B görünümü indir"
+                  ? "2B tasarımı indir"
+                  : mockupOutput
+                    ? "Seçili hazır mockupı indir"
+                    : "3B görünümü indir"
             }
             onClick={() => {
               if (photoActive && mockupScenes.length)
@@ -763,11 +846,15 @@ export default function OnlineDesigner({
               key={item.id}
               aria-label={item.title}
               aria-pressed={
-                (item.id === "layout" && photoActive && mockupScenes.length > 0) ||
+                (item.id === "layout" &&
+                  photoActive &&
+                  mockupScenes.length > 0) ||
                 (panel && tool === item.id)
               }
               className={
-                (item.id === "layout" && photoActive && mockupScenes.length > 0) ||
+                (item.id === "layout" &&
+                  photoActive &&
+                  mockupScenes.length > 0) ||
                 (panel && tool === item.id)
                   ? "active"
                   : ""
@@ -904,15 +991,17 @@ export default function OnlineDesigner({
               <button
                 aria-label="Yazı ekle"
                 className="add-text-button"
-                onClick={() =>
-                  void add({
-                    ...newElement("text", "Yeni yazı"),
-                    text: "Yazınızı buraya yazın",
-                    fontSize: 40,
-                    fontFamily: "DM Sans",
-                    textAlign: "center",
-                  })
-                }
+                onClick={() => {
+                  if (mobile) openTextEditor();
+                  else
+                    void add({
+                      ...newElement("text", "Yeni yazı"),
+                      text: "Yazınızı buraya yazın",
+                      fontSize: 40,
+                      fontFamily: "DM Sans",
+                      textAlign: "center",
+                    });
+                }}
               >
                 Yazı ekle
               </button>
@@ -1122,22 +1211,35 @@ export default function OnlineDesigner({
           onTexture={d.onTexture}
           onError={(message) => d.notify(message, true)}
           onBackground={d.background}
+          onEditText={mobile ? openTextEditor : undefined}
         />
-        {mobile &&
-          d.selected &&
-          mode === "2d" &&
-          !panel &&
-          !mobileConfig &&
-          !canvasKeyboard &&
-          !propertiesOpen && (
+        {showSelectionActions && d.selected && (
+          <div
+            className="mobile-selection-actions"
+            aria-label="Seçili öğe araçları"
+          >
+            {d.selected.kind === "text" && !d.selected.locked && (
+              <button
+                className="mobile-text-edit-toggle"
+                aria-label="Yazıyı düzenle"
+                onClick={() => openTextEditor(d.selected!)}
+              >
+                <Pencil size={18} /> Yazıyı düzenle
+              </button>
+            )}
             <button
               className="mobile-properties-toggle"
+              aria-label={
+                d.selected.kind === "text" ? "Biçim ve araçlar" : "Öğe araçları"
+              }
               onClick={() => setPropertiesOpen(true)}
               aria-expanded={propertiesOpen}
             >
-              <MoreHorizontal size={20} /> Öğe araçları
+              <MoreHorizontal size={20} />{" "}
+              {d.selected.kind === "text" ? "Biçim ve araçlar" : "Öğe araçları"}
             </button>
-          )}
+          </div>
+        )}
         {d.selected &&
           mode === "2d" &&
           tool !== "layout" &&

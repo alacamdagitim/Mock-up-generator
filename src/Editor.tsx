@@ -19,6 +19,7 @@ import {
 import type { ArtboardSpec, Element, Face } from "./types";
 import { DesignFontError, ensureDesignFont } from "./designFonts";
 import { artworkMultiplier } from "../shared/render-quality.mjs";
+import { fitNewMobileText } from "./mobileTextLayout";
 type Meta = {
   id: string;
   name: string;
@@ -30,7 +31,10 @@ type Meta = {
 };
 type Obj = FabricObject & { alacam?: Meta };
 export type EditorHandle = {
-  add: (el: Element) => Promise<void>;
+  add: (
+    el: Element,
+    options?: { fitTextToArtboard?: boolean },
+  ) => Promise<void>;
   update: (values: Partial<Element>) => void;
   remove: () => void;
   layer: (direction: "up" | "down" | "front" | "back") => void;
@@ -209,6 +213,7 @@ export const Editor = forwardRef<
     onSelect: (e: Element | null) => void;
     onTexture: (face: Face, c: HTMLCanvasElement) => void;
     onError: (s: string) => void;
+    onEditText?: (element: Element) => void;
   }
 >((props, ref) => {
   const node = useRef<HTMLCanvasElement>(null),
@@ -234,6 +239,12 @@ export const Editor = forwardRef<
     object: FabricObject;
     values: Record<string, unknown>;
   } | null>(null);
+  const lastTextTap = useRef<{
+    object: Textbox;
+    time: number;
+    x: number;
+    y: number;
+  } | null>(null);
   const applyControls = (c: Canvas, object?: FabricObject) => {
     const touch = latest.current.touchControls === true;
     const scale = Math.max(0.001, latest.current.viewportScale || 1);
@@ -243,6 +254,14 @@ export const Editor = forwardRef<
       item.padding = touch ? 5 / scale : 3;
       if (item.controls.mtr)
         item.controls.mtr.offsetY = touch ? -36 / scale : -40;
+      if (item instanceof Textbox) {
+        // Inline Fabric editing uses a tiny off-screen textarea, which fights
+        // the phone keyboard and scaled canvas. A visible native editor owns
+        // mobile text input; selection/drag/resize stay on the artwork.
+        item.editable =
+          !item.lockMovementX && !(touch && latest.current.onEditText);
+        if (!item.editable && item.isEditing) item.exitEditing();
+      }
       item.setCoords();
     }
     c.requestRenderAll();
@@ -251,6 +270,7 @@ export const Editor = forwardRef<
     c.upperCanvasEl.closest<HTMLElement>(".online-app") ||
     c.upperCanvasEl.parentElement!;
   const startTextEditing = (object: Textbox) => {
+    if (latest.current.touchControls && latest.current.onEditText) return;
     const root = node.current?.getRootNode() as Document | ShadowRoot;
     const pending =
       pendingTextEditing.current?.object === object
@@ -426,6 +446,48 @@ export const Editor = forwardRef<
     c.on("object:scaling", live);
     c.on("object:rotating", live);
     c.on("mouse:up", () => setSnap({ x: false, y: false }));
+    c.on("mouse:up", ({ e, target, transform }) => {
+      if (
+        !latest.current.touchControls ||
+        !latest.current.onEditText ||
+        !(e instanceof PointerEvent) ||
+        e.pointerType !== "touch" ||
+        !(target instanceof Textbox) ||
+        target.lockMovementX ||
+        transform?.actionPerformed ||
+        latest.current.interactive === false
+      ) {
+        lastTextTap.current = null;
+        return;
+      }
+      const previous = lastTextTap.current;
+      const time = performance.now();
+      if (
+        previous?.object === target &&
+        time - previous.time < 450 &&
+        Math.hypot(e.clientX - previous.x, e.clientY - previous.y) < 24
+      ) {
+        lastTextTap.current = null;
+        latest.current.onEditText(serialize(target as Obj));
+      } else
+        lastTextTap.current = {
+          object: target,
+          time,
+          x: e.clientX,
+          y: e.clientY,
+        };
+    });
+    c.on("mouse:dblclick", ({ e, target }) => {
+      if (
+        latest.current.touchControls &&
+        latest.current.onEditText &&
+        latest.current.interactive !== false &&
+        !(e instanceof PointerEvent && e.pointerType === "touch") &&
+        target instanceof Textbox &&
+        !target.lockMovementX
+      )
+        latest.current.onEditText(serialize(target as Obj));
+    });
     return () => {
       invalidateFontUpdates();
       pendingTextEditing.current = null;
@@ -442,6 +504,7 @@ export const Editor = forwardRef<
     const gen = ++generation.current;
     invalidateFontUpdates();
     transformStart.current = null;
+    lastTextTap.current = null;
     pendingTextEditing.current = null;
     loading.current = true;
     setBusy(true);
@@ -507,7 +570,7 @@ export const Editor = forwardRef<
     if (c) applyControls(c);
   }, [props.viewportScale, props.touchControls]);
   useImperativeHandle(ref, () => ({
-    add: async (e) => {
+    add: async (e, options) => {
       if (loading.current)
         throw new Error("Yüz yükleniyor, lütfen tekrar deneyin.");
       const c = canvas.current!;
@@ -517,6 +580,13 @@ export const Editor = forwardRef<
         o = await objectFrom(e, textInputContainer(c));
       if (gen !== generation.current)
         throw new Error("Yüz değişti. Lütfen görseli tekrar ekleyin.");
+      if (
+        options?.fitTextToArtboard &&
+        latest.current.touchControls &&
+        latest.current.onEditText &&
+        o instanceof Textbox
+      )
+        fitNewMobileText(o, latest.current.artboard);
       c.add(o);
       applyControls(c, o);
       c.setActiveObject(o);
@@ -540,7 +610,10 @@ export const Editor = forwardRef<
           ])
             val[prop] = value;
           val.hasControls = !value;
-          if (o instanceof Textbox) val.editable = !value;
+          if (o instanceof Textbox)
+            val.editable =
+              !value &&
+              !(latest.current.touchControls && latest.current.onEditText);
         } else if (k === "x") val.left = value;
         else if (k === "y") val.top = value;
         else if (
@@ -648,6 +721,7 @@ export const Editor = forwardRef<
       latest.current.onSelect(null);
     },
     cancelTransform: () => {
+      lastTextTap.current = null;
       const c = canvas.current;
       const transform = c?._currentTransform;
       if (!c || !transform) return;

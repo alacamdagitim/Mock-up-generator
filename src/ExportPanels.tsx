@@ -71,7 +71,9 @@ function JsonDownload({ design }: { design: Design }) {
     <button
       type="button"
       className="export-panel-secondary"
-      onClick={() => downloadEditableDesign(design)}
+      onClick={(event) =>
+        downloadEditableDesign(design, event.currentTarget.parentElement)
+      }
     >
       <FileJson size={18} aria-hidden="true" /> Düzenlenebilir JSON’u indir
     </button>
@@ -102,6 +104,7 @@ export function DielineExportPanel({
     () => matchMedia("(max-width: 700px)").matches,
   );
   const mounted = useRef(true);
+  const exportContainer = useRef<HTMLElement>(null);
   useEffect(() => {
     mounted.current = true;
     const query = matchMedia("(max-width: 700px)");
@@ -163,6 +166,7 @@ export function DielineExportPanel({
       downloadExport(
         blob,
         `${exportFilename(design.name)}-${face === "front" ? "on" : "arka"}-${kind === "dieline" ? "bicak-izi" : "tasarim"}.${format}`,
+        exportContainer.current,
       );
       setStatus(
         `${format.toUpperCase()} dosyası indirildi. Üretim onayı verilmemiştir.`,
@@ -217,6 +221,7 @@ export function DielineExportPanel({
       </section>
       <section
         className="studio-render-settings export-panel-settings"
+        ref={exportContainer}
         aria-label="Bıçak izi dışa aktarma ayarları"
       >
         <div className="export-panel-scroll">

@@ -140,11 +140,13 @@ export function PreviewToolbar({
         className="preview-view-trigger"
         aria-label="3B görünüm seçenekleri"
         aria-expanded={menu}
+        aria-haspopup="true"
         aria-controls={menu ? popoverId : undefined}
         title="Görünüm"
         onClick={() => setMenu(!menu)}
       >
         <Box size={19} />
+        <span className="preview-view-label">Görünüm</span>
       </button>
       {menu && (
         <div
