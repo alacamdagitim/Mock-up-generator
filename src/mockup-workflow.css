@@ -167,3 +167,24 @@
   background: #fff;
   cursor: pointer;
 }
+
+/* Keep the purchase controls reachable beside the scrollable scene gallery. */
+@media (min-width: 701px) and (min-height: 501px) {
+  .has-mockup-gallery.mode-mockup {
+    --gallery-preview-size: min(
+      var(--preview-size),
+      clamp(160px, calc(100dvh - 640px), 280px)
+    );
+  }
+  .has-mockup-gallery.mode-mockup .online-preview {
+    height: var(--gallery-preview-size);
+  }
+  .has-mockup-gallery.mode-mockup .online-config {
+    top: calc(var(--gallery-preview-size) + 36px);
+    max-height: calc(100% - var(--gallery-preview-size) - 146px);
+  }
+  .has-mockup-gallery.mode-mockup:not(.has-product-model) .online-config {
+    top: 20px;
+    max-height: calc(100% - 126px);
+  }
+}
